@@ -43,7 +43,7 @@ const KEYS = {
   pin: 'belanjasayang:pin:v1',
 } as const
 
-const CURRENT_SEED_VERSION = 'v3-wife-note-clean'
+const CURRENT_SEED_VERSION = 'v4-clean-with-sync'
 
 function ensureCleanSeedReset(): void {
   if (typeof window === 'undefined') return

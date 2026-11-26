@@ -17,8 +17,30 @@ describe('Household Monthly Budget ("Anggaran") Logic', () => {
     const summary = computeBudgetMonthSummary(month, DEFAULT_BUDGET_MODES, 0)
     expect(summary.totalIncome).toBe(10000000)
     expect(summary.totalAllocation).toBe(8973000)
-    expect(summary.baseSavingsAllocation).toBe(1027000)
-    expect(summary.monthlySavingsTotal).toBe(1027000)
+    expect(summary.requiredSavings).toBe(1000000) // 10% of 10jt
+    expect(summary.unallocatedCash).toBe(27000) // Rp 27.000 free headroom
+    expect(summary.isSavingsBreached).toBe(false)
+    expect(summary.monthlySavingsTotal).toBe(1000000)
+  })
+
+  it('scales savings automatically when salary increases and detects savings rule breach', () => {
+    const month = createDefaultBudgetMonth('2026-11')
+    month.baseIncome = 15000000
+    month.savingsRuleType = 'percent'
+    month.savingsRuleValue = 20 // 20% auto-save -> Rp 3.000.000
+    month.savingsStartingBalance = 3000000
+
+    const raised = computeBudgetMonthSummary(month, DEFAULT_BUDGET_MODES, 0)
+    expect(raised.requiredSavings).toBe(3000000)
+    expect(raised.unallocatedCash).toBe(15000000 - 8973000 - 3000000)
+    expect(raised.isSavingsBreached).toBe(false)
+
+    // Fixed Rp rule exceeding remaining income triggers breach warning
+    month.savingsRuleType = 'fixed'
+    month.savingsRuleValue = 7000000
+    const breached = computeBudgetMonthSummary(month, DEFAULT_BUDGET_MODES, 0)
+    expect(breached.isSavingsBreached).toBe(true)
+    expect(breached.unallocatedCash).toBeLessThan(0)
   })
 
   it('bridges live grocery spend from Catatan into Belanja Masak Mingguan & updates realized total', () => {
@@ -41,8 +63,8 @@ describe('Household Monthly Budget ("Anggaran") Logic', () => {
 
     const summary = computeBudgetMonthSummary(month, DEFAULT_BUDGET_MODES, 0)
     expect(summary.sweepSavingsBonus).toBe(200000)
-    expect(summary.monthlySavingsTotal).toBe(1227000)
-    expect(summary.realizedMonthlySavings).toBe(1227000)
+    expect(summary.monthlySavingsTotal).toBe(1200000)
+    expect(summary.realizedMonthlySavings).toBe(1200000)
   })
 
   it('supports efficiency toggles and clean month-to-month carry-over cloning', () => {

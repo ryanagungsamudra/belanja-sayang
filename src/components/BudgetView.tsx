@@ -70,6 +70,9 @@ interface BudgetViewProps {
       baseIncome: number
       extraIncome: number
       extraIncomeLabel?: string
+      savingsRuleType: 'percent' | 'fixed'
+      savingsRuleValue: number
+      savingsStartingBalance: number
       savingsTargetYear: number
     },
   ) => void
@@ -188,6 +191,7 @@ export const BudgetView = memo(function BudgetView({
   const cumulativeYearSavings = useMemo(() => {
     const yearPrefix = selectedMonth.slice(0, 4) + '-'
     let sum = 0
+    let startingBalance = monthRecord?.savingsStartingBalance ?? 0
     for (const m of budgetMonths) {
       if (!m.monthKey.startsWith(yearPrefix)) continue
       const s = computeBudgetMonthSummary(
@@ -196,9 +200,12 @@ export const BudgetView = memo(function BudgetView({
         grocerySpendByMonth[m.monthKey] ?? 0,
       )
       sum += s.realizedMonthlySavings
+      if ((m.savingsStartingBalance ?? 0) > startingBalance) {
+        startingBalance = m.savingsStartingBalance ?? 0
+      }
     }
-    return sum
-  }, [budgetMonths, grocerySpendByMonth, modes, selectedMonth])
+    return startingBalance + sum
+  }, [budgetMonths, grocerySpendByMonth, modes, monthRecord, selectedMonth])
 
   const fmtVal = (amount: number) =>
     privacyMasked ? 'Rp ••••••' : formatRupiah(amount)
@@ -408,7 +415,10 @@ export const BudgetView = memo(function BudgetView({
 
               <div className="text-right shrink-0">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700">
-                  Tabungan Bln Ini
+                  Tabungan
+                  {summary.savingsRuleType === 'percent'
+                    ? ` (${summary.savingsRuleValue}%)`
+                    : ''}
                 </p>
                 <p className="text-sm font-extrabold text-emerald-700 tabular-nums">
                   {fmtVal(summary.monthlySavingsTotal)}
@@ -420,6 +430,28 @@ export const BudgetView = memo(function BudgetView({
                 )}
               </div>
             </div>
+
+            {/* Unallocated Cash Headroom OR Savings Breach Warning */}
+            {summary.unallocatedCash !== 0 && (
+              <div
+                className={`rounded-xl px-2.5 py-1.5 text-[11px] font-bold flex items-center justify-between gap-2 ${
+                  summary.isSavingsBreached
+                    ? 'bg-amber-50 border border-amber-200 text-amber-800'
+                    : 'bg-emerald-50/75 border border-emerald-200/70 text-emerald-800'
+                }`}
+              >
+                <span>
+                  {summary.isSavingsBreached
+                    ? 'Alokasi melebihi batas tabungan'
+                    : 'Sisa Bebas (Belum Dialokasikan)'}
+                </span>
+                <span className="font-extrabold tabular-nums">
+                  {summary.isSavingsBreached
+                    ? `-${fmtVal(Math.abs(summary.unallocatedCash))}`
+                    : fmtVal(summary.unallocatedCash)}
+                </span>
+              </div>
+            )}
 
             {/* Realisasi vs Target Bar */}
             <div className="glass-chip rounded-2xl p-2.5 space-y-1.5">

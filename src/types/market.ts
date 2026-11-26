@@ -214,6 +214,11 @@ export interface BudgetMonthRecord {
   baseIncome: number
   extraIncome: number
   extraIncomeLabel?: string
+  /** 'percent' (e.g. 10% of totalIncome) or 'fixed' (exact Rp/month) */
+  savingsRuleType?: 'percent' | 'fixed'
+  savingsRuleValue?: number
+  /** Existing cold fund / savings balance before using the app */
+  savingsStartingBalance?: number
   savingsTargetYear: number
   payFirstDone: boolean
   effIcloudFamily?: boolean

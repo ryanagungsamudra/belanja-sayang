@@ -249,6 +249,9 @@ export function createDefaultBudgetMonth(monthKey: string): BudgetMonthRecord {
     baseIncome: 10000000,
     extraIncome: 0,
     extraIncomeLabel: '',
+    savingsRuleType: 'percent',
+    savingsRuleValue: 10,
+    savingsStartingBalance: 0,
     savingsTargetYear: 12000000,
     payFirstDone: false,
     effIcloudFamily: false,
@@ -275,6 +278,9 @@ export function cloneBudgetMonthPlan(
     baseIncome: source.baseIncome,
     extraIncome: 0,
     extraIncomeLabel: '',
+    savingsRuleType: source.savingsRuleType ?? 'percent',
+    savingsRuleValue: source.savingsRuleValue ?? 10,
+    savingsStartingBalance: source.savingsStartingBalance ?? 0,
     savingsTargetYear: source.savingsTargetYear,
     payFirstDone: false,
     effIcloudFamily: source.effIcloudFamily,
@@ -359,11 +365,18 @@ export function computeBudgetMonthSummary(
     }
   }
 
-  const baseSavingsAllocation = Math.max(0, totalIncome - totalAllocation)
-  const monthlySavingsTotal = baseSavingsAllocation + sweepSavingsBonus
-  const realizedMonthlySavings = month.payFirstDone
-    ? monthlySavingsTotal
-    : sweepSavingsBonus
+  const savingsRuleType = month.savingsRuleType ?? 'percent'
+  const savingsRuleValue = month.savingsRuleValue ?? 10
+  const requiredSavings =
+    savingsRuleType === 'fixed'
+      ? Math.max(0, Math.round(savingsRuleValue))
+      : Math.round((totalIncome * Math.max(0, savingsRuleValue)) / 100)
+
+  const unallocatedCash = totalIncome - totalAllocation - requiredSavings
+  const isSavingsBreached = unallocatedCash < 0
+  const monthlySavingsTotal = requiredSavings + sweepSavingsBonus
+  const realizedMonthlySavings =
+    (month.payFirstDone ? requiredSavings : 0) + sweepSavingsBonus
   const burnPct =
     totalAllocation > 0 ? Math.round((totalSpent / totalAllocation) * 100) : 0
 
@@ -372,7 +385,12 @@ export function computeBudgetMonthSummary(
     totalAllocation,
     totalSpent,
     remainingBudget: totalAllocation - totalSpent,
-    baseSavingsAllocation,
+    savingsRuleType,
+    savingsRuleValue,
+    requiredSavings,
+    unallocatedCash,
+    isSavingsBreached,
+    baseSavingsAllocation: requiredSavings,
     sweepSavingsBonus,
     monthlySavingsTotal,
     realizedMonthlySavings,

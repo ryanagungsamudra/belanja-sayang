@@ -618,6 +618,9 @@ interface BudgetIncomeModalProps {
     baseIncome: number
     extraIncome: number
     extraIncomeLabel?: string
+    savingsRuleType: 'percent' | 'fixed'
+    savingsRuleValue: number
+    savingsStartingBalance: number
     savingsTargetYear: number
   }) => void
 }
@@ -634,9 +637,36 @@ export function BudgetIncomeModal({
     formatIdrInput(month.extraIncome),
   )
   const [extraLabel, setExtraLabel] = useState(month.extraIncomeLabel ?? '')
+  const [ruleType, setRuleType] = useState<'percent' | 'fixed'>(
+    month.savingsRuleType ?? 'percent',
+  )
+  const [percentText, setPercentText] = useState(() =>
+    String(
+      month.savingsRuleType === 'fixed' ? 10 : (month.savingsRuleValue ?? 10),
+    ),
+  )
+  const [fixedSavingsText, setFixedSavingsText] = useState(() =>
+    formatIdrInput(
+      month.savingsRuleType === 'fixed'
+        ? (month.savingsRuleValue ?? 1000000)
+        : 1000000,
+    ),
+  )
+  const [startingBalanceText, setStartingBalanceText] = useState(() =>
+    formatIdrInput(month.savingsStartingBalance ?? 0),
+  )
   const [targetText, setTargetText] = useState(() =>
     formatIdrInput(month.savingsTargetYear),
   )
+
+  const totalIncomePreview =
+    parseIdrInput(baseText) + parseIdrInput(extraText)
+  const previewRequiredSavings =
+    ruleType === 'fixed'
+      ? parseIdrInput(fixedSavingsText)
+      : Math.round(
+          (totalIncomePreview * Math.max(0, Number(percentText) || 0)) / 100,
+        )
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
@@ -644,6 +674,12 @@ export function BudgetIncomeModal({
       baseIncome: parseIdrInput(baseText),
       extraIncome: parseIdrInput(extraText),
       extraIncomeLabel: extraLabel.trim() || undefined,
+      savingsRuleType: ruleType,
+      savingsRuleValue:
+        ruleType === 'fixed'
+          ? parseIdrInput(fixedSavingsText)
+          : Math.max(0, Math.min(100, Math.round(Number(percentText) || 0))),
+      savingsStartingBalance: parseIdrInput(startingBalanceText),
       savingsTargetYear: parseIdrInput(targetText),
     })
     onClose()
@@ -731,20 +767,108 @@ export function BudgetIncomeModal({
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-stone-500 uppercase tracking-wide">
-            Target Dana Darurat 1 Tahun
-          </label>
-          <div className="flex items-center gap-2 min-h-12 px-3.5 rounded-xl bg-white border border-stone-300 focus-within:border-emerald-600">
-            <span className="text-xs font-extrabold text-stone-400">Rp</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={targetText}
-              onChange={(e) => setTargetText(formatIdrInput(e.target.value))}
-              placeholder="12.000.000"
-              className="flex-1 min-w-0 bg-transparent text-base font-extrabold text-slate-900 outline-none tabular-nums"
-            />
+        {/* Configurable Savings Rule (% or Fixed Rp) */}
+        <div className="bg-white rounded-2xl border border-stone-200 p-3.5 space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-extrabold text-slate-800">
+              Aturan Wajib Tabungan
+            </span>
+            <span className="text-xs font-extrabold text-emerald-700 tabular-nums">
+              {formatRupiah(previewRequiredSavings)}/bln
+            </span>
+          </div>
+
+          <LiquidSegmentedTabs
+            ariaLabel="Tipe Aturan Tabungan"
+            size="sm"
+            value={ruleType}
+            onChange={setRuleType}
+            options={[
+              { id: 'percent', label: 'Persentase (%)' },
+              { id: 'fixed', label: 'Nominal (Rp)' },
+            ]}
+          />
+
+          {ruleType === 'percent' ? (
+            <div className="flex items-center gap-1.5">
+              {[10, 15, 20, 30].map((pct) => (
+                <button
+                  key={pct}
+                  type="button"
+                  onClick={() => setPercentText(String(pct))}
+                  className={`min-h-9 px-2.5 rounded-xl text-xs font-extrabold border cursor-pointer ${
+                    Number(percentText) === pct
+                      ? 'bg-emerald-600 border-emerald-600 text-white'
+                      : 'bg-stone-50 border-stone-200 text-slate-700'
+                  }`}
+                >
+                  {pct}%
+                </button>
+              ))}
+              <div className="flex-1 min-w-0 min-h-9 px-2.5 rounded-xl bg-stone-50 border border-stone-200 focus-within:border-emerald-600 flex items-center gap-1">
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={percentText}
+                  onChange={(e) => setPercentText(e.target.value)}
+                  className="w-full min-w-0 bg-transparent text-xs font-extrabold text-slate-900 outline-none tabular-nums text-right"
+                />
+                <span className="text-xs font-bold text-stone-400">%</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 min-h-11 px-3 rounded-xl bg-stone-50 border border-stone-200 focus-within:border-emerald-600 focus-within:bg-white">
+              <span className="text-xs font-bold text-stone-400">Rp</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={fixedSavingsText}
+                onChange={(e) =>
+                  setFixedSavingsText(formatIdrInput(e.target.value))
+                }
+                placeholder="1.000.000"
+                className="flex-1 min-w-0 bg-transparent text-sm font-extrabold text-slate-900 outline-none tabular-nums"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-stone-500 uppercase tracking-wide">
+              Saldo Awal Tabungan
+            </label>
+            <div className="flex items-center gap-1.5 min-h-12 px-3 rounded-xl bg-white border border-stone-300 focus-within:border-emerald-600">
+              <span className="text-xs font-extrabold text-stone-400">Rp</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={startingBalanceText}
+                onChange={(e) =>
+                  setStartingBalanceText(formatIdrInput(e.target.value))
+                }
+                placeholder="0"
+                className="flex-1 min-w-0 bg-transparent text-sm font-extrabold text-slate-900 outline-none tabular-nums"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-stone-500 uppercase tracking-wide">
+              Target 1 Tahun
+            </label>
+            <div className="flex items-center gap-1.5 min-h-12 px-3 rounded-xl bg-white border border-stone-300 focus-within:border-emerald-600">
+              <span className="text-xs font-extrabold text-stone-400">Rp</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={targetText}
+                onChange={(e) => setTargetText(formatIdrInput(e.target.value))}
+                placeholder="12.000.000"
+                className="flex-1 min-w-0 bg-transparent text-sm font-extrabold text-slate-900 outline-none tabular-nums"
+              />
+            </div>
           </div>
         </div>
 
@@ -1206,6 +1330,7 @@ export function BudgetAnnualModal({
     let income = 0
     let spent = 0
     let savings = 0
+    let startingBalance = 0
     let targetGoal = 12000000
     const prefix = `${viewYear}-`
     for (const m of budgetMonths) {
@@ -1218,16 +1343,20 @@ export function BudgetAnnualModal({
       income += sum.totalIncome
       spent += sum.totalSpent
       savings += sum.realizedMonthlySavings
+      if ((m.savingsStartingBalance ?? 0) > startingBalance) {
+        startingBalance = m.savingsStartingBalance ?? 0
+      }
       if (m.savingsTargetYear > 0) targetGoal = m.savingsTargetYear
     }
+    const totalColdFund = startingBalance + savings
     return {
       income,
       spent,
-      savings,
+      savings: totalColdFund,
       targetGoal,
       pct:
         targetGoal > 0
-          ? Math.min(100, Math.round((savings / targetGoal) * 100))
+          ? Math.min(100, Math.round((totalColdFund / targetGoal) * 100))
           : 0,
     }
   }, [budgetMonths, grocerySpendByMonth, modes, viewYear])

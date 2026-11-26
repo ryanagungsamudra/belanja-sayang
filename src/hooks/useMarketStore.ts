@@ -1668,6 +1668,9 @@ export function useMarketStore(
         baseIncome: number
         extraIncome: number
         extraIncomeLabel?: string
+        savingsRuleType?: 'percent' | 'fixed'
+        savingsRuleValue?: number
+        savingsStartingBalance?: number
         savingsTargetYear: number
       },
     ) => {
@@ -1676,6 +1679,15 @@ export function useMarketStore(
         baseIncome: Math.max(0, Math.round(patch.baseIncome)),
         extraIncome: Math.max(0, Math.round(patch.extraIncome)),
         extraIncomeLabel: patch.extraIncomeLabel?.trim() || undefined,
+        savingsRuleType: patch.savingsRuleType ?? m.savingsRuleType ?? 'percent',
+        savingsRuleValue:
+          patch.savingsRuleValue !== undefined
+            ? Math.max(0, Math.round(patch.savingsRuleValue))
+            : (m.savingsRuleValue ?? 10),
+        savingsStartingBalance:
+          patch.savingsStartingBalance !== undefined
+            ? Math.max(0, Math.round(patch.savingsStartingBalance))
+            : (m.savingsStartingBalance ?? 0),
         savingsTargetYear: Math.max(0, Math.round(patch.savingsTargetYear)),
       }))
       triggerHaptic(10)

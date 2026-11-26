@@ -14,7 +14,7 @@ import {
   Tag,
   X,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { formatRupiah, normalizeItemName } from '../lib/format'
 import {
   formatMonthLabel,
@@ -24,7 +24,6 @@ import {
 } from '../lib/noteParser'
 import {
   findCategory,
-  findStore,
   getReferencePriceForStore,
   getTintedPillStyle,
 } from '../lib/stores'
@@ -59,7 +58,7 @@ interface ProductCatalogViewProps {
   onToggleInCart: (ref: ProductReference) => void
 }
 
-export function ProductCatalogView({
+export const ProductCatalogView = memo(function ProductCatalogView({
   selectedMonth,
   stores,
   categories,
@@ -233,11 +232,24 @@ export function ProductCatalogView({
     return counts
   }, [categories, productRefs])
 
+  const storeMap = useMemo(() => {
+    const map = new Map<string, StoreConfig>()
+    for (const s of stores) map.set(s.id, s)
+    return map
+  }, [stores])
+
+  const categoryMap = useMemo(() => {
+    const map = new Map<string, CategoryConfig>()
+    for (const c of categories) map.set(c.id, c)
+    return map
+  }, [categories])
+
   const selectedStoreCfg =
-    selectedStore !== 'all' ? findStore(stores, selectedStore) : undefined
+    selectedStore !== 'all' ? storeMap.get(selectedStore) : undefined
   const selectedCategoryCfg =
     selectedCategory !== 'all'
-      ? findCategory(categories, selectedCategory)
+      ? categoryMap.get(selectedCategory) ??
+        findCategory(categories, selectedCategory)
       : undefined
 
   return (
@@ -254,7 +266,7 @@ export function ProductCatalogView({
               type="button"
               aria-label="Bulan sebelumnya"
               onClick={() => onChangeMonth(shiftMonthKey(selectedMonth, -1))}
-              className="glass-pill w-7 h-7 rounded-xl text-slate-700 flex items-center justify-center shrink-0 cursor-pointer"
+              className="glass-chip w-7 h-7 rounded-xl text-slate-700 flex items-center justify-center shrink-0 cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -269,7 +281,7 @@ export function ProductCatalogView({
               type="button"
               aria-label="Bulan berikutnya"
               onClick={() => onChangeMonth(shiftMonthKey(selectedMonth, 1))}
-              className="glass-pill w-7 h-7 rounded-xl text-slate-700 flex items-center justify-center shrink-0 cursor-pointer"
+              className="glass-chip w-7 h-7 rounded-xl text-slate-700 flex items-center justify-center shrink-0 cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -799,7 +811,9 @@ export function ProductCatalogView({
               (sum, e) => sum + (e.price || 0),
               0,
             )
-            const catCfg = findCategory(categories, ref.category)
+            const catCfg =
+              categoryMap.get(ref.category) ??
+              findCategory(categories, ref.category)
             const isInCart = activeNameSet.has(ref.normalizedName)
             const lastEntry = entries[entries.length - 1]
             const refFallback = lastEntry
@@ -815,7 +829,7 @@ export function ProductCatalogView({
                 key={ref.id}
                 data-testid={`product-ref-card-${ref.id}`}
                 data-product-name={ref.name}
-                className="px-3.5 py-2.5 flex items-center gap-2.5 hover:bg-stone-50/50 transition-colors"
+                className="cv-row px-3.5 py-2.5 flex items-center gap-2.5 hover:bg-stone-50/50 transition-colors"
               >
                 {/* Main Info + Shorthand Purchase Chips */}
                 <div className="flex-1 min-w-0 space-y-1.5">
@@ -857,7 +871,7 @@ export function ProductCatalogView({
                   {/* Shorthand Chips + Quick Log */}
                   <div className="flex flex-wrap items-center gap-1">
                     {entries.map((entry) => {
-                      const sCfg = findStore(stores, entry.store)
+                      const sCfg = storeMap.get(entry.store)
                       const isMissingPrice = !entry.price || entry.price <= 0
                       return (
                         <button
@@ -913,7 +927,7 @@ export function ProductCatalogView({
                   className={`min-w-11 min-h-11 rounded-2xl flex items-center justify-center shrink-0 liquid-press cursor-pointer ${
                     isInCart
                       ? 'bg-emerald-600/95 text-white shadow-md shadow-emerald-600/30 border border-white/35'
-                      : 'glass-pill text-slate-600 hover:text-emerald-700'
+                      : 'glass-chip text-slate-600 hover:text-emerald-700'
                   }`}
                 >
                   {isInCart ? (
@@ -945,4 +959,4 @@ export function ProductCatalogView({
       )}
     </div>
   )
-}
+})

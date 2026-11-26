@@ -210,15 +210,25 @@ const KEYWORD_MAP: Array<{ category: MarketCategory; keywords: string[] }> = [
   },
 ]
 
+const COMPILED_CATEGORY_MATCHERS: Array<{
+  category: MarketCategory
+  patterns: RegExp[]
+}> = KEYWORD_MAP.map((group) => ({
+  category: group.category,
+  patterns: group.keywords.map((kw) => {
+    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return new RegExp(`(?:^|\\b)${escaped}(?:\\b|$)`)
+  }),
+}))
+
 export function detectCategory(itemName: string): MarketCategory {
   const normalized = itemName.trim().toLowerCase()
   if (!normalized) return 'Lainnya'
 
-  // Check whole-word / phrase keywords first to avoid substring false-positives (e.g. "santan" inside "santang")
-  for (const group of KEYWORD_MAP) {
-    for (const kw of group.keywords) {
-      const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      if (new RegExp(`(?:^|\\b)${escaped}(?:\\b|$)`).test(normalized)) {
+  // Pre-compiled whole-word matchers avoid allocating ~150 RegExp objects per call
+  for (const group of COMPILED_CATEGORY_MATCHERS) {
+    for (const pattern of group.patterns) {
+      if (pattern.test(normalized)) {
         return group.category
       }
     }

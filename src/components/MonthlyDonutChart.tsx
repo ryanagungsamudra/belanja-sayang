@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { formatRupiah } from '../lib/format'
 
 export interface DonutSegment {
@@ -28,7 +29,7 @@ function formatCompactTotal(amount: number): string {
   return formatRupiah(amount)
 }
 
-export function MonthlyDonutChart({
+export const MonthlyDonutChart = memo(function MonthlyDonutChart({
   segments,
   total,
   purchaseCount,
@@ -185,4 +186,4 @@ export function MonthlyDonutChart({
       </div>
     </div>
   )
-}
+})

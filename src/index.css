@@ -29,19 +29,22 @@
     --g-divider: rgba(15, 23, 42, 0.065);
     --g-track: rgba(15, 23, 42, 0.065);
     --orb-1: radial-gradient(
-      circle at 35% 35%,
-      rgba(16, 185, 129, 0.42),
-      rgba(52, 211, 153, 0.14)
+      circle at 42% 42%,
+      rgba(16, 185, 129, 0.32) 0%,
+      rgba(52, 211, 153, 0.14) 38%,
+      rgba(52, 211, 153, 0) 70%
     );
     --orb-2: radial-gradient(
       circle at 50% 50%,
-      rgba(99, 102, 241, 0.36),
-      rgba(165, 180, 252, 0.12)
+      rgba(99, 102, 241, 0.28) 0%,
+      rgba(165, 180, 252, 0.12) 40%,
+      rgba(165, 180, 252, 0) 70%
     );
     --orb-3: radial-gradient(
       circle at 50% 50%,
-      rgba(251, 191, 36, 0.34),
-      rgba(253, 230, 138, 0.1)
+      rgba(251, 191, 36, 0.26) 0%,
+      rgba(253, 230, 138, 0.1) 40%,
+      rgba(253, 230, 138, 0) 70%
     );
   }
 
@@ -71,67 +74,61 @@
   background: linear-gradient(155deg, #e8f5ee 0%, #f4f2ec 52%, #e8effc 100%);
 }
 
+/* GPU-only Composited Ambient Liquid Blobs (pre-feathered radial gradients — 0 repaints/frame!) */
 .liquid-blob {
   position: fixed;
-  filter: blur(52px);
+  border-radius: 50%;
   pointer-events: none;
-  will-change: transform, border-radius;
+  will-change: transform;
+  contain: strict;
   z-index: 0;
 }
 
 .liquid-blob-1 {
   background: var(--orb-1);
-  animation: liquidBlob1 13s ease-in-out infinite alternate;
+  animation: liquidBlob1 14s ease-in-out infinite alternate;
 }
 
 .liquid-blob-2 {
   background: var(--orb-2);
-  animation: liquidBlob2 16s ease-in-out infinite alternate;
+  animation: liquidBlob2 17s ease-in-out infinite alternate;
 }
 
 .liquid-blob-3 {
   background: var(--orb-3);
-  animation: liquidBlob3 19s ease-in-out infinite alternate;
+  animation: liquidBlob3 20s ease-in-out infinite alternate;
 }
 
 @keyframes liquidBlob1 {
   0% {
-    transform: translate(0px, 0px) rotate(0deg) scale(1);
-    border-radius: 44% 56% 65% 35% / 48% 42% 58% 52%;
+    transform: translate3d(0, 0, 0) scale(1.25, 1.12);
   }
   50% {
-    transform: translate(26px, 22px) rotate(32deg) scale(1.1);
-    border-radius: 62% 38% 44% 56% / 36% 62% 38% 64%;
+    transform: translate3d(26px, 22px, 0) scale(1.38, 1.24);
   }
   100% {
-    transform: translate(-10px, 32px) rotate(68deg) scale(0.96);
-    border-radius: 38% 62% 54% 46% / 58% 35% 65% 42%;
+    transform: translate3d(-10px, 32px, 0) scale(1.18, 1.32);
   }
 }
 
 @keyframes liquidBlob2 {
   0% {
-    transform: translate(0px, 0px) rotate(0deg) scale(1);
-    border-radius: 58% 42% 38% 62% / 52% 60% 40% 48%;
+    transform: translate3d(0, 0, 0) scale(1.22, 1.32);
   }
   50% {
-    transform: translate(-26px, -18px) rotate(-36deg) scale(1.12);
-    border-radius: 40% 60% 62% 38% / 64% 38% 62% 36%;
+    transform: translate3d(-26px, -18px, 0) scale(1.36, 1.2);
   }
   100% {
-    transform: translate(14px, -32px) rotate(-70deg) scale(1.02);
-    border-radius: 64% 36% 48% 52% / 42% 56% 44% 58%;
+    transform: translate3d(14px, -30px, 0) scale(1.28, 1.34);
   }
 }
 
 @keyframes liquidBlob3 {
   0% {
-    transform: translate(0px, 0px) scale(1);
-    border-radius: 50% 50% 42% 58% / 45% 55% 45% 55%;
+    transform: translate3d(0, 0, 0) scale(1.2, 1.2);
   }
   100% {
-    transform: translate(32px, -24px) scale(1.16);
-    border-radius: 36% 64% 60% 40% / 62% 40% 60% 38%;
+    transform: translate3d(32px, -24px, 0) scale(1.38, 1.26);
   }
 }
 
@@ -187,6 +184,26 @@ a.glass-pill:active {
 
 .liquid-press:active {
   transform: scale(0.95);
+}
+
+/* Lightweight frosted chip for controls nested inside an already-frosted .glass-card (avoids redundant backdrop-filter passes!) */
+.glass-chip {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: var(--g-shadow-sm);
+  transition:
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.2s ease;
+}
+
+.glass-chip:active {
+  transform: scale(0.94);
+}
+
+/* Skips layout & paint for off-screen rows in long grocery lists */
+.cv-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 74px;
 }
 
 /* Frosted dark glass toast pill */

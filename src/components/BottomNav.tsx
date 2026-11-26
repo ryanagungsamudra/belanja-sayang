@@ -1,5 +1,5 @@
 import { ChefHat, NotebookPen, ShoppingBasket } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 
 export type AppTab = 'keranjang' | 'referensi' | 'paket'
 
@@ -18,7 +18,7 @@ interface BottomNavProps {
   onChangeTab: (tab: AppTab) => void
 }
 
-export function BottomNav({
+export const BottomNav = memo(function BottomNav({
   activeTab,
   activeItemCount,
   refCount,
@@ -412,4 +412,4 @@ export function BottomNav({
       </nav>
     </div>
   )
-}
+})

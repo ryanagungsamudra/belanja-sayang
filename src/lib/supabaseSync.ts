@@ -1,8 +1,4 @@
-import {
-  createClient,
-  type RealtimeChannel,
-  type SupabaseClient,
-} from '@supabase/supabase-js'
+import type { RealtimeChannel, RealtimeClient } from '@supabase/realtime-js'
 import { generateId } from './format'
 
 export type CollectionKey =
@@ -48,6 +44,13 @@ export interface HouseholdCollectionRow {
   payload: unknown
   updated_at: string
   updated_by: string
+}
+
+export interface SyncConnection {
+  restUrl: string
+  realtimeUrl: string
+  anonKey: string
+  realtime: RealtimeClient | null
 }
 
 const SYNC_CONFIG_KEY = 'belanjasayang:sync-config:v1'
@@ -171,68 +174,132 @@ export function normalizeHouseholdCode(code: string): string {
     .replace(/[^a-z0-9_-]/g, '')
 }
 
-export function createSyncClient(config: SyncConfig): SupabaseClient {
-  return createClient(config.supabaseUrl.trim(), config.supabaseAnonKey.trim(), {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-    realtime: {
-      params: {
-        eventsPerSecond: 15,
-      },
-    },
-  })
+export function createSyncConnection(config: SyncConfig): SyncConnection {
+  const baseUrl = config.supabaseUrl.trim().replace(/\/+$/, '')
+  return {
+    restUrl: `${baseUrl}/rest/v1/household_collections`,
+    realtimeUrl: `${baseUrl.replace(/^http/i, 'ws')}/realtime/v1`,
+    anonKey: config.supabaseAnonKey.trim(),
+    realtime: null,
+  }
+}
+
+export function disposeSyncConnection(conn: SyncConnection | null): void {
+  if (!conn?.realtime) return
+  try {
+    conn.realtime.disconnect()
+  } catch {
+    // Ignore disconnect errors during teardown
+  }
+  conn.realtime = null
+}
+
+async function parseErrorMessage(res: Response): Promise<string> {
+  try {
+    const body = (await res.json()) as { message?: string; error?: string }
+    return body.message || body.error || `HTTP ${res.status}`
+  } catch {
+    return `HTTP ${res.status}`
+  }
 }
 
 export async function fetchHouseholdCollections(
-  client: SupabaseClient,
+  conn: SyncConnection,
   householdCode: string,
 ): Promise<{ data: HouseholdCollectionRow[]; error: string | null }> {
-  const { data, error } = await client
-    .from('household_collections')
-    .select('household_code, collection_key, payload, updated_at, updated_by')
-    .eq('household_code', householdCode)
-
-  if (error) {
-    return { data: [], error: error.message }
-  }
-  return {
-    data: (data ?? []) as HouseholdCollectionRow[],
-    error: null,
+  try {
+    const query = `select=household_code,collection_key,payload,updated_at,updated_by&household_code=eq.${encodeURIComponent(householdCode)}`
+    const res = await fetch(`${conn.restUrl}?${query}`, {
+      method: 'GET',
+      headers: {
+        apikey: conn.anonKey,
+        Authorization: `Bearer ${conn.anonKey}`,
+        Accept: 'application/json',
+      },
+    })
+    if (!res.ok) {
+      return { data: [], error: await parseErrorMessage(res) }
+    }
+    const data = (await res.json()) as HouseholdCollectionRow[]
+    return {
+      data: Array.isArray(data) ? data : [],
+      error: null,
+    }
+  } catch (err) {
+    return {
+      data: [],
+      error: err instanceof Error ? err.message : 'Gagal mengambil data',
+    }
   }
 }
 
 export async function pushHouseholdCollection(
-  client: SupabaseClient,
+  conn: SyncConnection,
   householdCode: string,
   collectionKey: CollectionKey,
   payload: unknown,
   clientId: string,
 ): Promise<{ error: string | null }> {
-  const { error } = await client.from('household_collections').upsert(
-    {
-      household_code: householdCode,
-      collection_key: collectionKey,
-      payload,
-      updated_at: new Date().toISOString(),
-      updated_by: clientId,
-    },
-    { onConflict: 'household_code,collection_key' },
-  )
-
-  return { error: error ? error.message : null }
+  try {
+    const res = await fetch(
+      `${conn.restUrl}?on_conflict=household_code,collection_key`,
+      {
+        method: 'POST',
+        headers: {
+          apikey: conn.anonKey,
+          Authorization: `Bearer ${conn.anonKey}`,
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates,return=minimal',
+        },
+        body: JSON.stringify({
+          household_code: householdCode,
+          collection_key: collectionKey,
+          payload,
+          updated_at: new Date().toISOString(),
+          updated_by: clientId,
+        }),
+      },
+    )
+    if (!res.ok) {
+      return { error: await parseErrorMessage(res) }
+    }
+    return { error: null }
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : 'Gagal mengirim data',
+    }
+  }
 }
 
-export function subscribeHouseholdRealtime(
-  client: SupabaseClient,
+/**
+ * Dynamically imports @supabase/realtime-js so initial render & HTTP hydration
+ * stay ultra-lightweight while still providing full WebSocket live sync + presence.
+ */
+export async function subscribeHouseholdRealtime(
+  conn: SyncConnection,
   householdCode: string,
   clientId: string,
   onRemoteRow: (row: HouseholdCollectionRow) => void,
   onChannelState: (state: 'SUBSCRIBED' | 'CLOSED' | 'CHANNEL_ERROR') => void,
   onPresenceCount: (onlineCount: number) => void,
-): RealtimeChannel {
-  const channel = client
+): Promise<RealtimeChannel> {
+  if (!conn.realtime) {
+    const { RealtimeClient } = await import('@supabase/realtime-js')
+    const rt = new RealtimeClient(conn.realtimeUrl, {
+      params: {
+        apikey: conn.anonKey,
+        eventsPerSecond: 15,
+      },
+      headers: {
+        apikey: conn.anonKey,
+        Authorization: `Bearer ${conn.anonKey}`,
+      },
+    })
+    rt.setAuth(conn.anonKey)
+    conn.realtime = rt
+  }
+
+  const channel = conn.realtime
     .channel(`household:${householdCode}`, {
       config: {
         presence: {

@@ -7,23 +7,68 @@ import {
   Plus,
   ShoppingBasket,
 } from 'lucide-react'
-import { useCallback, useMemo, useRef, useState } from 'react'
-import { BasketDrawer } from './components/BasketDrawer'
+import { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react'
 import { BottomNav, type AppTab } from './components/BottomNav'
-import { BottomQuickAdd } from './components/BottomQuickAdd'
-import { CategoryGroup } from './components/CategoryGroup'
-import { EditItemModal } from './components/EditItemModal'
 import { Header } from './components/Header'
-import { ManageConfigModal } from './components/ManageConfigModal'
-import { NoteImportModal } from './components/NoteImportModal'
 import { PinLockScreen } from './components/PinLockScreen'
-import { PinSettingsModal } from './components/PinSettingsModal'
 import { ProductCatalogView } from './components/ProductCatalogView'
-import { ProductRefModal } from './components/ProductRefModal'
-import { PurchaseEntryModal } from './components/PurchaseEntryModal'
-import { SyncModal } from './components/SyncModal'
-import { TemplateEditorModal } from './components/TemplateEditorModal'
-import { TemplatesView } from './components/TemplatesView'
+
+const BasketDrawer = lazy(() =>
+  import('./components/BasketDrawer').then((m) => ({ default: m.BasketDrawer })),
+)
+const BottomQuickAdd = lazy(() =>
+  import('./components/BottomQuickAdd').then((m) => ({
+    default: m.BottomQuickAdd,
+  })),
+)
+const CategoryGroup = lazy(() =>
+  import('./components/CategoryGroup').then((m) => ({
+    default: m.CategoryGroup,
+  })),
+)
+const EditItemModal = lazy(() =>
+  import('./components/EditItemModal').then((m) => ({
+    default: m.EditItemModal,
+  })),
+)
+const ManageConfigModal = lazy(() =>
+  import('./components/ManageConfigModal').then((m) => ({
+    default: m.ManageConfigModal,
+  })),
+)
+const NoteImportModal = lazy(() =>
+  import('./components/NoteImportModal').then((m) => ({
+    default: m.NoteImportModal,
+  })),
+)
+const ProductRefModal = lazy(() =>
+  import('./components/ProductRefModal').then((m) => ({
+    default: m.ProductRefModal,
+  })),
+)
+const PurchaseEntryModal = lazy(() =>
+  import('./components/PurchaseEntryModal').then((m) => ({
+    default: m.PurchaseEntryModal,
+  })),
+)
+const SyncModal = lazy(() =>
+  import('./components/SyncModal').then((m) => ({ default: m.SyncModal })),
+)
+const TemplateEditorModal = lazy(() =>
+  import('./components/TemplateEditorModal').then((m) => ({
+    default: m.TemplateEditorModal,
+  })),
+)
+const TemplatesView = lazy(() =>
+  import('./components/TemplatesView').then((m) => ({
+    default: m.TemplatesView,
+  })),
+)
+const PinSettingsModal = lazy(() =>
+  import('./components/PinSettingsModal').then((m) => ({
+    default: m.PinSettingsModal,
+  })),
+)
 import { useMarketStore } from './hooks/useMarketStore'
 import { useWakeLock } from './hooks/useWakeLock'
 import { formatMonthLabel, formatPurchaseChip } from './lib/noteParser'
@@ -393,30 +438,32 @@ export function App() {
             </div>
 
             {hasFilteredItems ? (
-              <div className="space-y-4">
-                {filteredGroupedActive.map((group) => (
-                  <CategoryGroup
-                    key={group.config.id}
-                    categoryConfig={group.config}
-                    items={group.items}
-                    stores={store.stores}
-                    onToggleBought={handleToggleBought}
-                    onAssignStore={(itemId, nextStore) => {
-                      store.assignCartItemStore(itemId, nextStore)
-                      const label = findStore(
-                        store.stores,
-                        nextStore,
-                      )?.shortLabel
-                      if (label) {
-                        showToast(`Toko diubah ke ${label}`)
-                      }
-                    }}
-                    onOpenManageStores={() => openManageConfig('stores')}
-                    onEditItem={(item) => setEditingItem(item)}
-                    onDeleteItem={store.deleteItem}
-                  />
-                ))}
-              </div>
+              <Suspense fallback={null}>
+                <div className="space-y-4">
+                  {filteredGroupedActive.map((group) => (
+                    <CategoryGroup
+                      key={group.config.id}
+                      categoryConfig={group.config}
+                      items={group.items}
+                      stores={store.stores}
+                      onToggleBought={handleToggleBought}
+                      onAssignStore={(itemId, nextStore) => {
+                        store.assignCartItemStore(itemId, nextStore)
+                        const label = findStore(
+                          store.stores,
+                          nextStore,
+                        )?.shortLabel
+                        if (label) {
+                          showToast(`Toko diubah ke ${label}`)
+                        }
+                      }}
+                      onOpenManageStores={() => openManageConfig('stores')}
+                      onEditItem={(item) => setEditingItem(item)}
+                      onDeleteItem={store.deleteItem}
+                    />
+                  ))}
+                </div>
+              </Suspense>
             ) : hasActiveItems && storeFilter !== 'all' ? (
               <div className="glass-card rounded-3xl p-6 text-center space-y-2.5 animate-liquid-enter">
                 <p className="text-sm font-bold text-slate-800">
@@ -481,14 +528,18 @@ export function App() {
               </div>
             )}
 
-            <BasketDrawer
-              items={store.boughtItems}
-              stores={store.stores}
-              boughtEstimatedSpend={store.boughtEstimatedSpend}
-              onToggleBought={handleToggleBought}
-              onDeleteItem={store.deleteItem}
-              onClearBought={handleClearBought}
-            />
+            {store.boughtItems.length > 0 && (
+              <Suspense fallback={null}>
+                <BasketDrawer
+                  items={store.boughtItems}
+                  stores={store.stores}
+                  boughtEstimatedSpend={store.boughtEstimatedSpend}
+                  onToggleBought={handleToggleBought}
+                  onDeleteItem={store.deleteItem}
+                  onClearBought={handleClearBought}
+                />
+              </Suspense>
+            )}
           </>
         )}
 
@@ -537,25 +588,27 @@ export function App() {
         )}
 
         {activeTab === 'paket' && (
-          <TemplatesView
-            templates={store.templates}
-            stores={store.stores}
-            activeItems={store.activeItems}
-            onCreateNew={() => {
-              setEditingTemplate(null)
-              setTplModalOpen(true)
-            }}
-            onEditTemplate={(tpl) => {
-              setEditingTemplate(tpl)
-              setTplModalOpen(true)
-            }}
-            onSaveFromActive={handleOpenSaveActiveTemplate}
-            onApplyTemplate={handleApplyTemplate}
-            onDeleteTemplate={(id) => {
-              store.deleteTemplate(id)
-              showToast('Paket masak dihapus')
-            }}
-          />
+          <Suspense fallback={null}>
+            <TemplatesView
+              templates={store.templates}
+              stores={store.stores}
+              activeItems={store.activeItems}
+              onCreateNew={() => {
+                setEditingTemplate(null)
+                setTplModalOpen(true)
+              }}
+              onEditTemplate={(tpl) => {
+                setEditingTemplate(tpl)
+                setTplModalOpen(true)
+              }}
+              onSaveFromActive={handleOpenSaveActiveTemplate}
+              onApplyTemplate={handleApplyTemplate}
+              onDeleteTemplate={(id) => {
+                store.deleteTemplate(id)
+                showToast('Paket masak dihapus')
+              }}
+            />
+          </Suspense>
         )}
       </main>
 
@@ -574,19 +627,21 @@ export function App() {
       {/* Unified Sticky Bottom Area */}
       <div className="sticky bottom-0 z-30 w-full min-w-0 max-w-full">
         {activeTab === 'keranjang' && (
-          <BottomQuickAdd
-            stores={store.stores}
-            categories={store.categories}
-            frequentChips={store.topFrequentChips}
-            productRefs={store.productRefs}
-            defaultStore={
-              storeFilter === 'all' || storeFilter === 'unassigned'
-                ? null
-                : storeFilter
-            }
-            resolveDetectedCategory={store.resolveDetectedCategory}
-            onAddItem={handleAddItem}
-          />
+          <Suspense fallback={null}>
+            <BottomQuickAdd
+              stores={store.stores}
+              categories={store.categories}
+              frequentChips={store.topFrequentChips}
+              productRefs={store.productRefs}
+              defaultStore={
+                storeFilter === 'all' || storeFilter === 'unassigned'
+                  ? null
+                  : storeFilter
+              }
+              resolveDetectedCategory={store.resolveDetectedCategory}
+              onAddItem={handleAddItem}
+            />
+          </Suspense>
         )}
         <BottomNav
           activeTab={activeTab}
@@ -597,213 +652,214 @@ export function App() {
         />
       </div>
 
-      {/* Dynamic Manage Stores & Categories Modal */}
-      <ManageConfigModal
-        key={manageModalOpen ? `manage-${manageInitialTab}` : 'manage-closed'}
-        isOpen={manageModalOpen}
-        initialTab={manageInitialTab}
-        stores={store.stores}
-        categories={store.categories}
-        onClose={() => setManageModalOpen(false)}
-        onSaveStore={(input) => {
-          const saved = store.upsertStore(input)
-          if (saved) showToast(`Toko "${saved.name}" tersimpan`)
-        }}
-        onDeleteStore={(id) => {
-          const ok = store.deleteStore(id)
-          if (ok) showToast('Toko dihapus')
-        }}
-        onSaveCategory={(input) => {
-          const saved = store.upsertCategory(input)
-          if (saved) showToast(`Kategori "${saved.name}" tersimpan`)
-        }}
-        onDeleteCategory={(id) => {
-          const ok = store.deleteCategory(id)
-          if (ok) showToast('Kategori dihapus')
-        }}
-      />
+      {/* Lazily Mounted Modals (0 KB parsed until opened, still 100% precached offline!) */}
+      <Suspense fallback={null}>
+        {manageModalOpen && (
+          <ManageConfigModal
+            key={`manage-${manageInitialTab}`}
+            isOpen={manageModalOpen}
+            initialTab={manageInitialTab}
+            stores={store.stores}
+            categories={store.categories}
+            onClose={() => setManageModalOpen(false)}
+            onSaveStore={(input) => {
+              const saved = store.upsertStore(input)
+              if (saved) showToast(`Toko "${saved.name}" tersimpan`)
+            }}
+            onDeleteStore={(id) => {
+              const ok = store.deleteStore(id)
+              if (ok) showToast('Toko dihapus')
+            }}
+            onSaveCategory={(input) => {
+              const saved = store.upsertCategory(input)
+              if (saved) showToast(`Kategori "${saved.name}" tersimpan`)
+            }}
+            onDeleteCategory={(id) => {
+              const ok = store.deleteCategory(id)
+              if (ok) showToast('Kategori dihapus')
+            }}
+          />
+        )}
 
-      {/* Quick Log / Edit Monthly Purchase Chip Modal */}
-      <PurchaseEntryModal
-        key={
-          purchaseModalOpen
-            ? `${purchaseModalRef?.id ?? 'none'}-${editingPurchase?.id ?? 'new'}`
-            : 'purchase-closed'
-        }
-        isOpen={purchaseModalOpen}
-        productRef={purchaseModalRef}
-        editingEntry={editingPurchase}
-        stores={store.stores}
-        monthLabel={formatMonthLabel(store.selectedMonth)}
-        onClose={() => setPurchaseModalOpen(false)}
-        onAdd={(s, price, qtyNote) => {
-          if (!purchaseModalRef) return
-          const added = store.addPurchaseEntry({
-            monthKey: store.selectedMonth,
-            productRefId: purchaseModalRef.id,
-            store: s,
-            price,
-            qtyNote,
-          })
-          if (added) {
-            showToast(
-              `${purchaseModalRef.name} ${formatPurchaseChip(added, store.stores)} tercatat`,
-            )
-          }
-        }}
-        onUpdate={(entryId, s, price, qtyNote) => {
-          store.updatePurchaseEntry(entryId, { store: s, price, qtyNote })
-          showToast('Catatan pembelian diperbarui')
-        }}
-        onDelete={(entryId) => {
-          store.deletePurchaseEntry(entryId)
-          showToast('Catatan pembelian dihapus')
-        }}
-      />
+        {purchaseModalOpen && (
+          <PurchaseEntryModal
+            key={`${purchaseModalRef?.id ?? 'none'}-${editingPurchase?.id ?? 'new'}`}
+            isOpen={purchaseModalOpen}
+            productRef={purchaseModalRef}
+            editingEntry={editingPurchase}
+            stores={store.stores}
+            monthLabel={formatMonthLabel(store.selectedMonth)}
+            onClose={() => setPurchaseModalOpen(false)}
+            onAdd={(s, price, qtyNote) => {
+              if (!purchaseModalRef) return
+              const added = store.addPurchaseEntry({
+                monthKey: store.selectedMonth,
+                productRefId: purchaseModalRef.id,
+                store: s,
+                price,
+                qtyNote,
+              })
+              if (added) {
+                showToast(
+                  `${purchaseModalRef.name} ${formatPurchaseChip(added, store.stores)} tercatat`,
+                )
+              }
+            }}
+            onUpdate={(entryId, s, price, qtyNote) => {
+              store.updatePurchaseEntry(entryId, { store: s, price, qtyNote })
+              showToast('Catatan pembelian diperbarui')
+            }}
+            onDelete={(entryId) => {
+              store.deletePurchaseEntry(entryId)
+              showToast('Catatan pembelian dihapus')
+            }}
+          />
+        )}
 
-      {/* Import / Export Text Note Modal */}
-      <NoteImportModal
-        isOpen={importModalOpen}
-        monthKey={store.selectedMonth}
-        stores={store.stores}
-        productRefs={store.productRefs}
-        monthEntries={store.currentMonthEntries}
-        onClose={() => setImportModalOpen(false)}
-        onImport={(rawText) => {
-          const { productsCount, entriesCount } = store.importNoteText(
-            rawText,
-            store.selectedMonth,
-          )
-          showToast(
-            `${entriesCount} pembelian (${productsCount} produk) berhasil diimpor`,
-          )
-        }}
-      />
+        {importModalOpen && (
+          <NoteImportModal
+            isOpen={importModalOpen}
+            monthKey={store.selectedMonth}
+            stores={store.stores}
+            productRefs={store.productRefs}
+            monthEntries={store.currentMonthEntries}
+            onClose={() => setImportModalOpen(false)}
+            onImport={(rawText) => {
+              const { productsCount, entriesCount } = store.importNoteText(
+                rawText,
+                store.selectedMonth,
+              )
+              showToast(
+                `${entriesCount} pembelian (${productsCount} produk) berhasil diimpor`,
+              )
+            }}
+          />
+        )}
 
-      {/* Product Reference Create / Edit Modal */}
-      <ProductRefModal
-        key={
-          refModalOpen
-            ? `${editingRef?.id ?? 'new'}-${refFocusStore ?? 'all'}`
-            : 'ref-closed'
-        }
-        isOpen={refModalOpen}
-        editingRef={editingRef}
-        initialFocusStore={refFocusStore}
-        stores={store.stores}
-        categories={store.categories}
-        resolveDetectedCategory={store.resolveDetectedCategory}
-        onClose={() => setRefModalOpen(false)}
-        onSave={(input) => {
-          const saved = store.upsertProductRef(input)
-          if (saved) {
-            showToast(`Produk ${saved.name} tersimpan`)
-          }
-        }}
-        onDelete={(id) => {
-          store.deleteProductRef(id)
-          showToast('Produk dihapus dari catatan')
-        }}
-      />
+        {refModalOpen && (
+          <ProductRefModal
+            key={`${editingRef?.id ?? 'new'}-${refFocusStore ?? 'all'}`}
+            isOpen={refModalOpen}
+            editingRef={editingRef}
+            initialFocusStore={refFocusStore}
+            stores={store.stores}
+            categories={store.categories}
+            resolveDetectedCategory={store.resolveDetectedCategory}
+            onClose={() => setRefModalOpen(false)}
+            onSave={(input) => {
+              const saved = store.upsertProductRef(input)
+              if (saved) {
+                showToast(`Produk ${saved.name} tersimpan`)
+              }
+            }}
+            onDelete={(id) => {
+              store.deleteProductRef(id)
+              showToast('Produk dihapus dari catatan')
+            }}
+          />
+        )}
 
-      {/* Editable Paket Masak Modal */}
-      <TemplateEditorModal
-        key={
-          tplModalOpen
-            ? editingTemplate?.id || `new-${editingTemplate?.items.length ?? 0}`
-            : 'tpl-closed'
-        }
-        isOpen={tplModalOpen}
-        editingTemplate={editingTemplate}
-        stores={store.stores}
-        categories={store.categories}
-        productRefs={store.productRefs}
-        resolveDetectedCategory={store.resolveDetectedCategory}
-        onClose={() => setTplModalOpen(false)}
-        onSave={(input) => {
-          const saved = store.upsertTemplate({
-            ...input,
-            id: input.id || undefined,
-          })
-          if (saved) {
-            showToast(`Paket "${saved.name}" tersimpan`)
-          }
-        }}
-      />
+        {tplModalOpen && (
+          <TemplateEditorModal
+            key={
+              editingTemplate?.id || `new-${editingTemplate?.items.length ?? 0}`
+            }
+            isOpen={tplModalOpen}
+            editingTemplate={editingTemplate}
+            stores={store.stores}
+            categories={store.categories}
+            productRefs={store.productRefs}
+            resolveDetectedCategory={store.resolveDetectedCategory}
+            onClose={() => setTplModalOpen(false)}
+            onSave={(input) => {
+              const saved = store.upsertTemplate({
+                ...input,
+                id: input.id || undefined,
+              })
+              if (saved) {
+                showToast(`Paket "${saved.name}" tersimpan`)
+              }
+            }}
+          />
+        )}
 
-      {/* Quick Edit Weekly Cart Item & Price Sync Modal */}
-      <EditItemModal
-        key={editingItem?.id ?? 'item-closed'}
-        item={editingItem}
-        matchedRef={
-          editingItem
-            ? store.findProductRefByName(editingItem.name)
-            : undefined
-        }
-        stores={store.stores}
-        categories={store.categories}
-        onClose={() => setEditingItem(null)}
-        onSave={(id, patch) => {
-          store.updateItem(id, patch)
-          showToast(
-            patch.syncToReference && patch.store
-              ? 'Item & harga referensi diperbarui'
-              : 'Item diperbarui',
-          )
-        }}
-      />
+        {editingItem && (
+          <EditItemModal
+            key={editingItem.id}
+            item={editingItem}
+            matchedRef={store.findProductRefByName(editingItem.name)}
+            stores={store.stores}
+            categories={store.categories}
+            onClose={() => setEditingItem(null)}
+            onSave={(id, patch) => {
+              store.updateItem(id, patch)
+              showToast(
+                patch.syncToReference && patch.store
+                  ? 'Item & harga referensi diperbarui'
+                  : 'Item diperbarui',
+              )
+            }}
+          />
+        )}
 
-      {/* Supabase Real-Time Sync Modal */}
-      <SyncModal
-        key={syncModalOpen ? 'sync-open' : 'sync-closed'}
-        isOpen={syncModalOpen}
-        syncConfig={store.sync.syncConfig}
-        syncStatus={store.sync.syncStatus}
-        syncError={store.sync.syncError}
-        lastSyncedAt={store.sync.lastSyncedAt}
-        pendingCount={store.sync.pendingCount}
-        onClose={() => setSyncModalOpen(false)}
-        onSaveConfig={(cfg) => {
-          store.sync.updateSyncConfig(cfg)
-          showToast('Menghubungkan sinkronisasi real-time...')
-        }}
-        onDisconnect={() => {
-          store.sync.disconnectSync()
-          showToast('Sinkronisasi dimatikan (mode lokal)')
-        }}
-        onSyncNow={async () => {
-          await store.sync.syncNow()
-          showToast('Sinkronisasi selesai')
-        }}
-        onPushAll={async () => {
-          const ok = await store.sync.pushAllToCloud()
-          showToast(ok ? 'Data HP terkirim ke cloud' : 'Gagal mengirim ke cloud')
-          return ok
-        }}
-        onPullAll={async () => {
-          const ok = await store.sync.pullAllFromCloud()
-          showToast(
-            ok ? 'Data terbaru diambil dari cloud' : 'Gagal mengambil dari cloud',
-          )
-          return ok
-        }}
-      />
+        {syncModalOpen && (
+          <SyncModal
+            key="sync-open"
+            isOpen={syncModalOpen}
+            syncConfig={store.sync.syncConfig}
+            syncStatus={store.sync.syncStatus}
+            syncError={store.sync.syncError}
+            lastSyncedAt={store.sync.lastSyncedAt}
+            pendingCount={store.sync.pendingCount}
+            onClose={() => setSyncModalOpen(false)}
+            onSaveConfig={(cfg) => {
+              store.sync.updateSyncConfig(cfg)
+              showToast('Menghubungkan sinkronisasi real-time...')
+            }}
+            onDisconnect={() => {
+              store.sync.disconnectSync()
+              showToast('Sinkronisasi dimatikan (mode lokal)')
+            }}
+            onSyncNow={async () => {
+              await store.sync.syncNow()
+              showToast('Sinkronisasi selesai')
+            }}
+            onPushAll={async () => {
+              const ok = await store.sync.pushAllToCloud()
+              showToast(
+                ok ? 'Data HP terkirim ke cloud' : 'Gagal mengirim ke cloud',
+              )
+              return ok
+            }}
+            onPullAll={async () => {
+              const ok = await store.sync.pullAllFromCloud()
+              showToast(
+                ok
+                  ? 'Data terbaru diambil dari cloud'
+                  : 'Gagal mengambil dari cloud',
+              )
+              return ok
+            }}
+          />
+        )}
 
-      {/* Privacy & PIN Settings Modal */}
-      <PinSettingsModal
-        isOpen={pinSettingsOpen}
-        pinEnabled={store.pinConfig.pinEnabled}
-        onClose={() => setPinSettingsOpen(false)}
-        onSetPin={(pin) => {
-          store.setPin(pin)
-          showToast('PIN privasi disimpan')
-        }}
-        onDisablePin={() => {
-          store.disablePin()
-          showToast('Kunci PIN dimatikan')
-        }}
-        onLockNow={store.lockNow}
-      />
+        {pinSettingsOpen && (
+          <PinSettingsModal
+            isOpen={pinSettingsOpen}
+            pinEnabled={store.pinConfig.pinEnabled}
+            onClose={() => setPinSettingsOpen(false)}
+            onSetPin={(pin) => {
+              store.setPin(pin)
+              showToast('PIN privasi disimpan')
+            }}
+            onDisablePin={() => {
+              store.disablePin()
+              showToast('Kunci PIN dimatikan')
+            }}
+            onLockNow={store.lockNow}
+          />
+        )}
+      </Suspense>
     </div>
   )
 }

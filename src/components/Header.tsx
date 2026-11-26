@@ -9,6 +9,7 @@ import {
   Sun,
   SunMedium,
 } from 'lucide-react'
+import { memo } from 'react'
 import { formatRupiah } from '../lib/format'
 import type { SyncStatus } from '../lib/supabaseSync'
 import type { AppTab } from './BottomNav'
@@ -29,7 +30,7 @@ interface HeaderProps {
   onOpenManageConfig: () => void
 }
 
-export function Header({
+export const Header = memo(function Header({
   activeTab,
   boughtCount,
   totalCount,
@@ -239,4 +240,4 @@ export function Header({
       )}
     </header>
   )
-}
+})

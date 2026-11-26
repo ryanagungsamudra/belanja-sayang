@@ -58,4 +58,24 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'vendor-react',
+              test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+              priority: 20,
+            },
+            {
+              name: 'vendor-realtime',
+              test: /node_modules[\\/]@supabase[\\/]/,
+              priority: 15,
+            },
+          ],
+        },
+      },
+    },
+  },
 })

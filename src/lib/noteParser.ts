@@ -106,6 +106,36 @@ function buildCodeMatchers(stores: StoreConfig[]): Array<{
   return entries.sort((a, b) => b.token.length - a.token.length)
 }
 
+interface CachedStoreMatchers {
+  matchers: Array<{ token: string; storeId: string }>
+  storeRegex: RegExp | null
+  firstTokenRegex: RegExp
+}
+
+const matcherCache = new WeakMap<StoreConfig[], CachedStoreMatchers>()
+
+function getCachedStoreMatchers(stores: StoreConfig[]): CachedStoreMatchers {
+  const cached = matcherCache.get(stores)
+  if (cached) return cached
+
+  const matchers = buildCodeMatchers(stores)
+  const codePattern = matchers.map((m) => escapeRegExp(m.token)).join('|')
+  const storeRegex = codePattern
+    ? new RegExp(
+        `^(?:(.*?)\\s+)?(?:(\\d+)\\s*)?(${codePattern})\\s*(\\d+(?:[.,]\\d+)?)?$`,
+        'i',
+      )
+    : null
+  const firstTokenRegex = new RegExp(
+    `\\s+(?:(?:\\d+)?(?:${codePattern})(?:\\d+(?:[.,]\\d+)?)?(?=\\s*\\/|\\s*$)|(?:\\d+(?:[.,]\\d+)?)(?=\\s*\\/))`,
+    'i',
+  )
+
+  const entry: CachedStoreMatchers = { matchers, storeRegex, firstTokenRegex }
+  matcherCache.set(stores, entry)
+  return entry
+}
+
 /**
  * Parses a single shorthand token such as:
  * "H13", "H9,5", "P10", "In21", "2H29", "H", "21", "sania 2L H41",
@@ -119,14 +149,9 @@ export function parseShorthandToken(
   const cleaned = rawToken.trim()
   if (!cleaned) return null
 
-  const matchers = buildCodeMatchers(stores)
-  const codePattern = matchers.map((m) => escapeRegExp(m.token)).join('|')
+  const { matchers, storeRegex } = getCachedStoreMatchers(stores)
 
-  if (codePattern) {
-    const storeRegex = new RegExp(
-      `^(?:(.*?)\\s+)?(?:(\\d+)\\s*)?(${codePattern})\\s*(\\d+(?:[.,]\\d+)?)?$`,
-      'i',
-    )
+  if (storeRegex) {
     const match = cleaned.match(storeRegex)
     if (match) {
       const leadingText = match[1]?.trim()
@@ -191,13 +216,7 @@ export function parseMonthlyNoteText(
     .filter(Boolean)
 
   const results: ParsedNoteLine[] = []
-  const matchers = buildCodeMatchers(stores)
-  const codePattern = matchers.map((m) => escapeRegExp(m.token)).join('|')
-
-  const firstTokenRegex = new RegExp(
-    `\\s+(?:(?:\\d+)?(?:${codePattern})(?:\\d+(?:[.,]\\d+)?)?(?=\\s*\\/|\\s*$)|(?:\\d+(?:[.,]\\d+)?)(?=\\s*\\/))`,
-    'i',
-  )
+  const { firstTokenRegex } = getCachedStoreMatchers(stores)
 
   for (const line of lines) {
     const idx = line.search(firstTokenRegex)

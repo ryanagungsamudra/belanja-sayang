@@ -1,8 +1,9 @@
-import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
+import type { RealtimeChannel } from '@supabase/realtime-js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ALL_COLLECTION_KEYS,
-  createSyncClient,
+  createSyncConnection,
+  disposeSyncConnection,
   fetchHouseholdCollections,
   getOrCreateClientId,
   isValidSyncConfig,
@@ -16,6 +17,7 @@ import {
   type CollectionKey,
   type HouseholdCollectionRow,
   type SyncConfig,
+  type SyncConnection,
   type SyncStatus,
 } from '../lib/supabaseSync'
 
@@ -65,7 +67,7 @@ export function useSupabaseSync({
   )
 
   const clientIdRef = useRef<string>(getOrCreateClientId())
-  const clientRef = useRef<SupabaseClient | null>(null)
+  const clientRef = useRef<SyncConnection | null>(null)
   const channelRef = useRef<RealtimeChannel | null>(null)
   const channelSubscribedRef = useRef<boolean>(false)
   const isHydratedRef = useRef<boolean>(false)
@@ -279,12 +281,13 @@ export function useSupabaseSync({
     await pullAllFromCloud()
   }, [flushPending, pullAllFromCloud])
 
-  // Manage Supabase client lifecycle, auto-live hydration, Realtime & mobile wake resync
+  // Manage Supabase connection lifecycle, auto-live hydration, Realtime & mobile wake resync
   useEffect(() => {
-    if (channelRef.current && clientRef.current) {
-      void clientRef.current.removeChannel(channelRef.current)
+    if (channelRef.current && clientRef.current?.realtime) {
+      void clientRef.current.realtime.removeChannel(channelRef.current)
       channelRef.current = null
     }
+    disposeSyncConnection(clientRef.current)
     channelSubscribedRef.current = false
     clientRef.current = null
     isHydratedRef.current = false
@@ -294,62 +297,75 @@ export function useSupabaseSync({
     }
 
     const code = normalizeHouseholdCode(syncConfig.householdCode)
-    const client = createSyncClient(syncConfig)
-    clientRef.current = client
+    const conn = createSyncConnection(syncConfig)
+    clientRef.current = conn
     let cancelled = false
 
-    const subscribeChannel = () => {
+    const subscribeChannel = async () => {
       if (cancelled) return
       if (reconnectTimerRef.current) {
         window.clearTimeout(reconnectTimerRef.current)
         reconnectTimerRef.current = null
       }
-      if (channelRef.current) {
-        void client.removeChannel(channelRef.current)
+      if (channelRef.current && conn.realtime) {
+        void conn.realtime.removeChannel(channelRef.current)
         channelRef.current = null
       }
       channelSubscribedRef.current = false
 
-      const channel = subscribeHouseholdRealtime(
-        client,
-        code,
-        clientIdRef.current,
-        (row: HouseholdCollectionRow) => {
-          applyRemoteRef.current(row.collection_key, row.payload)
-          setLastSyncedAt(Date.now())
-          onRemoteNoticeRef.current?.(
-            `${COLLECTION_LABEL[row.collection_key] ?? 'Data'} diperbarui pasangan`,
-          )
-        },
-        (state) => {
-          if (cancelled) return
-          if (state === 'SUBSCRIBED') {
-            channelSubscribedRef.current = true
-            setSyncStatus('connected')
-            setSyncError(null)
-          } else if (state === 'CHANNEL_ERROR' || state === 'CLOSED') {
-            channelSubscribedRef.current = false
-            if (typeof navigator !== 'undefined' && !navigator.onLine) {
-              setSyncStatus('offline')
-            } else {
-              if (state === 'CHANNEL_ERROR') setSyncStatus('error')
-              // Auto-reconnect Realtime WebSocket after short delay
-              if (!reconnectTimerRef.current) {
-                reconnectTimerRef.current = window.setTimeout(() => {
-                  reconnectTimerRef.current = null
-                  if (!cancelled && navigator.onLine) {
-                    subscribeChannel()
-                  }
-                }, 3500)
+      try {
+        const channel = await subscribeHouseholdRealtime(
+          conn,
+          code,
+          clientIdRef.current,
+          (row: HouseholdCollectionRow) => {
+            applyRemoteRef.current(row.collection_key, row.payload)
+            setLastSyncedAt(Date.now())
+            onRemoteNoticeRef.current?.(
+              `${COLLECTION_LABEL[row.collection_key] ?? 'Data'} diperbarui pasangan`,
+            )
+          },
+          (state) => {
+            if (cancelled) return
+            if (state === 'SUBSCRIBED') {
+              channelSubscribedRef.current = true
+              setSyncStatus('connected')
+              setSyncError(null)
+            } else if (state === 'CHANNEL_ERROR' || state === 'CLOSED') {
+              channelSubscribedRef.current = false
+              if (typeof navigator !== 'undefined' && !navigator.onLine) {
+                setSyncStatus('offline')
+              } else {
+                if (state === 'CHANNEL_ERROR') setSyncStatus('error')
+                // Auto-reconnect Realtime WebSocket after short delay
+                if (!reconnectTimerRef.current) {
+                  reconnectTimerRef.current = window.setTimeout(() => {
+                    reconnectTimerRef.current = null
+                    if (!cancelled && navigator.onLine) {
+                      void subscribeChannel()
+                    }
+                  }, 3500)
+                }
               }
             }
-          }
-        },
-        (count) => {
-          if (!cancelled) setOnlineDevices(count)
-        },
-      )
-      channelRef.current = channel
+          },
+          (count) => {
+            if (!cancelled) setOnlineDevices(count)
+          },
+        )
+        if (cancelled) {
+          if (conn.realtime) void conn.realtime.removeChannel(channel)
+          return
+        }
+        channelRef.current = channel
+      } catch (err) {
+        if (!cancelled) {
+          setSyncError(
+            err instanceof Error ? err.message : 'Gagal menghubungkan Realtime',
+          )
+          setSyncStatus('error')
+        }
+      }
     }
 
     const startSync = async () => {
@@ -371,7 +387,7 @@ export function useSupabaseSync({
       }
 
       // 2. Pull latest cloud state BEFORE enabling local pushes
-      const { data, error } = await fetchHouseholdCollections(client, code)
+      const { data, error } = await fetchHouseholdCollections(conn, code)
       if (cancelled) return
 
       if (error) {
@@ -386,7 +402,7 @@ export function useSupabaseSync({
         for (const key of ALL_COLLECTION_KEYS) {
           if (cancelled) return
           await pushHouseholdCollection(
-            client,
+            conn,
             code,
             key,
             getPayloadRef.current(key),
@@ -414,7 +430,7 @@ export function useSupabaseSync({
             | undefined
           if (localPin?.pinEnabled && localPin?.pinHash) {
             await pushHouseholdCollection(
-              client,
+              conn,
               code,
               'pin_config',
               localPin,
@@ -429,8 +445,8 @@ export function useSupabaseSync({
       setHasCompletedInitialCheck(true)
       setLastSyncedAt(Date.now())
 
-      // 3. Subscribe to Supabase Realtime + Presence (collaborator count)
-      subscribeChannel()
+      // 3. Subscribe to Supabase Realtime + Presence (dynamically imported chunk)
+      void subscribeChannel()
     }
 
     void startSync()
@@ -450,7 +466,7 @@ export function useSupabaseSync({
       if (document.visibilityState === 'visible' && navigator.onLine) {
         void syncNow()
         if (!channelSubscribedRef.current) {
-          subscribeChannel()
+          void subscribeChannel()
         }
       }
     }
@@ -476,10 +492,11 @@ export function useSupabaseSync({
         if (timer) window.clearTimeout(timer)
       }
       debounceTimersRef.current = {}
-      if (channelRef.current) {
-        void client.removeChannel(channelRef.current)
+      if (channelRef.current && conn.realtime) {
+        void conn.realtime.removeChannel(channelRef.current)
         channelRef.current = null
       }
+      disposeSyncConnection(conn)
     }
   }, [pushKeyNow, syncConfig, syncNow])
 

@@ -36,16 +36,40 @@ alter table public.household_collections replica identity full;
 create index if not exists idx_household_collections_code
   on public.household_collections (household_code);
 
--- Row Level Security (uses a private Household Code shared only between your phones)
+-- Row Level Security
+-- Tip: Use a strong random 16+ character VITE_HOUSEHOLD_CODE (not a guessable word).
+-- SELECT policy stays compatible with Supabase Realtime postgres_changes (which does not pass custom HTTP headers),
+-- while INSERT/UPDATE/DELETE enforce matching the x-household-code header sent by the app.
 alter table public.household_collections enable row level security;
 
 drop policy if exists "Allow household sync by code" on public.household_collections;
-create policy "Allow household sync by code"
+drop policy if exists "Allow household read by code" on public.household_collections;
+drop policy if exists "Allow household write by header" on public.household_collections;
+
+create policy "Allow household read by code"
+  on public.household_collections
+  for select
+  to anon, authenticated
+  using (length(household_code) >= 6);
+
+create policy "Allow household write by header"
   on public.household_collections
   for all
   to anon, authenticated
-  using (length(household_code) >= 6)
-  with check (length(household_code) >= 6);
+  using (
+    length(household_code) >= 6
+    and coalesce(
+      current_setting('request.headers', true)::json->>'x-household-code',
+      household_code
+    ) = household_code
+  )
+  with check (
+    length(household_code) >= 6
+    and coalesce(
+      current_setting('request.headers', true)::json->>'x-household-code',
+      household_code
+    ) = household_code
+  );
 
 -- Enable Realtime broadcasts for this table
 do $$

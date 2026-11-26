@@ -1,6 +1,11 @@
 import type { RealtimeChannel } from '@supabase/realtime-js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  deepEqual,
+  mergeCollectionArrays,
+  type MergeableRecord,
+} from '../lib/syncMerge'
+import {
   ALL_COLLECTION_KEYS,
   createSyncConnection,
   disposeSyncConnection,
@@ -71,6 +76,11 @@ export function useSupabaseSync({
   const channelRef = useRef<RealtimeChannel | null>(null)
   const channelSubscribedRef = useRef<boolean>(false)
   const isHydratedRef = useRef<boolean>(false)
+  const lastSyncedPayloadsRef = useRef<Partial<Record<CollectionKey, unknown>>>(
+    {},
+  )
+  const syncInFlightRef = useRef<Promise<void> | null>(null)
+  const lastPullAtRef = useRef<number>(0)
   const debounceTimersRef = useRef<Partial<Record<CollectionKey, number>>>({})
   const reconnectTimerRef = useRef<number | null>(null)
 
@@ -150,6 +160,7 @@ export function useSupabaseSync({
         return false
       }
 
+      lastSyncedPayloadsRef.current[key] = payload
       removePendingKey(key)
       setSyncError(null)
       setLastSyncedAt(Date.now())
@@ -157,6 +168,50 @@ export function useSupabaseSync({
       return true
     },
     [addPendingKey, removePendingKey],
+  )
+
+  /**
+   * Reconciles an incoming remote collection with local state using 3-way
+   * item-level merge so simultaneous edits on two phones never overwrite each other.
+   * Short-circuits when remote already equals local to prevent redundant re-renders
+   * and synchronous localStorage writes on boot & wake-up.
+   */
+  const reconcileRemoteRow = useCallback(
+    (key: CollectionKey, remotePayload: unknown, allowMerge: boolean) => {
+      const local = getPayloadRef.current(key)
+
+      if (key === 'pin_config' || !Array.isArray(remotePayload)) {
+        lastSyncedPayloadsRef.current[key] = remotePayload
+        if (!deepEqual(local, remotePayload)) {
+          applyRemoteRef.current(key, remotePayload)
+        }
+        return
+      }
+
+      const base = lastSyncedPayloadsRef.current[key]
+
+      if (allowMerge && Array.isArray(base) && Array.isArray(local)) {
+        const { merged, localNeedsPush } = mergeCollectionArrays(
+          base as MergeableRecord[],
+          local as MergeableRecord[],
+          remotePayload as MergeableRecord[],
+        )
+        lastSyncedPayloadsRef.current[key] = remotePayload
+        if (!deepEqual(local, merged)) {
+          applyRemoteRef.current(key, merged)
+        }
+        if (localNeedsPush) {
+          void pushKeyNow(key, merged)
+        }
+        return
+      }
+
+      lastSyncedPayloadsRef.current[key] = remotePayload
+      if (!deepEqual(local, remotePayload)) {
+        applyRemoteRef.current(key, remotePayload)
+      }
+    },
+    [pushKeyNow],
   )
 
   /**
@@ -202,8 +257,11 @@ export function useSupabaseSync({
       const cfg = configRef.current
       if (!isValidSyncConfig(cfg)) return
 
-      // Guard: never overwrite cloud during initial mount/StrictMode before hydration
-      if (!isHydratedRef.current) return
+      // Queue local edits safely if hydration hasn't finished yet (never drop edits!)
+      if (!isHydratedRef.current) {
+        addPendingKey(key)
+        return
+      }
 
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
         addPendingKey(key)
@@ -264,21 +322,34 @@ export function useSupabaseSync({
     }
 
     for (const row of data) {
-      applyRemoteRef.current(row.collection_key, row.payload)
+      reconcileRemoteRow(row.collection_key, row.payload, true)
     }
+    const now = Date.now()
+    lastPullAtRef.current = now
     setSyncError(null)
-    setLastSyncedAt(Date.now())
+    setLastSyncedAt(now)
     setSyncStatus('connected')
     return true
-  }, [])
+  }, [reconcileRemoteRow])
 
   const syncNow = useCallback(async () => {
     if (!isValidSyncConfig(configRef.current)) return
-    setSyncStatus('syncing')
-    if (pendingRef.current.length > 0) {
-      await flushPending()
+    if (syncInFlightRef.current) return syncInFlightRef.current
+
+    const run = (async () => {
+      setSyncStatus('syncing')
+      if (pendingRef.current.length > 0) {
+        await flushPending()
+      }
+      await pullAllFromCloud()
+    })()
+
+    syncInFlightRef.current = run
+    try {
+      await run
+    } finally {
+      syncInFlightRef.current = null
     }
-    await pullAllFromCloud()
   }, [flushPending, pullAllFromCloud])
 
   // Manage Supabase connection lifecycle, auto-live hydration, Realtime & mobile wake resync
@@ -319,7 +390,7 @@ export function useSupabaseSync({
           code,
           clientIdRef.current,
           (row: HouseholdCollectionRow) => {
-            applyRemoteRef.current(row.collection_key, row.payload)
+            reconcileRemoteRow(row.collection_key, row.payload, true)
             setLastSyncedAt(Date.now())
             onRemoteNoticeRef.current?.(
               `${COLLECTION_LABEL[row.collection_key] ?? 'Data'} diperbarui pasangan`,
@@ -401,18 +472,24 @@ export function useSupabaseSync({
         // Brand-new household room: seed cloud with this device's current data
         for (const key of ALL_COLLECTION_KEYS) {
           if (cancelled) return
+          const payload = getPayloadRef.current(key)
           await pushHouseholdCollection(
             conn,
             code,
             key,
-            getPayloadRef.current(key),
+            payload,
             clientIdRef.current,
           )
+          lastSyncedPayloadsRef.current[key] = payload
         }
       } else {
-        // Existing household room: pull remote collections into this device
+        // Existing household room: pull & reconcile remote collections into this device
         for (const row of data) {
-          applyRemoteRef.current(row.collection_key, row.payload)
+          reconcileRemoteRow(
+            row.collection_key,
+            row.payload,
+            Boolean(lastSyncedPayloadsRef.current[row.collection_key]),
+          )
         }
 
         // Backfill shared pin_config if cloud room existed before global PIN sync
@@ -442,8 +519,10 @@ export function useSupabaseSync({
 
       if (cancelled) return
       isHydratedRef.current = true
+      const now = Date.now()
+      lastPullAtRef.current = now
       setHasCompletedInitialCheck(true)
-      setLastSyncedAt(Date.now())
+      setLastSyncedAt(now)
 
       // 3. Subscribe to Supabase Realtime + Presence (dynamically imported chunk)
       void subscribeChannel()
@@ -460,11 +539,14 @@ export function useSupabaseSync({
       channelSubscribedRef.current = false
       setSyncStatus('offline')
     }
-    // Mobile PWA wake-up: re-pull latest data AND re-subscribe Realtime if socket slept
+    // Mobile PWA wake-up: deduplicated pull + Realtime re-subscribe if socket slept
     const handleVisibilityOrFocus = () => {
       if (cancelled) return
       if (document.visibilityState === 'visible' && navigator.onLine) {
-        void syncNow()
+        const recentlyPulled = Date.now() - lastPullAtRef.current < 4000
+        if (!recentlyPulled || !channelSubscribedRef.current) {
+          void syncNow()
+        }
         if (!channelSubscribedRef.current) {
           void subscribeChannel()
         }
@@ -498,7 +580,7 @@ export function useSupabaseSync({
       }
       disposeSyncConnection(conn)
     }
-  }, [pushKeyNow, syncConfig, syncNow])
+  }, [pushKeyNow, reconcileRemoteRow, syncConfig, syncNow])
 
   const updateSyncConfig = useCallback((next: SyncConfig) => {
     const normalized: SyncConfig = {

@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { formatRupiah } from '../lib/format'
+import { GlassSheetModal } from './GlassSheetModal'
+import { formatIdrInput, formatRupiah, parseIdrInput } from '../lib/format'
 import {
   findStore,
   getSolidPillStyle,
@@ -40,7 +41,7 @@ export function EditItemModal({
   )
   const [store, setStore] = useState<StoreSource | null>(item?.store ?? null)
   const [priceText, setPriceText] = useState(
-    item && item.estimatedPrice > 0 ? String(item.estimatedPrice) : '',
+    item && item.estimatedPrice > 0 ? formatIdrInput(item.estimatedPrice) : '',
   )
   const [syncToReference, setSyncToReference] = useState(true)
 
@@ -51,7 +52,7 @@ export function EditItemModal({
     if (nextStore) {
       const refPrice = matchedRef?.prices[nextStore]?.price
       if (refPrice && refPrice > 0) {
-        setPriceText(String(refPrice))
+        setPriceText(formatIdrInput(refPrice))
       }
     }
   }
@@ -66,25 +67,15 @@ export function EditItemModal({
       quantity: quantity.trim() || '1',
       category,
       store,
-      estimatedPrice: Number(priceText.replace(/[^\d]/g, '')) || 0,
+      estimatedPrice: parseIdrInput(priceText),
       syncToReference,
     })
     onClose()
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-[5px] animate-fade-in"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Ubah Item & Harga"
-        onClick={(e) => e.stopPropagation()}
-        className="glass-sheet w-full max-w-md max-h-[88dvh] rounded-t-3xl flex flex-col overflow-hidden animate-slide-up"
-      >
-        <div className="px-5 pt-4 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between shrink-0">
+    <GlassSheetModal ariaLabel="Ubah Item & Harga" onClose={onClose}>
+      <div className="px-5 pt-2 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-base font-bold text-slate-900">
               Ubah Item & Pilih Toko
@@ -188,16 +179,17 @@ export function EditItemModal({
               <label className="text-xs font-bold text-stone-500 uppercase tracking-wide">
                 Harga (Rp)
               </label>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={priceText}
-                onChange={(e) =>
-                  setPriceText(e.target.value.replace(/[^\d]/g, ''))
-                }
-                placeholder="0"
-                className="w-full min-h-12 px-3.5 rounded-xl bg-white border border-stone-300 focus:border-emerald-600 text-[15px] font-bold text-slate-900 outline-none tabular-nums"
-              />
+              <div className="flex items-center gap-1.5 min-h-12 px-3 rounded-xl bg-white border border-stone-300 focus-within:border-emerald-600">
+                <span className="text-xs font-bold text-stone-400">Rp</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={priceText}
+                  onChange={(e) => setPriceText(formatIdrInput(e.target.value))}
+                  placeholder="0"
+                  className="w-full min-w-0 bg-transparent text-[15px] font-bold text-slate-900 outline-none tabular-nums"
+                />
+              </div>
             </div>
           </div>
 
@@ -248,7 +240,6 @@ export function EditItemModal({
             Simpan Perubahan
           </button>
         </form>
-      </div>
-    </div>
+    </GlassSheetModal>
   )
 }

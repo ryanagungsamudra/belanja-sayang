@@ -203,6 +203,13 @@ async function parseErrorMessage(res: Response): Promise<string> {
   }
 }
 
+function createTimeoutSignal(ms = 10_000): AbortSignal | undefined {
+  if (typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal) {
+    return AbortSignal.timeout(ms)
+  }
+  return undefined
+}
+
 export async function fetchHouseholdCollections(
   conn: SyncConnection,
   householdCode: string,
@@ -211,9 +218,11 @@ export async function fetchHouseholdCollections(
     const query = `select=household_code,collection_key,payload,updated_at,updated_by&household_code=eq.${encodeURIComponent(householdCode)}`
     const res = await fetch(`${conn.restUrl}?${query}`, {
       method: 'GET',
+      signal: createTimeoutSignal(10_000),
       headers: {
         apikey: conn.anonKey,
         Authorization: `Bearer ${conn.anonKey}`,
+        'x-household-code': householdCode,
         Accept: 'application/json',
       },
     })
@@ -228,7 +237,12 @@ export async function fetchHouseholdCollections(
   } catch (err) {
     return {
       data: [],
-      error: err instanceof Error ? err.message : 'Gagal mengambil data',
+      error:
+        err instanceof Error && err.name === 'TimeoutError'
+          ? 'Koneksi ke server lambat (timeout)'
+          : err instanceof Error
+            ? err.message
+            : 'Gagal mengambil data',
     }
   }
 }
@@ -245,9 +259,11 @@ export async function pushHouseholdCollection(
       `${conn.restUrl}?on_conflict=household_code,collection_key`,
       {
         method: 'POST',
+        signal: createTimeoutSignal(10_000),
         headers: {
           apikey: conn.anonKey,
           Authorization: `Bearer ${conn.anonKey}`,
+          'x-household-code': householdCode,
           'Content-Type': 'application/json',
           Prefer: 'resolution=merge-duplicates,return=minimal',
         },
@@ -266,7 +282,12 @@ export async function pushHouseholdCollection(
     return { error: null }
   } catch (err) {
     return {
-      error: err instanceof Error ? err.message : 'Gagal mengirim data',
+      error:
+        err instanceof Error && err.name === 'TimeoutError'
+          ? 'Gagal kirim data (koneksi timeout)'
+          : err instanceof Error
+            ? err.message
+            : 'Gagal mengirim data',
     }
   }
 }

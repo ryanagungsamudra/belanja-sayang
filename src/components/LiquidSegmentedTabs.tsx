@@ -53,6 +53,7 @@ export function LiquidSegmentedTabs<T extends string>({
   const startXRef = useRef<number>(0)
   const lastXRef = useRef<number>(0)
   const dragVelRef = useRef<number>(0)
+  const dragRectRef = useRef<{ left: number; width: number } | null>(null)
   const rafRef = useRef<number | null>(null)
   const valueRef = useRef<T>(value)
   const optionsRef = useRef(options)
@@ -169,9 +170,9 @@ export function LiquidSegmentedTabs<T extends string>({
   }, [])
 
   const pointerToSlot = (clientX: number): number => {
-    const track = trackRef.current
-    if (!track) return targetRef.current
-    const rect = track.getBoundingClientRect()
+    const cached = dragRectRef.current
+    const rect = cached ?? trackRef.current?.getBoundingClientRect()
+    if (!rect) return targetRef.current
     const innerW = Math.max(1, rect.width - 6)
     const slotW = innerW / count
     const rel = clientX - rect.left - 3 - slotW / 2
@@ -179,7 +180,12 @@ export function LiquidSegmentedTabs<T extends string>({
   }
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    trackRef.current?.setPointerCapture(e.pointerId)
+    const track = trackRef.current
+    track?.setPointerCapture(e.pointerId)
+    if (track) {
+      const r = track.getBoundingClientRect()
+      dragRectRef.current = { left: r.left, width: r.width }
+    }
     isPointerDownRef.current = true
     isDraggingRef.current = false
     startXRef.current = e.clientX
@@ -196,8 +202,7 @@ export function LiquidSegmentedTabs<T extends string>({
     }
     if (!isDraggingRef.current) return
 
-    const rect = trackRef.current?.getBoundingClientRect()
-    const slotW = Math.max(1, ((rect?.width ?? 160) - 6) / count)
+    const slotW = Math.max(1, ((dragRectRef.current?.width ?? 160) - 6) / count)
     const dx = e.clientX - lastXRef.current
     lastXRef.current = e.clientX
 
@@ -226,6 +231,7 @@ export function LiquidSegmentedTabs<T extends string>({
       0,
       Math.min(count - 1, Math.round(pointerToSlot(e.clientX))),
     )
+    dragRectRef.current = null
     const finalOpt = optionsRef.current[finalIdx]
     const kick = wasDrag
       ? dragVelRef.current * 0.85

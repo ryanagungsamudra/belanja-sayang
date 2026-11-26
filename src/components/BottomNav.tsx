@@ -46,6 +46,7 @@ export const BottomNav = memo(function BottomNav({
   const startXRef = useRef<number>(0)
   const lastXRef = useRef<number>(0)
   const dragVelRef = useRef<number>(0)
+  const dragRectRef = useRef<{ left: number; width: number } | null>(null)
   const rafRef = useRef<number | null>(null)
   const activeTabRef = useRef<AppTab>(activeTab)
 
@@ -178,9 +179,9 @@ export const BottomNav = memo(function BottomNav({
   }, [applyOpticalFrame])
 
   const pointerToSlot = (clientX: number): number => {
-    const dock = dockRef.current
-    if (!dock) return targetRef.current
-    const rect = dock.getBoundingClientRect()
+    const cached = dragRectRef.current
+    const rect = cached ?? dockRef.current?.getBoundingClientRect()
+    if (!rect) return targetRef.current
     const innerW = Math.max(1, rect.width - 8)
     const slotW = innerW / 3
     const rel = clientX - rect.left - 4 - slotW / 2
@@ -188,7 +189,12 @@ export const BottomNav = memo(function BottomNav({
   }
 
   const handlePointerDown = (e: React.PointerEvent<HTMLElement>) => {
-    dockRef.current?.setPointerCapture(e.pointerId)
+    const dock = dockRef.current
+    dock?.setPointerCapture(e.pointerId)
+    if (dock) {
+      const r = dock.getBoundingClientRect()
+      dragRectRef.current = { left: r.left, width: r.width }
+    }
     isPointerDownRef.current = true
     isDraggingRef.current = false
     startXRef.current = e.clientX
@@ -205,11 +211,7 @@ export const BottomNav = memo(function BottomNav({
     }
     if (!isDraggingRef.current) return
 
-    const dock = dockRef.current
-    const slotW = Math.max(
-      1,
-      ((dock?.getBoundingClientRect().width ?? 300) - 8) / 3,
-    )
+    const slotW = Math.max(1, ((dragRectRef.current?.width ?? 300) - 8) / 3)
     const dx = e.clientX - lastXRef.current
     lastXRef.current = e.clientX
 
@@ -235,6 +237,7 @@ export const BottomNav = memo(function BottomNav({
       0,
       Math.min(2, Math.round(pointerToSlot(e.clientX))),
     )
+    dragRectRef.current = null
     const finalTab = TAB_ORDER[finalIdx]
     const kick = wasDrag
       ? dragVelRef.current * 0.9
@@ -272,6 +275,13 @@ export const BottomNav = memo(function BottomNav({
     },
   ]
 
+  const getBadgeClass = (isActive: boolean) =>
+    `absolute -top-1 left-[21px] z-10 min-w-[18px] h-[17px] px-1.5 rounded-full text-[10px] font-extrabold leading-none tabular-nums ring-[1.5px] ring-white/95 flex items-center justify-center ${
+      isActive
+        ? 'bg-emerald-600 text-white shadow-xs'
+        : 'bg-slate-200 text-slate-700'
+    }`
+
   const renderMirrorItems = (tintClass: string, isChroma = false) => (
     <div className="w-[300%] h-full grid grid-cols-3 items-center">
       {tabs.map((tab) => {
@@ -291,9 +301,7 @@ export const BottomNav = memo(function BottomNav({
             <div className="relative flex items-center justify-center">
               <Icon className="w-6 h-6" strokeWidth={2.25} />
               {tab.badge !== undefined && !isChroma && (
-                <span className="absolute -top-1.5 -right-3.5 min-w-[18px] h-[17px] px-1.5 rounded-full text-[10px] font-extrabold leading-none tabular-nums bg-emerald-600 text-white shadow-xs flex items-center justify-center">
-                  {tab.badge}
-                </span>
+                <span className={getBadgeClass(isActive)}>{tab.badge}</span>
               )}
             </div>
             <span className="text-[10.5px] font-bold tracking-[-0.01em] leading-none">
@@ -350,15 +358,7 @@ export const BottomNav = memo(function BottomNav({
                 <div className="relative flex items-center justify-center">
                   <Icon className="w-6 h-6" strokeWidth={isActive ? 2.25 : 2} />
                   {tab.badge !== undefined && (
-                    <span
-                      className={`absolute -top-1.5 -right-3.5 min-w-[18px] h-[17px] px-1.5 rounded-full text-[10px] font-extrabold leading-none tabular-nums flex items-center justify-center ${
-                        tab.id === 'keranjang' || isActive
-                          ? 'bg-emerald-600 text-white shadow-xs'
-                          : 'bg-slate-900/12 text-slate-800'
-                      }`}
-                    >
-                      {tab.badge}
-                    </span>
+                    <span className={getBadgeClass(isActive)}>{tab.badge}</span>
                   )}
                 </div>
                 <span className="text-[10.5px] font-bold tracking-[-0.01em] leading-none">

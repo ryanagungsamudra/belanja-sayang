@@ -1,6 +1,7 @@
 import { ReceiptText, Trash2, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { formatRupiah } from '../lib/format'
+import { GlassSheetModal } from './GlassSheetModal'
+import { formatIdrInput, formatRupiah, parseIdrInput } from '../lib/format'
 import { formatPurchaseChip, parseShorthandToken } from '../lib/noteParser'
 import {
   findStore,
@@ -55,7 +56,7 @@ export function PurchaseEntryModal({
   const [shorthand, setShorthand] = useState('')
   const [store, setStore] = useState<StoreSource>(initialStore)
   const [priceText, setPriceText] = useState(
-    initialPrice > 0 ? String(initialPrice) : '',
+    initialPrice > 0 ? formatIdrInput(initialPrice) : '',
   )
   const [qtyNote, setQtyNote] = useState(editingEntry?.qtyNote ?? '')
 
@@ -66,7 +67,7 @@ export function PurchaseEntryModal({
     const parsed = parseShorthandToken(val, store, stores)
     if (parsed) {
       setStore(parsed.store)
-      setPriceText(parsed.price > 0 ? String(parsed.price) : '')
+      setPriceText(parsed.price > 0 ? formatIdrInput(parsed.price) : '')
       if (parsed.qtyNote !== undefined) {
         setQtyNote(parsed.qtyNote)
       }
@@ -78,12 +79,12 @@ export function PurchaseEntryModal({
     if (!editingEntry && !shorthand) {
       const refPrice = productRef.prices[nextStore]?.price
       if (refPrice && refPrice > 0) {
-        setPriceText(String(refPrice))
+        setPriceText(formatIdrInput(refPrice))
       }
     }
   }
 
-  const numericPrice = Number(priceText.replace(/[^\d]/g, '')) || 0
+  const numericPrice = parseIdrInput(priceText)
   const previewChip = formatPurchaseChip(
     {
       store,
@@ -110,20 +111,13 @@ export function PurchaseEntryModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-[5px] animate-fade-in"
-      onClick={onClose}
+    <GlassSheetModal
+      ariaLabel={
+        editingEntry ? 'Edit Catatan Belanja' : 'Catat Pembelian Baru'
+      }
+      onClose={onClose}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={
-          editingEntry ? 'Edit Catatan Belanja' : 'Catat Pembelian Baru'
-        }
-        onClick={(e) => e.stopPropagation()}
-        className="glass-sheet w-full max-w-md rounded-t-3xl overflow-hidden animate-slide-up"
-      >
-        <div className="px-5 pt-4 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between">
+      <div className="px-5 pt-2 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
               <ReceiptText className="w-5 h-5" />
@@ -229,10 +223,8 @@ export function PurchaseEntryModal({
                   inputMode="numeric"
                   data-testid="purchase-price-input"
                   value={priceText}
-                  onChange={(e) =>
-                    setPriceText(e.target.value.replace(/[^\d]/g, ''))
-                  }
-                  placeholder="13000"
+                  onChange={(e) => setPriceText(formatIdrInput(e.target.value))}
+                  placeholder="13.000"
                   className="w-full min-w-0 bg-transparent text-base font-bold text-slate-900 outline-none tabular-nums"
                 />
               </div>
@@ -277,7 +269,6 @@ export function PurchaseEntryModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </GlassSheetModal>
   )
 }

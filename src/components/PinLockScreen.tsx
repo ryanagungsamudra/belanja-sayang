@@ -1,5 +1,5 @@
 import { Delete, Lock, ShieldCheck, ShoppingBasket } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface PinLockScreenProps {
   mode: 'onboarding' | 'unlock'
@@ -9,6 +9,8 @@ interface PinLockScreenProps {
 }
 
 const KEYPAD = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'back']
+const MAX_ATTEMPTS = 5
+const COOLDOWN_SECONDS = 30
 
 export function PinLockScreen({
   mode,
@@ -20,6 +22,16 @@ export function PinLockScreen({
   const [firstPin, setFirstPin] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
   const [shaking, setShaking] = useState(false)
+  const [failedAttempts, setFailedAttempts] = useState(0)
+  const [cooldownLeft, setCooldownLeft] = useState(0)
+
+  useEffect(() => {
+    if (cooldownLeft <= 0) return
+    const timer = window.setInterval(() => {
+      setCooldownLeft((prev) => (prev <= 1 ? 0 : prev - 1))
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [cooldownLeft])
 
   const triggerError = (msg: string) => {
     setErrorMsg(msg)
@@ -31,7 +43,7 @@ export function PinLockScreen({
   }
 
   const handleDigit = (val: string) => {
-    if (digits.length >= 4) return
+    if (digits.length >= 4 || cooldownLeft > 0) return
     setErrorMsg('')
     const next = digits + val
     setDigits(next)
@@ -40,7 +52,20 @@ export function PinLockScreen({
       if (mode === 'unlock') {
         const ok = onVerifyPin(next)
         if (!ok) {
-          triggerError('PIN salah, coba lagi')
+          const nextFails = failedAttempts + 1
+          if (nextFails >= MAX_ATTEMPTS) {
+            setFailedAttempts(0)
+            setCooldownLeft(COOLDOWN_SECONDS)
+            triggerError(
+              `Terlalu banyak percobaan. Tunggu ${COOLDOWN_SECONDS} detik.`,
+            )
+          } else {
+            setFailedAttempts(nextFails)
+            const remaining = MAX_ATTEMPTS - nextFails
+            triggerError(`PIN salah (${remaining} percobaan tersisa)`)
+          }
+        } else {
+          setFailedAttempts(0)
         }
       } else {
         // Onboarding 2-step confirmation
@@ -60,6 +85,7 @@ export function PinLockScreen({
   }
 
   const handleBackspace = () => {
+    if (cooldownLeft > 0) return
     setErrorMsg('')
     setDigits((prev) => prev.slice(0, -1))
   }
@@ -73,10 +99,10 @@ export function PinLockScreen({
 
   const subheading =
     mode === 'unlock'
-      ? 'Daftar belanjamu terlindungi secara lokal di perangkat ini.'
+      ? 'Daftar belanjamu terlindungi dengan PIN keluarga yang tersinkron.'
       : firstPin
         ? 'Ketik ulang 4 digit PIN yang sama untuk menyimpan.'
-        : 'Kunci daftar belanja di HP bersama. Bisa diubah atau dimatikan kapan saja.'
+        : 'Kunci daftar belanja di semua HP keluarga. Bisa diubah atau dimatikan kapan saja.'
 
   return (
     <div className="liquid-shell max-w-md mx-auto min-h-dvh shadow-2xl shadow-slate-900/10 flex flex-col justify-between px-6 py-8 relative overflow-hidden">
@@ -125,8 +151,10 @@ export function PinLockScreen({
           })}
         </div>
 
-        <p className="min-h-5 text-xs font-semibold text-rose-600">
-          {errorMsg}
+        <p className="min-h-5 text-xs font-semibold text-rose-600 tabular-nums">
+          {cooldownLeft > 0
+            ? `Coba lagi dalam ${cooldownLeft} detik`
+            : errorMsg}
         </p>
       </div>
 
@@ -142,9 +170,10 @@ export function PinLockScreen({
                 <button
                   key="back"
                   type="button"
+                  disabled={cooldownLeft > 0}
                   aria-label="Hapus digit"
                   onClick={handleBackspace}
-                  className="glass-pill min-h-14 rounded-2xl text-slate-700 flex items-center justify-center cursor-pointer"
+                  className="glass-pill min-h-14 rounded-2xl text-slate-700 disabled:opacity-40 flex items-center justify-center cursor-pointer"
                 >
                   <Delete className="w-6 h-6" />
                 </button>
@@ -154,9 +183,10 @@ export function PinLockScreen({
               <button
                 key={key}
                 type="button"
+                disabled={cooldownLeft > 0}
                 data-testid={`pin-key-${key}`}
                 onClick={() => handleDigit(key)}
-                className="glass-pill min-h-14 rounded-2xl text-2xl font-bold text-slate-900 cursor-pointer tabular-nums"
+                className="glass-pill min-h-14 rounded-2xl text-2xl font-bold text-slate-900 disabled:opacity-40 cursor-pointer tabular-nums"
               >
                 {key}
               </button>

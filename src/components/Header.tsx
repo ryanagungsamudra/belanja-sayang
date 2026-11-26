@@ -66,9 +66,9 @@ export const Header = memo(function Header({
               ? `${onlineDevices} HP sedang online bersama`
               : 'Sinkron Real-Time Aktif'
           }
-          className="glass-pill min-h-10 px-2 rounded-2xl text-emerald-700 text-xs font-bold flex items-center gap-1 cursor-pointer whitespace-nowrap"
+          className="glass-chip min-h-10 px-2 rounded-2xl text-emerald-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
         >
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+          <span className="live-dot" />
           <span>{onlineDevices > 1 ? `Live · ${onlineDevices}` : 'Live'}</span>
         </button>
       )
@@ -80,7 +80,7 @@ export const Header = memo(function Header({
           data-testid="header-sync-btn"
           onClick={onOpenSyncModal}
           aria-label="Sedang menyinkronkan"
-          className="glass-pill min-h-10 px-2.5 rounded-2xl text-sky-700 text-xs font-bold flex items-center gap-1 cursor-pointer"
+          className="glass-chip min-h-10 px-2.5 rounded-2xl text-sky-700 text-xs font-bold flex items-center gap-1 cursor-pointer"
         >
           <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
           <span>Sync</span>
@@ -94,7 +94,7 @@ export const Header = memo(function Header({
           data-testid="header-sync-btn"
           onClick={onOpenSyncModal}
           aria-label="Mode Offline"
-          className="glass-pill min-h-10 px-2.5 rounded-2xl text-amber-800 text-xs font-bold flex items-center gap-1 cursor-pointer"
+          className="glass-chip min-h-10 px-2.5 rounded-2xl text-amber-800 text-xs font-bold flex items-center gap-1 cursor-pointer"
         >
           <CloudOff className="w-3.5 h-3.5 shrink-0" />
           <span>Off</span>
@@ -108,7 +108,7 @@ export const Header = memo(function Header({
           data-testid="header-sync-btn"
           onClick={onOpenSyncModal}
           aria-label="Gagal Sinkronisasi"
-          className="glass-pill min-h-10 px-2.5 rounded-2xl text-rose-700 text-xs font-bold flex items-center gap-1 cursor-pointer"
+          className="glass-chip min-h-10 px-2.5 rounded-2xl text-rose-700 text-xs font-bold flex items-center gap-1 cursor-pointer"
         >
           <CloudOff className="w-3.5 h-3.5 shrink-0" />
           <span>Error</span>
@@ -122,7 +122,7 @@ export const Header = memo(function Header({
         onClick={onOpenSyncModal}
         aria-label="Atur Sinkronisasi Real-Time"
         title="Hubungkan Sinkronisasi Real-Time"
-        className="glass-pill min-h-10 px-2.5 rounded-2xl text-slate-700 hover:text-emerald-700 text-xs font-bold flex items-center gap-1 cursor-pointer"
+        className="glass-chip min-h-10 px-2.5 rounded-2xl text-slate-700 hover:text-emerald-700 text-xs font-bold flex items-center gap-1 cursor-pointer"
       >
         <Cloud className="w-3.5 h-3.5 shrink-0" />
         <span>Sync</span>
@@ -154,7 +154,7 @@ export const Header = memo(function Header({
             onClick={onOpenManageConfig}
             aria-label="Kelola Tempat Belanja dan Kategori"
             title="Kelola Toko & Kategori"
-            className="glass-pill min-h-10 min-w-10 rounded-2xl text-slate-600 hover:text-slate-900 flex items-center justify-center cursor-pointer"
+            className="glass-chip min-h-10 min-w-10 rounded-2xl text-slate-600 hover:text-slate-900 flex items-center justify-center cursor-pointer"
           >
             <SlidersHorizontal className="w-4 h-4 shrink-0" />
           </button>
@@ -169,7 +169,7 @@ export const Header = memo(function Header({
                 : 'Pengaturan PIN Privat (Nonaktif)'
             }
             title={pinEnabled ? 'PIN Privat Aktif' : 'Atur PIN Privat'}
-            className={`glass-pill min-h-10 min-w-10 rounded-2xl flex items-center justify-center cursor-pointer ${
+            className={`glass-chip min-h-10 min-w-10 rounded-2xl flex items-center justify-center cursor-pointer ${
               pinEnabled ? 'text-emerald-700' : 'text-slate-500'
             }`}
           >
@@ -196,7 +196,7 @@ export const Header = memo(function Header({
                   ? 'Layar tetap menyala (Aktif)'
                   : 'Jaga layar tetap menyala saat belanja'
               }
-              className={`glass-pill min-h-10 min-w-10 rounded-2xl flex items-center justify-center cursor-pointer ${
+              className={`glass-chip min-h-10 min-w-10 rounded-2xl flex items-center justify-center cursor-pointer ${
                 wakeLockActive ? 'text-amber-600' : 'text-slate-500'
               }`}
             >
@@ -212,7 +212,7 @@ export const Header = memo(function Header({
 
       {/* Slim Liquid Progress Strip (only on Keranjang tab) */}
       {showCartBar && (
-        <div className="glass-card mt-2 rounded-2xl px-3 py-1.5">
+        <div className="glass-chip mt-2 rounded-2xl px-3 py-1.5">
           <div className="flex items-center justify-between gap-2 text-xs">
             <span className="text-slate-600 font-medium">
               Keranjang{' '}
@@ -231,10 +231,12 @@ export const Header = memo(function Header({
             </span>
           </div>
           <div className="mt-1.5 h-1.5 w-full rounded-full bg-slate-900/8 overflow-hidden">
-            <div
-              className="liquid-progress h-full rounded-full"
-              style={{ width: `${progressPct}%` }}
-            />
+            {progressPct > 0 && (
+              <div
+                className="liquid-progress h-full rounded-full"
+                style={{ width: `${progressPct}%` }}
+              />
+            )}
           </div>
         </div>
       )}

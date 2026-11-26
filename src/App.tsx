@@ -7,25 +7,37 @@ import {
   Plus,
   ShoppingBasket,
 } from 'lucide-react'
-import { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { BottomNav, type AppTab } from './components/BottomNav'
 import { Header } from './components/Header'
-import { PinLockScreen } from './components/PinLockScreen'
 import { ProductCatalogView } from './components/ProductCatalogView'
+import { PwaUpdateBanner } from './components/PwaUpdateBanner'
+import { ToastHost } from './components/ToastHost'
+import { emitToast } from './lib/toastBus'
 
-const BasketDrawer = lazy(() =>
-  import('./components/BasketDrawer').then((m) => ({ default: m.BasketDrawer })),
+const PinLockScreen = lazy(() =>
+  import('./components/PinLockScreen').then((m) => ({
+    default: m.PinLockScreen,
+  })),
 )
-const BottomQuickAdd = lazy(() =>
+const loadBasketDrawer = () =>
+  import('./components/BasketDrawer').then((m) => ({ default: m.BasketDrawer }))
+const loadBottomQuickAdd = () =>
   import('./components/BottomQuickAdd').then((m) => ({
     default: m.BottomQuickAdd,
-  })),
-)
-const CategoryGroup = lazy(() =>
+  }))
+const loadCategoryGroup = () =>
   import('./components/CategoryGroup').then((m) => ({
     default: m.CategoryGroup,
-  })),
-)
+  }))
+const loadTemplatesView = () =>
+  import('./components/TemplatesView').then((m) => ({
+    default: m.TemplatesView,
+  }))
+
+const BasketDrawer = lazy(loadBasketDrawer)
+const BottomQuickAdd = lazy(loadBottomQuickAdd)
+const CategoryGroup = lazy(loadCategoryGroup)
 const EditItemModal = lazy(() =>
   import('./components/EditItemModal').then((m) => ({
     default: m.EditItemModal,
@@ -59,11 +71,7 @@ const TemplateEditorModal = lazy(() =>
     default: m.TemplateEditorModal,
   })),
 )
-const TemplatesView = lazy(() =>
-  import('./components/TemplatesView').then((m) => ({
-    default: m.TemplatesView,
-  })),
-)
+const TemplatesView = lazy(loadTemplatesView)
 const PinSettingsModal = lazy(() =>
   import('./components/PinSettingsModal').then((m) => ({
     default: m.PinSettingsModal,
@@ -92,21 +100,36 @@ import type {
 type CartStoreFilter = 'all' | 'unassigned' | StoreSource
 
 export function App() {
-  const [toast, setToast] = useState<string | null>(null)
-  const toastTimerRef = useRef<number | null>(null)
+  const showToast = useCallback(
+    (message: string, undoAction?: { label: string; onAction: () => void }) => {
+      emitToast(message, undoAction)
+    },
+    [],
+  )
 
-  const showToast = useCallback((message: string) => {
-    setToast(message)
-    if (toastTimerRef.current) {
-      window.clearTimeout(toastTimerRef.current)
-    }
-    toastTimerRef.current = window.setTimeout(() => {
-      setToast(null)
-    }, 2400)
-  }, [])
-
-  const store = useMarketStore(undefined, showToast)
+  const store = useMarketStore(undefined, emitToast)
   const wakeLock = useWakeLock()
+
+  // Warm up secondary tab chunks during browser idle time for 0ms tab switches
+  useEffect(() => {
+    if (store.isLocked) return
+    const prefetch = () => {
+      void loadBottomQuickAdd()
+      void loadCategoryGroup()
+      void loadTemplatesView()
+      void loadBasketDrawer()
+    }
+    const win = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
+      cancelIdleCallback?: (id: number) => void
+    }
+    if (typeof win.requestIdleCallback === 'function') {
+      const id = win.requestIdleCallback(prefetch, { timeout: 2200 })
+      return () => win.cancelIdleCallback?.(id)
+    }
+    const timer = window.setTimeout(prefetch, 1400)
+    return () => window.clearTimeout(timer)
+  }, [store.isLocked])
 
   const [activeTab, setActiveTab] = useState<AppTab>('referensi')
   const [storeFilter, setStoreFilter] = useState<CartStoreFilter>('all')
@@ -144,6 +167,55 @@ export function App() {
     setManageInitialTab(tab)
     setManageModalOpen(true)
   }, [])
+
+  const handleOpenSyncModal = useCallback(() => setSyncModalOpen(true), [])
+  const handleOpenPinSettings = useCallback(() => setPinSettingsOpen(true), [])
+  const handleOpenManageStores = useCallback(
+    () => openManageConfig('stores'),
+    [openManageConfig],
+  )
+  const handleToggleWakeLock = useCallback(() => {
+    void wakeLock.toggle()
+  }, [wakeLock])
+  const handleOpenImportModal = useCallback(() => setImportModalOpen(true), [])
+  const handleAddNewRef = useCallback(() => {
+    setEditingRef(null)
+    setRefFocusStore(undefined)
+    setRefModalOpen(true)
+  }, [])
+  const handleEditRef = useCallback(
+    (ref: ProductReference, focusStore?: StoreSource) => {
+      setEditingRef(ref)
+      setRefFocusStore(focusStore)
+      setRefModalOpen(true)
+    },
+    [],
+  )
+  const handleAddPurchase = useCallback((ref: ProductReference) => {
+    setPurchaseModalRef(ref)
+    setEditingPurchase(null)
+    setPurchaseModalOpen(true)
+  }, [])
+  const handleEditPurchase = useCallback(
+    (ref: ProductReference, entry: MonthlyPurchaseEntry) => {
+      setPurchaseModalRef(ref)
+      setEditingPurchase(entry)
+      setPurchaseModalOpen(true)
+    },
+    [],
+  )
+  const { toggleProductInCart } = store
+  const handleToggleInCart = useCallback(
+    (ref: ProductReference) => {
+      const res = toggleProductInCart(ref)
+      showToast(
+        res === 'added'
+          ? `${ref.name} masuk keranjang (pilih toko di Keranjang)`
+          : `${ref.name} dihapus dari keranjang`,
+      )
+    },
+    [showToast, toggleProductInCart],
+  )
 
   // Group active Weekly Keranjang items by dynamic CategoryConfig (items sorted A-Z!)
   const filteredGroupedActive = useMemo(() => {
@@ -219,17 +291,21 @@ export function App() {
 
   if (store.isLocked) {
     return (
-      <PinLockScreen
-        mode={store.pinConfig.hasCompletedOnboarding ? 'unlock' : 'onboarding'}
-        onSetPin={(pin) => {
-          store.setPin(pin)
-          showToast('PIN privasi aktif di semua perangkat')
-        }}
-        onSkipPin={() => {
-          store.disablePin()
-        }}
-        onVerifyPin={store.verifyAndUnlock}
-      />
+      <Suspense fallback={null}>
+        <PinLockScreen
+          mode={
+            store.pinConfig.hasCompletedOnboarding ? 'unlock' : 'onboarding'
+          }
+          onSetPin={(pin) => {
+            store.setPin(pin)
+            showToast('PIN privasi aktif di semua perangkat')
+          }}
+          onSkipPin={() => {
+            store.disablePin()
+          }}
+          onVerifyPin={store.verifyAndUnlock}
+        />
+      </Suspense>
     )
   }
 
@@ -295,9 +371,30 @@ export function App() {
   }
 
   const handleClearBought = () => {
-    const count = store.boughtItems.length
+    const snapshot = [...store.boughtItems]
+    if (snapshot.length === 0) return
     store.clearBoughtItems()
-    showToast(`${count} item dibersihkan (catatan bulanan tetap tersimpan)`)
+    showToast(`${snapshot.length} item dibersihkan`, {
+      label: 'Urungkan',
+      onAction: () => {
+        store.restoreItems(snapshot)
+        showToast(`${snapshot.length} item dikembalikan`)
+      },
+    })
+  }
+
+  const handleDeleteCartItem = (id: string) => {
+    const target = store.items.find((i) => i.id === id)
+    store.deleteItem(id)
+    if (target) {
+      showToast(`"${target.name}" dihapus dari keranjang`, {
+        label: 'Urungkan',
+        onAction: () => {
+          store.restoreItems([target])
+          showToast(`"${target.name}" dikembalikan`)
+        },
+      })
+    }
   }
 
   const hasActiveItems = store.activeItems.length > 0
@@ -322,13 +419,14 @@ export function App() {
         pinEnabled={store.pinConfig.pinEnabled}
         wakeLockSupported={wakeLock.isSupported}
         wakeLockActive={wakeLock.isActive}
-        onToggleWakeLock={() => {
-          void wakeLock.toggle()
-        }}
-        onOpenSyncModal={() => setSyncModalOpen(true)}
-        onOpenPinSettings={() => setPinSettingsOpen(true)}
-        onOpenManageConfig={() => openManageConfig('stores')}
+        onToggleWakeLock={handleToggleWakeLock}
+        onOpenSyncModal={handleOpenSyncModal}
+        onOpenPinSettings={handleOpenPinSettings}
+        onOpenManageConfig={handleOpenManageStores}
       />
+
+      {/* In-App PWA Update Notification */}
+      <PwaUpdateBanner />
 
       {/* Main Scrollable Content */}
       <main
@@ -340,12 +438,12 @@ export function App() {
             {/* Live Partner Collaboration Banner when 2+ devices are online */}
             {store.sync.syncStatus === 'connected' &&
               store.sync.onlineDevices > 1 && (
-                <div className="glass-pill px-3.5 py-2 rounded-2xl text-emerald-800 text-[11px] font-bold flex items-center justify-between gap-2 animate-fade-in">
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="glass-chip px-3.5 py-2.5 rounded-2xl text-emerald-800 text-[11px] font-bold flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="live-dot" />
                     Belanja bareng aktif ({store.sync.onlineDevices} HP terhubung)
                   </span>
-                  <span className="text-emerald-600">Real-time</span>
+                  <span className="text-emerald-600 shrink-0">Real-time</span>
                 </div>
               )}
 
@@ -364,7 +462,7 @@ export function App() {
                 }
                 className={`min-h-9 px-2.5 rounded-xl border text-[11px] font-extrabold shrink-0 inline-flex items-center gap-1 liquid-press cursor-pointer ${cartSortOrder === 'za'
                     ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
-                    : 'glass-pill text-slate-700 hover:border-emerald-400'
+                    : 'glass-chip text-slate-700 hover:border-emerald-400'
                   }`}
               >
                 {cartSortOrder === 'az' ? (
@@ -386,7 +484,7 @@ export function App() {
                 onClick={() => setStoreFilter('all')}
                 className={`min-h-9 px-3 rounded-xl text-xs font-bold border shrink-0 liquid-press cursor-pointer ${storeFilter === 'all'
                     ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
-                    : 'glass-pill text-slate-600'
+                    : 'glass-chip text-slate-600'
                   }`}
               >
                 Semua ({store.activeItems.length})
@@ -457,9 +555,9 @@ export function App() {
                           showToast(`Toko diubah ke ${label}`)
                         }
                       }}
-                      onOpenManageStores={() => openManageConfig('stores')}
+                      onOpenManageStores={handleOpenManageStores}
                       onEditItem={(item) => setEditingItem(item)}
-                      onDeleteItem={store.deleteItem}
+                      onDeleteItem={handleDeleteCartItem}
                     />
                   ))}
                 </div>
@@ -476,7 +574,7 @@ export function App() {
                 <button
                   type="button"
                   onClick={() => setStoreFilter('all')}
-                  className="glass-pill min-h-10 px-4 rounded-xl text-slate-700 text-xs font-bold cursor-pointer"
+                  className="glass-chip min-h-10 px-4 rounded-xl text-slate-700 text-xs font-bold cursor-pointer"
                 >
                   Lihat Semua Item
                 </button>
@@ -511,7 +609,7 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => setActiveTab('referensi')}
-                    className="glass-pill min-h-12 px-3 rounded-2xl text-slate-800 text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="glass-chip min-h-12 px-3 rounded-2xl text-slate-800 text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <NotebookPen className="w-4 h-4 text-emerald-600" />
                     <span>Pilih dari Catatan</span>
@@ -535,7 +633,7 @@ export function App() {
                   stores={store.stores}
                   boughtEstimatedSpend={store.boughtEstimatedSpend}
                   onToggleBought={handleToggleBought}
-                  onDeleteItem={store.deleteItem}
+                  onDeleteItem={handleDeleteCartItem}
                   onClearBought={handleClearBought}
                 />
               </Suspense>
@@ -551,39 +649,17 @@ export function App() {
             productRefs={store.productRefs}
             monthEntries={store.currentMonthEntries}
             monthlyTotalSpend={store.monthlyTotalSpend}
+            previousMonthTotalSpend={store.previousMonthTotalSpend}
             monthlySpendByStore={store.monthlySpendByStore}
             activeItems={store.activeItems}
             onChangeMonth={store.setSelectedMonth}
-            onOpenImportModal={() => setImportModalOpen(true)}
+            onOpenImportModal={handleOpenImportModal}
             onOpenManageConfig={openManageConfig}
-            onAddNewRef={() => {
-              setEditingRef(null)
-              setRefFocusStore(undefined)
-              setRefModalOpen(true)
-            }}
-            onEditRef={(ref, focusStore) => {
-              setEditingRef(ref)
-              setRefFocusStore(focusStore)
-              setRefModalOpen(true)
-            }}
-            onAddPurchase={(ref) => {
-              setPurchaseModalRef(ref)
-              setEditingPurchase(null)
-              setPurchaseModalOpen(true)
-            }}
-            onEditPurchase={(ref, entry) => {
-              setPurchaseModalRef(ref)
-              setEditingPurchase(entry)
-              setPurchaseModalOpen(true)
-            }}
-            onToggleInCart={(ref) => {
-              const res = store.toggleProductInCart(ref)
-              showToast(
-                res === 'added'
-                  ? `${ref.name} masuk keranjang (pilih toko di Keranjang)`
-                  : `${ref.name} dihapus dari keranjang`,
-              )
-            }}
+            onAddNewRef={handleAddNewRef}
+            onEditRef={handleEditRef}
+            onAddPurchase={handleAddPurchase}
+            onEditPurchase={handleEditPurchase}
+            onToggleInCart={handleToggleInCart}
           />
         )}
 
@@ -604,25 +680,28 @@ export function App() {
               onSaveFromActive={handleOpenSaveActiveTemplate}
               onApplyTemplate={handleApplyTemplate}
               onDeleteTemplate={(id) => {
+                const target = store.templates.find((t) => t.id === id)
                 store.deleteTemplate(id)
-                showToast('Paket masak dihapus')
+                showToast(
+                  target ? `Paket "${target.name}" dihapus` : 'Paket masak dihapus',
+                  target
+                    ? {
+                        label: 'Urungkan',
+                        onAction: () => {
+                          store.restoreTemplate(target)
+                          showToast(`Paket "${target.name}" dikembalikan`)
+                        },
+                      }
+                    : undefined,
+                )
               }}
             />
           </Suspense>
         )}
       </main>
 
-      {/* Liquid Frosted Floating Toast Feedback */}
-      {toast && (
-        <div
-          key={toast}
-          role="status"
-          aria-live="polite"
-          className="liquid-toast fixed bottom-44 left-1/2 -translate-x-1/2 z-40 max-w-[calc(100%-2rem)] px-4 py-2.5 rounded-full text-white text-xs font-semibold animate-liquid-pop pointer-events-none whitespace-nowrap truncate"
-        >
-          {toast}
-        </div>
-      )}
+      {/* Zero-Rerender Isolated Liquid Toast Host (with Undo Support) */}
+      <ToastHost />
 
       {/* Unified Sticky Bottom Area */}
       <div className="sticky bottom-0 z-30 w-full min-w-0 max-w-full">
@@ -710,8 +789,20 @@ export function App() {
               showToast('Catatan pembelian diperbarui')
             }}
             onDelete={(entryId) => {
+              const target = store.monthlyPurchases.find((e) => e.id === entryId)
               store.deletePurchaseEntry(entryId)
-              showToast('Catatan pembelian dihapus')
+              showToast(
+                'Catatan pembelian dihapus',
+                target
+                  ? {
+                      label: 'Urungkan',
+                      onAction: () => {
+                        store.restorePurchaseEntry(target)
+                        showToast('Catatan pembelian dikembalikan')
+                      },
+                    }
+                  : undefined,
+              )
             }}
           />
         )}
@@ -753,8 +844,28 @@ export function App() {
               }
             }}
             onDelete={(id) => {
+              const targetRef = store.productRefs.find((r) => r.id === id)
+              const linkedEntries = store.monthlyPurchases.filter(
+                (e) => e.productRefId === id,
+              )
               store.deleteProductRef(id)
-              showToast('Produk dihapus dari catatan')
+              showToast(
+                targetRef
+                  ? `"${targetRef.name}" dihapus dari catatan`
+                  : 'Produk dihapus dari catatan',
+                targetRef
+                  ? {
+                      label: 'Urungkan',
+                      onAction: () => {
+                        store.restoreProductRefWithEntries(
+                          targetRef,
+                          linkedEntries,
+                        )
+                        showToast(`"${targetRef.name}" dikembalikan`)
+                      },
+                    }
+                  : undefined,
+              )
             }}
           />
         )}

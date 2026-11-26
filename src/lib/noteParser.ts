@@ -122,12 +122,12 @@ function getCachedStoreMatchers(stores: StoreConfig[]): CachedStoreMatchers {
   const codePattern = matchers.map((m) => escapeRegExp(m.token)).join('|')
   const storeRegex = codePattern
     ? new RegExp(
-        `^(?:(.*?)\\s+)?(?:(\\d+)\\s*)?(${codePattern})\\s*(\\d+(?:[.,]\\d+)?)?$`,
+        `^(?:(.*?)\\s+)?(?:(\\d+)\\s*)?(${codePattern})\\s*(?:(\\d+(?:[.,]\\d+)?)|\\?)?(?:\\s*[·•-]\\s*(.+))?$`,
         'i',
       )
     : null
   const firstTokenRegex = new RegExp(
-    `\\s+(?:(?:\\d+)?(?:${codePattern})(?:\\d+(?:[.,]\\d+)?)?(?=\\s*\\/|\\s*$)|(?:\\d+(?:[.,]\\d+)?)(?=\\s*\\/))`,
+    `\\s+(?:(?:\\d+)?(?:${codePattern})(?:\\d+(?:[.,]\\d+)?|\\?)?(?=\\s*\\/|\\s*[·•-]|\\s*$)|(?:\\d+(?:[.,]\\d+)?)(?=\\s*\\/))`,
     'i',
   )
 
@@ -138,7 +138,7 @@ function getCachedStoreMatchers(stores: StoreConfig[]): CachedStoreMatchers {
 
 /**
  * Parses a single shorthand token such as:
- * "H13", "H9,5", "P10", "In21", "2H29", "H", "21", "sania 2L H41",
+ * "H13", "H9,5", "P10", "In21", "2H29", "H", "H?", "21", "sania 2L H41", "H41 · sania 2L",
  * plus any custom store codes added by the user (e.g., "S15" for Superindo).
  */
 export function parseShorthandToken(
@@ -158,6 +158,7 @@ export function parseShorthandToken(
       const leadingQty = match[2]?.trim()
       const codeRaw = match[3].toLowerCase()
       const priceRaw = match[4]
+      const trailingNote = match[5]?.trim()
 
       const matchedStore =
         matchers.find((m) => m.token === codeRaw)?.storeId ?? fallbackStore
@@ -170,7 +171,7 @@ export function parseShorthandToken(
         }
       }
 
-      const qtyNote = leadingQty || leadingText || undefined
+      const qtyNote = leadingQty || leadingText || trailingNote || undefined
       return { store: matchedStore, price, qtyNote }
     }
   }

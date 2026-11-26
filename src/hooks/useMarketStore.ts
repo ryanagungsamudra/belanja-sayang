@@ -10,6 +10,7 @@ import {
   createRefId,
   getCurrentMonthKey,
   parseMonthlyNoteText,
+  shiftMonthKey,
 } from '../lib/noteParser'
 import {
   localStorageAdapter,
@@ -303,11 +304,11 @@ export function useMarketStore(
   const { schedulePush, pushKeyImmediately } = sync
 
   useEffect(() => {
-    adapter.saveStores(stores)
     if (!hasMountedRef.current.stores) {
       hasMountedRef.current.stores = true
       return
     }
+    adapter.saveStores(stores)
     if (skipPushRef.current.stores) {
       skipPushRef.current.stores = false
       return
@@ -316,11 +317,11 @@ export function useMarketStore(
   }, [adapter, stores, schedulePush])
 
   useEffect(() => {
-    adapter.saveCategories(categories)
     if (!hasMountedRef.current.categories) {
       hasMountedRef.current.categories = true
       return
     }
+    adapter.saveCategories(categories)
     if (skipPushRef.current.categories) {
       skipPushRef.current.categories = false
       return
@@ -329,11 +330,11 @@ export function useMarketStore(
   }, [adapter, categories, schedulePush])
 
   useEffect(() => {
-    adapter.saveItems(items)
     if (!hasMountedRef.current.items) {
       hasMountedRef.current.items = true
       return
     }
+    adapter.saveItems(items)
     if (skipPushRef.current.items) {
       skipPushRef.current.items = false
       return
@@ -342,11 +343,11 @@ export function useMarketStore(
   }, [adapter, items, schedulePush])
 
   useEffect(() => {
-    adapter.saveFrequentItems(frequentItems)
     if (!hasMountedRef.current.frequent) {
       hasMountedRef.current.frequent = true
       return
     }
+    adapter.saveFrequentItems(frequentItems)
     if (skipPushRef.current.frequent) {
       skipPushRef.current.frequent = false
       return
@@ -355,11 +356,11 @@ export function useMarketStore(
   }, [adapter, frequentItems, schedulePush])
 
   useEffect(() => {
-    adapter.saveTemplates(templates)
     if (!hasMountedRef.current.templates) {
       hasMountedRef.current.templates = true
       return
     }
+    adapter.saveTemplates(templates)
     if (skipPushRef.current.templates) {
       skipPushRef.current.templates = false
       return
@@ -368,11 +369,11 @@ export function useMarketStore(
   }, [adapter, templates, schedulePush])
 
   useEffect(() => {
-    adapter.saveProductRefs(productRefs)
     if (!hasMountedRef.current.product_refs) {
       hasMountedRef.current.product_refs = true
       return
     }
+    adapter.saveProductRefs(productRefs)
     if (skipPushRef.current.product_refs) {
       skipPushRef.current.product_refs = false
       return
@@ -381,11 +382,11 @@ export function useMarketStore(
   }, [adapter, productRefs, schedulePush])
 
   useEffect(() => {
-    adapter.saveMonthlyPurchases(monthlyPurchases)
     if (!hasMountedRef.current.monthly_purchases) {
       hasMountedRef.current.monthly_purchases = true
       return
     }
+    adapter.saveMonthlyPurchases(monthlyPurchases)
     if (skipPushRef.current.monthly_purchases) {
       skipPushRef.current.monthly_purchases = false
       return
@@ -394,11 +395,11 @@ export function useMarketStore(
   }, [adapter, monthlyPurchases, schedulePush])
 
   useEffect(() => {
-    adapter.savePinConfig(pinConfig)
     if (!hasMountedRef.current.pin_config) {
       hasMountedRef.current.pin_config = true
       return
     }
+    adapter.savePinConfig(pinConfig)
     if (skipPushRef.current.pin_config) {
       skipPushRef.current.pin_config = false
       return
@@ -426,18 +427,21 @@ export function useMarketStore(
       if (!name) return null
 
       const shortLabel = input.shortLabel?.trim() || name
-      let saved: StoreConfig | null = null
+      const prevStores = latestDataRef.current.stores
+      const existing = input.id
+        ? prevStores.find((s) => s.id === input.id)
+        : undefined
+      const record: StoreConfig = {
+        id: existing ? existing.id : `store-${generateId().slice(0, 8)}`,
+        name,
+        shortLabel,
+        code,
+        color: input.color || '#059669',
+        updatedAt: Date.now(),
+      }
 
       setStores((prev) => {
-        const idx = input.id ? prev.findIndex((s) => s.id === input.id) : -1
-        const record: StoreConfig = {
-          id: idx >= 0 ? prev[idx].id : `store-${generateId().slice(0, 8)}`,
-          name,
-          shortLabel,
-          code,
-          color: input.color || '#059669',
-        }
-        saved = record
+        const idx = prev.findIndex((s) => s.id === record.id)
         if (idx >= 0) {
           const next = [...prev]
           next[idx] = record
@@ -447,7 +451,7 @@ export function useMarketStore(
       })
 
       triggerHaptic(12)
-      return saved
+      return record
     },
     [],
   )
@@ -488,17 +492,20 @@ export function useMarketStore(
       const name = input.name.trim()
       if (!name) return null
       const shortLabel = input.shortLabel?.trim() || name.split(' ')[0] || name
-      let saved: CategoryConfig | null = null
+      const prevCats = latestDataRef.current.categories
+      const existing = input.id
+        ? prevCats.find((c) => c.id === input.id)
+        : undefined
+      const record: CategoryConfig = {
+        id: existing ? existing.id : `cat-${generateId().slice(0, 8)}`,
+        name,
+        shortLabel,
+        color: input.color || '#059669',
+        updatedAt: Date.now(),
+      }
 
       setCategories((prev) => {
-        const idx = input.id ? prev.findIndex((c) => c.id === input.id) : -1
-        const record: CategoryConfig = {
-          id: idx >= 0 ? prev[idx].id : `cat-${generateId().slice(0, 8)}`,
-          name,
-          shortLabel,
-          color: input.color || '#059669',
-        }
-        saved = record
+        const idx = prev.findIndex((c) => c.id === record.id)
         if (idx >= 0) {
           const next = [...prev]
           next[idx] = record
@@ -508,7 +515,7 @@ export function useMarketStore(
       })
 
       triggerHaptic(12)
-      return saved
+      return record
     },
     [],
   )
@@ -591,6 +598,7 @@ export function useMarketStore(
         ),
       )
 
+      const now = Date.now()
       const newItem: MarketItem = {
         id: generateId(),
         name: trimmedName,
@@ -600,7 +608,8 @@ export function useMarketStore(
         store,
         productRefId: input.productRefId ?? matchedRef?.id,
         isBought: false,
-        createdAt: Date.now(),
+        createdAt: now,
+        updatedAt: now,
       }
 
       setItems((prev) => [newItem, ...prev])
@@ -692,10 +701,16 @@ export function useMarketStore(
           ? refStorePrice
           : target.estimatedPrice
 
+      const now = Date.now()
       setItems((prev) =>
         prev.map((item) =>
           item.id === itemId
-            ? { ...item, store: storeId, estimatedPrice: nextPrice }
+            ? {
+                ...item,
+                store: storeId,
+                estimatedPrice: nextPrice,
+                updatedAt: now,
+              }
             : item,
         ),
       )
@@ -704,7 +719,7 @@ export function useMarketStore(
         setMonthlyPurchases((prev) =>
           prev.map((e) =>
             e.id === target.linkedPurchaseId
-              ? { ...e, store: storeId, price: nextPrice }
+              ? { ...e, store: storeId, price: nextPrice, updatedAt: now }
               : e,
           ),
         )
@@ -716,82 +731,73 @@ export function useMarketStore(
 
   const updateItem = useCallback(
     (id: string, patch: UpdateItemInput) => {
-      let updatedItem: MarketItem | null = null
-      setItems((prev) =>
-        prev.map((item) => {
-          if (item.id !== id) return item
-          const nextName =
-            patch.name !== undefined
-              ? patch.name.trim() || item.name
-              : item.name
-          const nextQty =
-            patch.quantity !== undefined
-              ? patch.quantity.trim() || '1'
-              : item.quantity
-          const nextCat = patch.category ?? item.category
-          const nextStore =
-            patch.store !== undefined ? patch.store : item.store
-          const nextPrice =
-            patch.estimatedPrice !== undefined
-              ? Math.max(0, Math.round(patch.estimatedPrice))
-              : item.estimatedPrice
+      const existing = latestDataRef.current.items.find((i) => i.id === id)
+      if (!existing) return
 
-          updatedItem = {
-            ...item,
-            name: nextName,
-            quantity: nextQty,
-            category: nextCat,
-            store: nextStore,
-            estimatedPrice: nextPrice,
-          }
-          return updatedItem
-        }),
+      const now = Date.now()
+      const u: MarketItem = {
+        ...existing,
+        name:
+          patch.name !== undefined
+            ? patch.name.trim() || existing.name
+            : existing.name,
+        quantity:
+          patch.quantity !== undefined
+            ? patch.quantity.trim() || '1'
+            : existing.quantity,
+        category: patch.category ?? existing.category,
+        store: patch.store !== undefined ? patch.store : existing.store,
+        estimatedPrice:
+          patch.estimatedPrice !== undefined
+            ? Math.max(0, Math.round(patch.estimatedPrice))
+            : existing.estimatedPrice,
+        updatedAt: now,
+      }
+
+      setItems((prev) => prev.map((item) => (item.id === id ? u : item)))
+
+      setFrequentItems((prev) =>
+        upsertFrequentList(
+          prev,
+          {
+            name: u.name,
+            quantity: u.quantity,
+            category: u.category,
+            estimatedPrice: u.estimatedPrice,
+            store: u.store,
+          },
+          false,
+        ),
       )
 
-      if (updatedItem) {
-        const u = updatedItem as MarketItem
-        setFrequentItems((prev) =>
-          upsertFrequentList(
-            prev,
-            {
+      if (u.isBought && u.linkedPurchaseId) {
+        setMonthlyPurchases((prev) =>
+          prev.map((entry) =>
+            entry.id === u.linkedPurchaseId
+              ? {
+                  ...entry,
+                  productName: u.name,
+                  store: u.store ?? entry.store,
+                  price: u.estimatedPrice,
+                  updatedAt: now,
+                }
+              : entry,
+          ),
+        )
+      }
+
+      if (patch.syncToReference !== false && u.store && u.estimatedPrice > 0) {
+        setProductRefs(
+          (prev) =>
+            syncPriceIntoProductRefs(prev, {
               name: u.name,
               quantity: u.quantity,
               category: u.category,
-              estimatedPrice: u.estimatedPrice,
               store: u.store,
-            },
-            false,
-          ),
+              price: u.estimatedPrice,
+              defaultStoreId,
+            }).nextRefs,
         )
-
-        if (u.isBought && u.linkedPurchaseId) {
-          setMonthlyPurchases((prev) =>
-            prev.map((entry) =>
-              entry.id === u.linkedPurchaseId
-                ? {
-                    ...entry,
-                    productName: u.name,
-                    store: u.store ?? entry.store,
-                    price: u.estimatedPrice,
-                  }
-                : entry,
-            ),
-          )
-        }
-
-        if (patch.syncToReference !== false && u.store && u.estimatedPrice > 0) {
-          setProductRefs(
-            (prev) =>
-              syncPriceIntoProductRefs(prev, {
-                name: u.name,
-                quantity: u.quantity,
-                category: u.category,
-                store: u.store,
-                price: u.estimatedPrice,
-                defaultStoreId,
-              }).nextRefs,
-          )
-        }
       }
     },
     [defaultStoreId],
@@ -881,11 +887,13 @@ export function useMarketStore(
                   store: resolvedStore,
                   productRefId: resolvedRefId,
                   linkedPurchaseId: purchaseId,
+                  updatedAt: now,
                 }
               : item,
           ),
         )
       } else {
+        const now = Date.now()
         const linkedId = target.linkedPurchaseId
         if (linkedId) {
           setMonthlyPurchases((prev) => prev.filter((e) => e.id !== linkedId))
@@ -893,7 +901,12 @@ export function useMarketStore(
         setItems((prev) =>
           prev.map((item) =>
             item.id === id
-              ? { ...item, isBought: false, linkedPurchaseId: undefined }
+              ? {
+                  ...item,
+                  isBought: false,
+                  linkedPurchaseId: undefined,
+                  updatedAt: now,
+                }
               : item,
           ),
         )
@@ -958,49 +971,47 @@ export function useMarketStore(
 
   const updatePurchaseEntry = useCallback(
     (entryId: string, patch: UpdatePurchaseEntryInput) => {
-      let target: MonthlyPurchaseEntry | null = null
+      const existing = latestDataRef.current.monthly_purchases.find(
+        (e) => e.id === entryId,
+      )
+      if (!existing) return
       const now = Date.now()
+      const updated: MonthlyPurchaseEntry = {
+        ...existing,
+        store: patch.store ?? existing.store,
+        price:
+          patch.price !== undefined
+            ? Math.max(0, Math.round(patch.price))
+            : existing.price,
+        qtyNote:
+          patch.qtyNote !== undefined
+            ? patch.qtyNote.trim() || undefined
+            : existing.qtyNote,
+        updatedAt: now,
+      }
 
       setMonthlyPurchases((prev) =>
-        prev.map((e) => {
-          if (e.id !== entryId) return e
-          target = {
-            ...e,
-            store: patch.store ?? e.store,
-            price:
-              patch.price !== undefined
-                ? Math.max(0, Math.round(patch.price))
-                : e.price,
-            qtyNote:
-              patch.qtyNote !== undefined
-                ? patch.qtyNote.trim() || undefined
-                : e.qtyNote,
-          }
-          return target
-        }),
+        prev.map((e) => (e.id === entryId ? updated : e)),
       )
 
-      if (target) {
-        const updated = target as MonthlyPurchaseEntry
-        if (updated.price > 0) {
-          setProductRefs((prev) =>
-            prev.map((r) =>
-              r.id === updated.productRefId
-                ? {
-                    ...r,
-                    prices: {
-                      ...r.prices,
-                      [updated.store]: {
-                        price: updated.price,
-                        updatedAt: now,
-                      },
+      if (updated.price > 0) {
+        setProductRefs((prev) =>
+          prev.map((r) =>
+            r.id === updated.productRefId
+              ? {
+                  ...r,
+                  prices: {
+                    ...r.prices,
+                    [updated.store]: {
+                      price: updated.price,
+                      updatedAt: now,
                     },
-                    updatedAt: now,
-                  }
-                : r,
-            ),
-          )
-        }
+                  },
+                  updatedAt: now,
+                }
+              : r,
+          ),
+        )
       }
       triggerHaptic(10)
     },
@@ -1096,53 +1107,50 @@ export function useMarketStore(
       const norm = normalizeItemName(trimmed)
       const now = Date.now()
 
-      let saved: ProductReference | null = null
+      const prevRefs = latestDataRef.current.product_refs
+      const existing = input.id
+        ? prevRefs.find((r) => r.id === input.id)
+        : prevRefs.find((r) => r.normalizedName === norm)
 
-      setProductRefs((prev) => {
-        const existingIdx = input.id
-          ? prev.findIndex((r) => r.id === input.id)
-          : prev.findIndex((r) => r.normalizedName === norm)
-
-        const existing = existingIdx >= 0 ? prev[existingIdx] : null
-        const nextPrices: ProductReference['prices'] = {}
-
-        for (const [storeId, val] of Object.entries(input.prices)) {
-          if (val !== undefined && val > 0) {
-            const rounded = Math.round(val)
-            const prevPrice = existing?.prices[storeId]?.price
-            nextPrices[storeId] = {
-              price: rounded,
-              updatedAt:
-                prevPrice === rounded && existing?.prices[storeId]?.updatedAt
-                  ? existing.prices[storeId]!.updatedAt
-                  : now,
-            }
+      const nextPrices: ProductReference['prices'] = {}
+      for (const [storeId, val] of Object.entries(input.prices)) {
+        if (val !== undefined && val > 0) {
+          const rounded = Math.round(val)
+          const prevPrice = existing?.prices[storeId]?.price
+          nextPrices[storeId] = {
+            price: rounded,
+            updatedAt:
+              prevPrice === rounded && existing?.prices[storeId]?.updatedAt
+                ? existing.prices[storeId]!.updatedAt
+                : now,
           }
         }
+      }
 
-        const record: ProductReference = {
-          id: existing?.id ?? input.id ?? createRefId(),
-          name: trimmed,
-          normalizedName: norm,
-          defaultQuantity: input.defaultQuantity.trim() || '1',
-          category: input.category,
-          preferredStore: input.preferredStore,
-          prices: nextPrices,
-          notes: input.notes?.trim() || undefined,
-          updatedAt: now,
-        }
+      const record: ProductReference = {
+        id: existing?.id ?? input.id ?? createRefId(),
+        name: trimmed,
+        normalizedName: norm,
+        defaultQuantity: input.defaultQuantity.trim() || '1',
+        category: input.category,
+        preferredStore: input.preferredStore,
+        prices: nextPrices,
+        notes: input.notes?.trim() || undefined,
+        updatedAt: now,
+      }
 
-        saved = record
-        if (existingIdx >= 0) {
+      setProductRefs((prev) => {
+        const idx = prev.findIndex((r) => r.id === record.id)
+        if (idx >= 0) {
           const next = [...prev]
-          next[existingIdx] = record
+          next[idx] = record
           return next
         }
         return [record, ...prev]
       })
 
       triggerHaptic(12)
-      return saved
+      return record
     },
     [],
   )
@@ -1151,6 +1159,60 @@ export function useMarketStore(
     setProductRefs((prev) => prev.filter((r) => r.id !== refId))
     setMonthlyPurchases((prev) => prev.filter((e) => e.productRefId !== refId))
     triggerHaptic(12)
+  }, [])
+
+  // --- Undo Restore Helpers ---
+  const restoreItems = useCallback((restored: MarketItem[]) => {
+    if (restored.length === 0) return
+    const now = Date.now()
+    setItems((prev) => {
+      const existingIds = new Set(prev.map((i) => i.id))
+      const toAdd = restored
+        .filter((i) => !existingIds.has(i.id))
+        .map((i) => ({ ...i, updatedAt: now }))
+      return [...toAdd, ...prev]
+    })
+    triggerHaptic(10)
+  }, [])
+
+  const restorePurchaseEntry = useCallback((entry: MonthlyPurchaseEntry) => {
+    setMonthlyPurchases((prev) =>
+      prev.some((e) => e.id === entry.id)
+        ? prev
+        : [...prev, { ...entry, updatedAt: Date.now() }],
+    )
+    triggerHaptic(10)
+  }, [])
+
+  const restoreProductRefWithEntries = useCallback(
+    (ref: ProductReference, entries: MonthlyPurchaseEntry[]) => {
+      const now = Date.now()
+      setProductRefs((prev) =>
+        prev.some((r) => r.id === ref.id)
+          ? prev
+          : [{ ...ref, updatedAt: now }, ...prev],
+      )
+      if (entries.length > 0) {
+        setMonthlyPurchases((prev) => {
+          const existingIds = new Set(prev.map((e) => e.id))
+          const toAdd = entries
+            .filter((e) => !existingIds.has(e.id))
+            .map((e) => ({ ...e, updatedAt: now }))
+          return [...prev, ...toAdd]
+        })
+      }
+      triggerHaptic(10)
+    },
+    [],
+  )
+
+  const restoreTemplate = useCallback((tpl: MealTemplate) => {
+    setTemplates((prev) =>
+      prev.some((t) => t.id === tpl.id)
+        ? prev
+        : [{ ...tpl, updatedAt: Date.now() }, ...prev],
+    )
+    triggerHaptic(10)
   }, [])
 
   // --- Editable Paket Masak (Templates) ---
@@ -1236,38 +1298,35 @@ export function useMarketStore(
 
       if (!trimmed || cleanItems.length === 0) return null
 
-      let saved: MealTemplate | null = null
-      setTemplates((prev) => {
-        const existingIdx = input.id
-          ? prev.findIndex((t) => t.id === input.id)
-          : -1
+      const now = Date.now()
+      const prevTemplates = latestDataRef.current.templates
+      const existing = input.id
+        ? prevTemplates.find((t) => t.id === input.id)
+        : undefined
+      const record: MealTemplate = {
+        id: existing ? existing.id : `tpl-${generateId()}`,
+        name: trimmed,
+        emoji: input.emoji || '🍲',
+        description:
+          input.description.trim() || `Paket masak (${cleanItems.length} bahan)`,
+        items: cleanItems,
+        isDefault: existing ? existing.isDefault : false,
+        createdAt: existing ? existing.createdAt : now,
+        updatedAt: now,
+      }
 
-        const record: MealTemplate = {
-          id:
-            existingIdx >= 0
-              ? prev[existingIdx].id
-              : `tpl-${generateId()}`,
-          name: trimmed,
-          emoji: input.emoji || '🍲',
-          description:
-            input.description.trim() ||
-            `Paket masak (${cleanItems.length} bahan)`,
-          items: cleanItems,
-          isDefault: existingIdx >= 0 ? prev[existingIdx].isDefault : false,
-          createdAt:
-            existingIdx >= 0 ? prev[existingIdx].createdAt : Date.now(),
-        }
-        saved = record
-        if (existingIdx >= 0) {
+      setTemplates((prev) => {
+        const idx = prev.findIndex((t) => t.id === record.id)
+        if (idx >= 0) {
           const next = [...prev]
-          next[existingIdx] = record
+          next[idx] = record
           return next
         }
         return [record, ...prev]
       })
 
       triggerHaptic(15)
-      return saved
+      return record
     },
     [],
   )
@@ -1375,6 +1434,20 @@ export function useMarketStore(
     [currentMonthEntries],
   )
 
+  const previousMonthKey = useMemo(
+    () => shiftMonthKey(selectedMonth, -1),
+    [selectedMonth],
+  )
+
+  const previousMonthTotalSpend = useMemo(
+    () =>
+      monthlyPurchases.reduce(
+        (sum, e) => (e.monthKey === previousMonthKey ? sum + (e.price || 0) : sum),
+        0,
+      ),
+    [monthlyPurchases, previousMonthKey],
+  )
+
   const totalCount = items.length
   const boughtCount = boughtItems.length
 
@@ -1403,6 +1476,7 @@ export function useMarketStore(
     currentMonthEntries,
     monthlySpendByStore,
     monthlyTotalSpend,
+    previousMonthTotalSpend,
     pinConfig,
     isLocked,
     totalCount,
@@ -1428,6 +1502,10 @@ export function useMarketStore(
     importNoteText,
     upsertProductRef,
     deleteProductRef,
+    restoreItems,
+    restorePurchaseEntry,
+    restoreProductRefWithEntries,
+    restoreTemplate,
     applyTemplate,
     upsertTemplate,
     deleteTemplate,

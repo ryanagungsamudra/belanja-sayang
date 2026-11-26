@@ -1,6 +1,12 @@
 import { ChefHat, Plus, Search, Trash2, X } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
-import { formatRupiah, generateId } from '../lib/format'
+import { GlassSheetModal } from './GlassSheetModal'
+import {
+  formatIdrInput,
+  formatRupiah,
+  generateId,
+  parseIdrInput,
+} from '../lib/format'
 import {
   getReferencePriceForStore,
   getSolidPillStyle,
@@ -88,7 +94,7 @@ export function TemplateEditorModal({
   const handleAddIngredient = () => {
     const trimmed = newIngName.trim()
     if (!trimmed) return
-    const parsedPrice = Number(newIngPrice.replace(/[^\d]/g, '')) || 0
+    const parsedPrice = parseIdrInput(newIngPrice)
     setItems((prev) => [
       ...prev,
       {
@@ -137,18 +143,12 @@ export function TemplateEditorModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-[5px] animate-fade-in"
-      onClick={onClose}
+    <GlassSheetModal
+      ariaLabel={editingTemplate ? 'Edit Paket Masak' : 'Buat Paket Masak'}
+      maxHeightClass="max-h-[90dvh]"
+      onClose={onClose}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={editingTemplate ? 'Edit Paket Masak' : 'Buat Paket Masak'}
-        onClick={(e) => e.stopPropagation()}
-        className="glass-sheet w-full max-w-md max-h-[90dvh] rounded-t-3xl flex flex-col overflow-hidden animate-slide-up"
-      >
-        <div className="px-5 pt-4 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between shrink-0">
+      <div className="px-5 pt-2 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <ChefHat className="w-5 h-5" />
@@ -316,15 +316,10 @@ export function TemplateEditorModal({
                         type="text"
                         inputMode="numeric"
                         aria-label="Harga bahan"
-                        value={
-                          item.estimatedPrice > 0
-                            ? String(item.estimatedPrice)
-                            : ''
-                        }
+                        value={formatIdrInput(item.estimatedPrice)}
                         onChange={(e) =>
                           handleUpdateIngredient(item.id, {
-                            estimatedPrice:
-                              Number(e.target.value.replace(/[^\d]/g, '')) || 0,
+                            estimatedPrice: parseIdrInput(e.target.value),
                           })
                         }
                         placeholder="0"
@@ -409,7 +404,7 @@ export function TemplateEditorModal({
                     data-testid="tpl-new-ing-price"
                     value={newIngPrice}
                     onChange={(e) =>
-                      setNewIngPrice(e.target.value.replace(/[^\d]/g, ''))
+                      setNewIngPrice(formatIdrInput(e.target.value))
                     }
                     placeholder="Estimasi"
                     className="w-full min-w-0 bg-transparent text-xs font-bold text-slate-900 outline-none tabular-nums"
@@ -449,7 +444,6 @@ export function TemplateEditorModal({
             {editingTemplate ? 'Simpan Perubahan Paket' : 'Buat Paket Masak'}
           </button>
         </form>
-      </div>
-    </div>
+    </GlassSheetModal>
   )
 }

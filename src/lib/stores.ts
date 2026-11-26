@@ -159,10 +159,10 @@ export function getReferencePriceForStore(
   }
 }
 
+const idCollator = new Intl.Collator('id', { sensitivity: 'base' })
+
 export function sortByNameAZ<T extends { name: string }>(list: T[]): T[] {
-  return [...list].sort((a, b) =>
-    a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }),
-  )
+  return [...list].sort((a, b) => idCollator.compare(a.name, b.name))
 }
 
 export function formatShortDate(ts: number): string {

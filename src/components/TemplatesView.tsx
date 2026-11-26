@@ -141,7 +141,7 @@ export function TemplatesView({
                 <button
                   type="button"
                   onClick={() => onEditTemplate(tpl)}
-                  className="glass-pill min-h-11 px-3 rounded-xl text-slate-700 text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer"
+                  className="glass-chip min-h-11 px-3 rounded-xl text-slate-700 text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                   <span>Edit</span>

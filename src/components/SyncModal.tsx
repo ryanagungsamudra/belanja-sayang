@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
+import { GlassSheetModal } from './GlassSheetModal'
 import {
   DEFAULT_HOUSEHOLD_CODE,
   getEnvSyncDefaults,
@@ -198,19 +199,13 @@ export function SyncModal({
   const banner = statusBanner()
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-[5px] animate-fade-in"
-      onClick={onClose}
+    <GlassSheetModal
+      ariaLabel="Sinkronisasi Real-Time Keluarga"
+      maxHeightClass="max-h-[90dvh]"
+      onClose={onClose}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Sinkronisasi Real-Time Keluarga"
-        onClick={(e) => e.stopPropagation()}
-        className="glass-sheet w-full max-w-md max-h-[90dvh] rounded-t-3xl flex flex-col overflow-hidden animate-slide-up"
-      >
-        {/* Header */}
-        <div className="px-5 pt-4 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between shrink-0">
+      {/* Header */}
+      <div className="px-5 pt-2 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <Cloud className="w-5 h-5" />
@@ -481,7 +476,6 @@ export function SyncModal({
             </ol>
           </div>
         </div>
-      </div>
-    </div>
+    </GlassSheetModal>
   )
 }

@@ -2,6 +2,7 @@ import { Pencil, Plus, SlidersHorizontal, Store, Tag, Trash2, X } from 'lucide-r
 import { useState, type FormEvent } from 'react'
 import { COLOR_PALETTE, getTintedPillStyle } from '../lib/stores'
 import type { CategoryConfig, StoreConfig } from '../types/market'
+import { GlassSheetModal } from './GlassSheetModal'
 import { LiquidSegmentedTabs } from './LiquidSegmentedTabs'
 
 interface ManageConfigModalProps {
@@ -98,19 +99,9 @@ export function ManageConfigModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-[5px] animate-fade-in"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Kelola Toko dan Kategori"
-        onClick={(e) => e.stopPropagation()}
-        className="glass-sheet w-full max-w-md max-h-[88dvh] rounded-t-3xl flex flex-col overflow-hidden animate-slide-up"
-      >
-        {/* Header */}
-        <div className="px-5 pt-4 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between shrink-0">
+    <GlassSheetModal ariaLabel="Kelola Toko dan Kategori" onClose={onClose}>
+      {/* Header */}
+      <div className="px-5 pt-2 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <SlidersHorizontal className="w-5 h-5" />
@@ -412,7 +403,6 @@ export function ManageConfigModal({
             </>
           )}
         </div>
-      </div>
-    </div>
+    </GlassSheetModal>
   )
 }

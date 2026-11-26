@@ -1,5 +1,6 @@
 import { Lock, LockOpen, ShieldCheck, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
+import { GlassSheetModal } from './GlassSheetModal'
 
 interface PinSettingsModalProps {
   isOpen: boolean
@@ -36,18 +37,8 @@ export function PinSettingsModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-[5px] animate-fade-in"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Pengaturan Privasi & PIN"
-        onClick={(e) => e.stopPropagation()}
-        className="glass-sheet w-full max-w-md rounded-t-3xl overflow-hidden animate-slide-up"
-      >
-        <div className="px-5 pt-4 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between">
+    <GlassSheetModal ariaLabel="Pengaturan Privasi & PIN" onClose={onClose}>
+      <div className="px-5 pt-2 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <ShieldCheck className="w-5 h-5" />
@@ -158,7 +149,6 @@ export function PinSettingsModal({
             </button>
           </form>
         </div>
-      </div>
-    </div>
+    </GlassSheetModal>
   )
 }

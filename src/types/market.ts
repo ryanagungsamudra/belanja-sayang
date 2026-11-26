@@ -8,6 +8,7 @@ export interface StoreConfig {
   shortLabel: string
   code: string // Shorthand code used in notes, e.g., 'H', 'P', 'In', 'S'
   color: string // Hex color e.g. '#4F46E5'
+  updatedAt?: number
 }
 
 export interface CategoryConfig {
@@ -15,6 +16,7 @@ export interface CategoryConfig {
   name: string
   shortLabel: string
   color: string // Hex color e.g. '#059669'
+  updatedAt?: number
 }
 
 export interface StorePriceEntry {
@@ -47,6 +49,7 @@ export interface MonthlyPurchaseEntry {
   price: number // Rp (0 means price not filled yet, e.g. "H")
   qtyNote?: string // e.g. "2" for "2H29", or "sania 2L"
   purchasedAt: number
+  updatedAt?: number
 }
 
 export interface MarketItem {
@@ -61,6 +64,7 @@ export interface MarketItem {
   linkedPurchaseId?: string
   isBought: boolean
   createdAt: number
+  updatedAt?: number
 }
 
 export interface FrequentItem {
@@ -91,6 +95,7 @@ export interface MealTemplate {
   items: MealTemplateItem[]
   isDefault?: boolean
   createdAt: number
+  updatedAt?: number
 }
 
 export interface PinConfig {

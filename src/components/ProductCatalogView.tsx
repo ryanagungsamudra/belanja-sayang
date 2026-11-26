@@ -14,7 +14,7 @@ import {
   Tag,
   X,
 } from 'lucide-react'
-import { memo, useMemo, useState } from 'react'
+import { memo, useDeferredValue, useMemo, useState } from 'react'
 import { formatRupiah, normalizeItemName } from '../lib/format'
 import {
   formatMonthLabel,
@@ -24,6 +24,7 @@ import {
 } from '../lib/noteParser'
 import {
   findCategory,
+  getCheapestStore,
   getReferencePriceForStore,
   getTintedPillStyle,
 } from '../lib/stores'
@@ -39,6 +40,180 @@ import type {
 import { LiquidSegmentedTabs } from './LiquidSegmentedTabs'
 import { MonthlyDonutChart, type DonutSegment } from './MonthlyDonutChart'
 
+const EMPTY_ENTRIES: MonthlyPurchaseEntry[] = []
+
+interface ProductRefRowProps {
+  productRef: ProductReference
+  entries: MonthlyPurchaseEntry[]
+  catCfg: CategoryConfig
+  stores: StoreConfig[]
+  storeMap: Map<string, StoreConfig>
+  selectedStore: StoreSource | 'all'
+  isInCart: boolean
+  onEditRef: (ref: ProductReference, focusStore?: StoreSource) => void
+  onAddPurchase: (ref: ProductReference) => void
+  onEditPurchase: (ref: ProductReference, entry: MonthlyPurchaseEntry) => void
+  onToggleInCart: (ref: ProductReference) => void
+}
+
+const ProductRefRow = memo(function ProductRefRow({
+  productRef: ref,
+  entries,
+  catCfg,
+  stores,
+  storeMap,
+  selectedStore,
+  isInCart,
+  onEditRef,
+  onAddPurchase,
+  onEditPurchase,
+  onToggleInCart,
+}: ProductRefRowProps) {
+  const itemMonthTotal = entries.reduce((sum, e) => sum + (e.price || 0), 0)
+  const lastEntry = entries[entries.length - 1]
+  const refFallback = lastEntry
+    ? { store: lastEntry.store, price: lastEntry.price }
+    : getReferencePriceForStore(
+        ref,
+        selectedStore !== 'all' ? selectedStore : undefined,
+        stores,
+      )
+
+  const pricedStoreCount = stores.reduce(
+    (acc, s) =>
+      ref.prices[s.id]?.price && ref.prices[s.id]!.price > 0 ? acc + 1 : acc,
+    0,
+  )
+  const cheapestStore =
+    pricedStoreCount >= 2 ? getCheapestStore(ref, stores) : null
+  const cheapestCfg = cheapestStore
+    ? storeMap.get(cheapestStore.store)
+    : undefined
+
+  return (
+    <div
+      data-testid={`product-ref-card-${ref.id}`}
+      data-product-name={ref.name}
+      className="cv-row px-3.5 py-2.5 flex items-center gap-2.5 hover:bg-stone-50/50 transition-colors"
+    >
+      {/* Main Info + Shorthand Purchase Chips */}
+      <div className="flex-1 min-w-0 space-y-1.5">
+        <div className="flex items-baseline justify-between gap-2">
+          <button
+            type="button"
+            data-testid={`edit-ref-${ref.id}`}
+            onClick={() => onEditRef(ref)}
+            className="flex items-center gap-1.5 min-w-0 text-left group cursor-pointer"
+          >
+            <span
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{ backgroundColor: catCfg.color }}
+            />
+            <span className="text-[14px] font-bold text-slate-900 group-hover:text-emerald-700 truncate">
+              {ref.name}
+            </span>
+            {cheapestCfg && (
+              <span
+                title={`Termurah di ${cheapestCfg.name}`}
+                className="px-1.5 py-0.2 rounded-md text-[9.5px] font-extrabold border shrink-0"
+                style={getTintedPillStyle(cheapestCfg.color)}
+              >
+                ★ {cheapestCfg.code}
+              </span>
+            )}
+          </button>
+
+          <div className="shrink-0 text-right tabular-nums">
+            {entries.length > 0 ? (
+              <span className="text-xs font-extrabold text-slate-800">
+                <span className="text-[11px] font-semibold text-stone-400 mr-1">
+                  {entries.length}x
+                </span>
+                {formatRupiah(itemMonthTotal)}
+              </span>
+            ) : (
+              <span className="text-[11px] text-stone-400">
+                {getStoreCode(refFallback.store, stores)}
+                {refFallback.price > 0
+                  ? ` · ${formatRupiah(refFallback.price)}`
+                  : ''}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Shorthand Chips + Quick Log */}
+        <div className="flex flex-wrap items-center gap-1">
+          {entries.map((entry) => {
+            const sCfg = storeMap.get(entry.store)
+            const isMissingPrice = !entry.price || entry.price <= 0
+            return (
+              <button
+                key={entry.id}
+                type="button"
+                data-testid={`purchase-chip-${entry.id}`}
+                onClick={() => onEditPurchase(ref, entry)}
+                className={`min-h-7 px-2 rounded-lg text-[11px] font-extrabold border liquid-press cursor-pointer tabular-nums ${
+                  isMissingPrice
+                    ? 'bg-amber-50 border-dashed border-amber-400 text-amber-800'
+                    : ''
+                }`}
+                style={
+                  !isMissingPrice
+                    ? getTintedPillStyle(sCfg?.color ?? '#64748B')
+                    : undefined
+                }
+              >
+                {formatPurchaseChip(entry, stores)}
+              </button>
+            )
+          })}
+
+          <button
+            type="button"
+            data-testid={`add-purchase-${ref.id}`}
+            aria-label={`Catat pembelian ${ref.name}`}
+            onClick={() => onAddPurchase(ref)}
+            className="min-h-7 px-2 rounded-lg border border-dashed border-stone-300 bg-stone-50 hover:border-emerald-500 hover:bg-emerald-50 text-stone-500 hover:text-emerald-700 text-[11px] font-bold flex items-center gap-0.5 transition-colors cursor-pointer"
+          >
+            <Plus className="w-3 h-3" strokeWidth={2.5} />
+            <span>Catat</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Right-Edge 1-Tap Weekly Keranjang Toggle */}
+      <button
+        type="button"
+        data-testid={`add-ref-to-cart-${ref.id}`}
+        aria-pressed={isInCart}
+        aria-label={
+          isInCart
+            ? `Hapus ${ref.name} dari keranjang mingguan`
+            : `Masukkan ${ref.name} ke keranjang mingguan`
+        }
+        title={
+          isInCart
+            ? 'Di Keranjang (ketuk untuk batal)'
+            : 'Masukkan 1 item ke Keranjang Mingguan'
+        }
+        onClick={() => onToggleInCart(ref)}
+        className={`min-w-11 min-h-11 rounded-2xl flex items-center justify-center shrink-0 liquid-press cursor-pointer ${
+          isInCart
+            ? 'bg-emerald-600/95 text-white shadow-md shadow-emerald-600/30 border border-white/35'
+            : 'glass-chip text-slate-600 hover:text-emerald-700'
+        }`}
+      >
+        {isInCart ? (
+          <Check className="w-5 h-5" strokeWidth={2.6} />
+        ) : (
+          <ShoppingBasket className="w-4 h-4" />
+        )}
+      </button>
+    </div>
+  )
+})
+
 interface ProductCatalogViewProps {
   selectedMonth: string
   stores: StoreConfig[]
@@ -46,6 +221,7 @@ interface ProductCatalogViewProps {
   productRefs: ProductReference[]
   monthEntries: MonthlyPurchaseEntry[]
   monthlyTotalSpend: number
+  previousMonthTotalSpend?: number
   monthlySpendByStore: Record<string, number>
   activeItems: MarketItem[]
   onChangeMonth: (monthKey: string) => void
@@ -65,6 +241,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
   productRefs,
   monthEntries,
   monthlyTotalSpend,
+  previousMonthTotalSpend = 0,
   monthlySpendByStore,
   activeItems,
   onChangeMonth,
@@ -82,6 +259,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
     'store' | 'category' | null
   >(null)
   const [search, setSearch] = useState('')
+  const deferredSearch = useDeferredValue(search)
   const [selectedStore, setSelectedStore] = useState<StoreSource | 'all'>('all')
   const [selectedCategory, setSelectedCategory] = useState<
     MarketCategory | 'all'
@@ -165,9 +343,9 @@ export const ProductCatalogView = memo(function ProductCatalogView({
     }
   }
 
-  // Filter & sort productRefs (A-Z or Z-A)
+  // Filter & sort productRefs (A-Z or Z-A) using deferred search for 0ms typing lag
   const filteredRefs = useMemo(() => {
-    const q = search.trim().toLowerCase()
+    const q = deferredSearch.trim().toLowerCase()
     const list = productRefs.filter((ref) => {
       if (
         q &&
@@ -195,9 +373,9 @@ export const ProductCatalogView = memo(function ProductCatalogView({
     })
     return sortOrder === 'az' ? list : [...list].reverse()
   }, [
+    deferredSearch,
     entriesByRef,
     productRefs,
-    search,
     selectedCategory,
     selectedStore,
     sortOrder,
@@ -206,12 +384,13 @@ export const ProductCatalogView = memo(function ProductCatalogView({
   const hasFilter =
     selectedStore !== 'all' || selectedCategory !== 'all' || search.length > 0
 
-  // Live item counts per store & per category for the upgraded filter cards
+  // Live item counts per store & per category — computed lazily only while filter panel is open
   const storeItemCounts = useMemo(() => {
     const counts: Record<string, number> = {}
+    if (openFilterMenu !== 'store') return counts
     for (const s of stores) counts[s.id] = 0
     for (const ref of productRefs) {
-      const refEntries = entriesByRef.get(ref.id) ?? []
+      const refEntries = entriesByRef.get(ref.id) ?? EMPTY_ENTRIES
       for (const s of stores) {
         const match =
           refEntries.some((e) => e.store === s.id) ||
@@ -221,16 +400,17 @@ export const ProductCatalogView = memo(function ProductCatalogView({
       }
     }
     return counts
-  }, [entriesByRef, productRefs, stores])
+  }, [entriesByRef, openFilterMenu, productRefs, stores])
 
   const categoryItemCounts = useMemo(() => {
     const counts: Record<string, number> = {}
+    if (openFilterMenu !== 'category') return counts
     for (const c of categories) counts[c.id] = 0
     for (const ref of productRefs) {
       counts[ref.category] = (counts[ref.category] ?? 0) + 1
     }
     return counts
-  }, [categories, productRefs])
+  }, [categories, openFilterMenu, productRefs])
 
   const storeMap = useMemo(() => {
     const map = new Map<string, StoreConfig>()
@@ -314,16 +494,33 @@ export const ProductCatalogView = memo(function ProductCatalogView({
           onSelectSegment={handleSelectDonutSegment}
         />
 
-        {/* Exact Total Footer + Manage Stores/Categories Link */}
+        {/* Exact Total Footer + MoM Delta + Manage Stores/Categories Link */}
         <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-2 text-xs">
-          <div className="text-stone-500">
-            Total:{' '}
-            <span
-              data-testid="monthly-exact-total"
-              className="font-extrabold text-slate-900 tabular-nums"
-            >
-              {formatRupiah(monthlyTotalSpend)}
+          <div className="text-stone-500 flex items-center gap-1.5 flex-wrap min-w-0">
+            <span>
+              Total:{' '}
+              <span
+                data-testid="monthly-exact-total"
+                className="font-extrabold text-slate-900 tabular-nums"
+              >
+                {formatRupiah(monthlyTotalSpend)}
+              </span>
             </span>
+            {previousMonthTotalSpend > 0 && monthlyTotalSpend > 0 && (
+              <span
+                className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums ${
+                  monthlyTotalSpend <= previousMonthTotalSpend
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-amber-50 text-amber-700'
+                }`}
+              >
+                {monthlyTotalSpend <= previousMonthTotalSpend ? '▼' : '▲'}{' '}
+                {formatRupiah(
+                  Math.abs(monthlyTotalSpend - previousMonthTotalSpend),
+                )}{' '}
+                vs bln lalu
+              </span>
+            )}
           </div>
           {hasFilter ? (
             <button
@@ -805,140 +1002,25 @@ export const ProductCatalogView = memo(function ProductCatalogView({
           data-testid="product-ref-list"
           className="glass-card rounded-3xl glass-divide overflow-hidden"
         >
-          {filteredRefs.map((ref) => {
-            const entries = entriesByRef.get(ref.id) ?? []
-            const itemMonthTotal = entries.reduce(
-              (sum, e) => sum + (e.price || 0),
-              0,
-            )
-            const catCfg =
-              categoryMap.get(ref.category) ??
-              findCategory(categories, ref.category)
-            const isInCart = activeNameSet.has(ref.normalizedName)
-            const lastEntry = entries[entries.length - 1]
-            const refFallback = lastEntry
-              ? { store: lastEntry.store, price: lastEntry.price }
-              : getReferencePriceForStore(
-                  ref,
-                  selectedStore !== 'all' ? selectedStore : undefined,
-                  stores,
-                )
-
-            return (
-              <div
-                key={ref.id}
-                data-testid={`product-ref-card-${ref.id}`}
-                data-product-name={ref.name}
-                className="cv-row px-3.5 py-2.5 flex items-center gap-2.5 hover:bg-stone-50/50 transition-colors"
-              >
-                {/* Main Info + Shorthand Purchase Chips */}
-                <div className="flex-1 min-w-0 space-y-1.5">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <button
-                      type="button"
-                      data-testid={`edit-ref-${ref.id}`}
-                      onClick={() => onEditRef(ref)}
-                      className="flex items-center gap-1.5 min-w-0 text-left group cursor-pointer"
-                    >
-                      <span
-                        className="w-2 h-2 rounded-full shrink-0"
-                        style={{ backgroundColor: catCfg.color }}
-                      />
-                      <span className="text-[14px] font-bold text-slate-900 group-hover:text-emerald-700 truncate">
-                        {ref.name}
-                      </span>
-                    </button>
-
-                    <div className="shrink-0 text-right tabular-nums">
-                      {entries.length > 0 ? (
-                        <span className="text-xs font-extrabold text-slate-800">
-                          <span className="text-[11px] font-semibold text-stone-400 mr-1">
-                            {entries.length}x
-                          </span>
-                          {formatRupiah(itemMonthTotal)}
-                        </span>
-                      ) : (
-                        <span className="text-[11px] text-stone-400">
-                          {getStoreCode(refFallback.store, stores)}
-                          {refFallback.price > 0
-                            ? ` · ${formatRupiah(refFallback.price)}`
-                            : ''}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Shorthand Chips + Quick Log */}
-                  <div className="flex flex-wrap items-center gap-1">
-                    {entries.map((entry) => {
-                      const sCfg = storeMap.get(entry.store)
-                      const isMissingPrice = !entry.price || entry.price <= 0
-                      return (
-                        <button
-                          key={entry.id}
-                          type="button"
-                          data-testid={`purchase-chip-${entry.id}`}
-                          onClick={() => onEditPurchase(ref, entry)}
-                          className={`min-h-7 px-2 rounded-lg text-[11px] font-extrabold border liquid-press cursor-pointer tabular-nums ${
-                            isMissingPrice
-                              ? 'bg-amber-50 border-dashed border-amber-400 text-amber-800'
-                              : ''
-                          }`}
-                          style={
-                            !isMissingPrice
-                              ? getTintedPillStyle(sCfg?.color ?? '#64748B')
-                              : undefined
-                          }
-                        >
-                          {formatPurchaseChip(entry, stores)}
-                        </button>
-                      )
-                    })}
-
-                    <button
-                      type="button"
-                      data-testid={`add-purchase-${ref.id}`}
-                      aria-label={`Catat pembelian ${ref.name}`}
-                      onClick={() => onAddPurchase(ref)}
-                      className="min-h-7 px-2 rounded-lg border border-dashed border-stone-300 bg-stone-50 hover:border-emerald-500 hover:bg-emerald-50 text-stone-500 hover:text-emerald-700 text-[11px] font-bold flex items-center gap-0.5 transition-colors cursor-pointer"
-                    >
-                      <Plus className="w-3 h-3" strokeWidth={2.5} />
-                      <span>Catat</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Right-Edge 1-Tap Weekly Keranjang Toggle */}
-                <button
-                  type="button"
-                  data-testid={`add-ref-to-cart-${ref.id}`}
-                  aria-pressed={isInCart}
-                  aria-label={
-                    isInCart
-                      ? `Hapus ${ref.name} dari keranjang mingguan`
-                      : `Masukkan ${ref.name} ke keranjang mingguan`
-                  }
-                  title={
-                    isInCart
-                      ? 'Di Keranjang (ketuk untuk batal)'
-                      : 'Masukkan 1 item ke Keranjang Mingguan'
-                  }
-                  onClick={() => onToggleInCart(ref)}
-                  className={`min-w-11 min-h-11 rounded-2xl flex items-center justify-center shrink-0 liquid-press cursor-pointer ${
-                    isInCart
-                      ? 'bg-emerald-600/95 text-white shadow-md shadow-emerald-600/30 border border-white/35'
-                      : 'glass-chip text-slate-600 hover:text-emerald-700'
-                  }`}
-                >
-                  {isInCart ? (
-                    <Check className="w-5 h-5" strokeWidth={2.6} />
-                  ) : (
-                    <ShoppingBasket className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            )
-          })}
+          {filteredRefs.map((ref) => (
+            <ProductRefRow
+              key={ref.id}
+              productRef={ref}
+              entries={entriesByRef.get(ref.id) ?? EMPTY_ENTRIES}
+              catCfg={
+                categoryMap.get(ref.category) ??
+                findCategory(categories, ref.category)
+              }
+              stores={stores}
+              storeMap={storeMap}
+              selectedStore={selectedStore}
+              isInCart={activeNameSet.has(ref.normalizedName)}
+              onEditRef={onEditRef}
+              onAddPurchase={onAddPurchase}
+              onEditPurchase={onEditPurchase}
+              onToggleInCart={onToggleInCart}
+            />
+          ))}
         </div>
       ) : (
         <div className="glass-card rounded-3xl p-6 text-center space-y-3 animate-liquid-enter">

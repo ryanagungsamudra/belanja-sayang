@@ -210,23 +210,32 @@ const KEYWORD_MAP: Array<{ category: MarketCategory; keywords: string[] }> = [
   },
 ]
 
-const COMPILED_CATEGORY_MATCHERS: Array<{
+type CompiledCategoryGroup = {
   category: MarketCategory
   patterns: RegExp[]
-}> = KEYWORD_MAP.map((group) => ({
-  category: group.category,
-  patterns: group.keywords.map((kw) => {
-    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    return new RegExp(`(?:^|\\b)${escaped}(?:\\b|$)`)
-  }),
-}))
+}
+
+let compiledCategoryMatchers: CompiledCategoryGroup[] | null = null
+
+function getCompiledCategoryMatchers(): CompiledCategoryGroup[] {
+  if (!compiledCategoryMatchers) {
+    compiledCategoryMatchers = KEYWORD_MAP.map((group) => ({
+      category: group.category,
+      patterns: group.keywords.map((kw) => {
+        const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        return new RegExp(`(?:^|\\b)${escaped}(?:\\b|$)`)
+      }),
+    }))
+  }
+  return compiledCategoryMatchers
+}
 
 export function detectCategory(itemName: string): MarketCategory {
   const normalized = itemName.trim().toLowerCase()
   if (!normalized) return 'Lainnya'
 
-  // Pre-compiled whole-word matchers avoid allocating ~150 RegExp objects per call
-  for (const group of COMPILED_CATEGORY_MATCHERS) {
+  // Lazily compiled on first use (0 RegExp allocations on cold app boot)
+  for (const group of getCompiledCategoryMatchers()) {
     for (const pattern of group.patterns) {
       if (pattern.test(normalized)) {
         return group.category

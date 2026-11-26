@@ -1,6 +1,6 @@
 import { Plus, SlidersHorizontal, Sparkles, Tag, X } from 'lucide-react'
 import { useMemo, useRef, useState, type FormEvent } from 'react'
-import { formatRupiah } from '../lib/format'
+import { formatIdrInput, formatRupiah, parseIdrInput } from '../lib/format'
 import {
   findStore,
   getReferencePriceForStore,
@@ -85,7 +85,7 @@ export function BottomQuickAdd({
       return
     }
 
-    const parsedPrice = Number(priceText.replace(/[^\d]/g, '')) || 0
+    const parsedPrice = parseIdrInput(priceText)
     onAddItem({
       name: trimmed,
       quantity: quantity.trim() || '1',
@@ -149,7 +149,7 @@ export function BottomQuickAdd({
                 type="button"
                 data-testid="frequent-chip"
                 onClick={() => handleChipClick(chip)}
-                className="glass-pill min-h-11 px-3 rounded-full hover:border-emerald-400 flex items-center gap-1.5 shrink-0 cursor-pointer"
+                className="glass-chip min-h-11 px-3 rounded-full hover:border-emerald-400 flex items-center gap-1.5 shrink-0 cursor-pointer"
               >
                 <Plus
                   className="w-3.5 h-3.5 text-emerald-600 shrink-0"
@@ -322,9 +322,7 @@ export function BottomQuickAdd({
                 type="text"
                 inputMode="numeric"
                 value={priceText}
-                onChange={(e) =>
-                  setPriceText(e.target.value.replace(/[^\d]/g, ''))
-                }
+                onChange={(e) => setPriceText(formatIdrInput(e.target.value))}
                 placeholder="Harga (auto ref)"
                 className="w-full text-sm font-medium text-slate-900 bg-transparent outline-none tabular-nums"
               />

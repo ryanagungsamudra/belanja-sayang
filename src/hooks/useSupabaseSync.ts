@@ -7,6 +7,7 @@ import {
 } from '../lib/syncMerge'
 import {
   ALL_COLLECTION_KEYS,
+  BUDGET_COLLECTION_KEYS,
   createSyncConnection,
   disposeSyncConnection,
   fetchHouseholdCollections,
@@ -41,6 +42,9 @@ const COLLECTION_LABEL: Record<CollectionKey, string> = {
   templates: 'Paket Masak',
   frequent: 'Item Sering',
   pin_config: 'Kunci PIN',
+  budget_pillars: 'Pilar Anggaran',
+  budget_modes: 'Mode Anggaran',
+  budget_months: 'Anggaran Bulanan',
 }
 
 export function useSupabaseSync({
@@ -70,6 +74,8 @@ export function useSupabaseSync({
   const [pendingKeys, setPendingKeys] = useState<CollectionKey[]>(() =>
     loadPendingKeys(),
   )
+  const [budgetSchemaNeedsUpgrade, setBudgetSchemaNeedsUpgrade] =
+    useState<boolean>(false)
 
   const clientIdRef = useRef<string>(getOrCreateClientId())
   const clientRef = useRef<SyncConnection | null>(null)
@@ -153,7 +159,16 @@ export function useSupabaseSync({
       )
 
       if (error) {
+        const isBudgetConstraintError =
+          BUDGET_COLLECTION_KEYS.includes(key) &&
+          (error.includes('collection_key_check') ||
+            error.includes('check constraint'))
         addPendingKey(key)
+        if (isBudgetConstraintError) {
+          // Keep core grocery sync Live while nudging user to run the 1-line SQL upgrade for budget sync
+          setBudgetSchemaNeedsUpgrade(true)
+          return false
+        }
         setSyncError(error)
         setSyncStatus(
           typeof navigator !== 'undefined' && !navigator.onLine
@@ -161,6 +176,10 @@ export function useSupabaseSync({
             : 'error',
         )
         return false
+      }
+
+      if (BUDGET_COLLECTION_KEYS.includes(key)) {
+        setBudgetSchemaNeedsUpgrade(false)
       }
 
       lastSyncedPayloadsRef.current[key] = payload
@@ -661,6 +680,7 @@ export function useSupabaseSync({
     syncConfig,
     syncStatus: effectiveSyncStatus,
     syncError: isValidSyncConfig(syncConfig) ? syncError : null,
+    budgetSchemaNeedsUpgrade,
     lastSyncedAt,
     onlineDevices:
       effectiveSyncStatus === 'connected' || effectiveSyncStatus === 'syncing'

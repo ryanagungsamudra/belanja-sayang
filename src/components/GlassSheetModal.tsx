@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 interface GlassSheetModalProps {
   ariaLabel: string
@@ -7,8 +8,12 @@ interface GlassSheetModalProps {
   children: ReactNode
 }
 
+let openModalCount = 0
+
 /**
  * Shared Liquid Glass bottom sheet modal with:
+ * - Portal to document.body so ancestor transforms/animations never trap `fixed` positioning
+ * - Background scroll locking while open
  * - Escape key dismissal
  * - Top drag-handle swipe-down-to-dismiss physics
  * - Accessible modal dialog semantics
@@ -29,6 +34,12 @@ export function GlassSheetModal({
   }, [onClose])
 
   useEffect(() => {
+    openModalCount += 1
+    const prevBodyOverflow = document.body.style.overflow
+    const prevHtmlOverflow = document.documentElement.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault()
@@ -36,7 +47,14 @@ export function GlassSheetModal({
       }
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      openModalCount = Math.max(0, openModalCount - 1)
+      if (openModalCount === 0) {
+        document.body.style.overflow = prevBodyOverflow
+        document.documentElement.style.overflow = prevHtmlOverflow
+      }
+    }
   }, [])
 
   const handleDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -62,9 +80,9 @@ export function GlassSheetModal({
     }
   }
 
-  return (
+  const modalNode = (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-[5px] animate-fade-in"
+      className="fixed inset-0 h-dvh z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-[5px] animate-fade-in overscroll-contain"
       onClick={onClose}
     >
       <div
@@ -82,7 +100,7 @@ export function GlassSheetModal({
               }
             : undefined
         }
-        className={`glass-sheet w-full max-w-md ${maxHeightClass} rounded-t-3xl flex flex-col overflow-hidden animate-slide-up`}
+        className={`glass-sheet w-full max-w-md ${maxHeightClass} rounded-t-3xl flex flex-col overflow-hidden animate-slide-up overscroll-contain`}
       >
         {/* Swipe-down liquid grabber pill */}
         <div
@@ -99,4 +117,8 @@ export function GlassSheetModal({
       </div>
     </div>
   )
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalNode, document.body)
+    : modalNode
 }

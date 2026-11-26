@@ -1,4 +1,7 @@
 import type {
+  BudgetMonthRecord,
+  BudgetPillarConfig,
+  BudgetTrackingModeConfig,
   CategoryConfig,
   FrequentItem,
   MarketItem,
@@ -20,6 +23,9 @@ export interface BelanjaBackupSnapshot {
   templates: MealTemplate[]
   frequentItems: FrequentItem[]
   monthlyBudget?: number | null
+  budgetPillars?: BudgetPillarConfig[]
+  budgetModes?: BudgetTrackingModeConfig[]
+  budgetMonths?: BudgetMonthRecord[]
 }
 
 export function buildBackupSnapshot(data: {
@@ -31,6 +37,9 @@ export function buildBackupSnapshot(data: {
   templates: MealTemplate[]
   frequentItems: FrequentItem[]
   monthlyBudget?: number | null
+  budgetPillars?: BudgetPillarConfig[]
+  budgetModes?: BudgetTrackingModeConfig[]
+  budgetMonths?: BudgetMonthRecord[]
 }): BelanjaBackupSnapshot {
   return {
     version: 1,
@@ -47,6 +56,9 @@ export function buildBackupSnapshot(data: {
       typeof data.monthlyBudget === 'number' && data.monthlyBudget > 0
         ? Math.round(data.monthlyBudget)
         : null,
+    budgetPillars: data.budgetPillars,
+    budgetModes: data.budgetModes,
+    budgetMonths: data.budgetMonths,
   }
 }
 
@@ -123,6 +135,15 @@ export function parseBackupSnapshot(
         ? (obj.frequentItems as FrequentItem[])
         : [],
       monthlyBudget,
+      budgetPillars: Array.isArray(obj.budgetPillars)
+        ? (obj.budgetPillars as BudgetPillarConfig[])
+        : undefined,
+      budgetModes: Array.isArray(obj.budgetModes)
+        ? (obj.budgetModes as BudgetTrackingModeConfig[])
+        : undefined,
+      budgetMonths: Array.isArray(obj.budgetMonths)
+        ? (obj.budgetMonths as BudgetMonthRecord[])
+        : undefined,
     },
     error: null,
   }

@@ -298,7 +298,7 @@ a.glass-chip:active {
   top: 4px;
   bottom: 4px;
   left: 4px;
-  width: calc((100% - 8px) / 3);
+  width: calc((100% - 8px) / 4);
   border-radius: 9999px;
   overflow: hidden;
   pointer-events: none;
@@ -575,16 +575,16 @@ a.glass-chip:active {
 }
 
 .animate-liquid-enter {
-  animation: liquidEnter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: liquidEnter 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 .animate-liquid-panel {
   transform-origin: top center;
-  animation: liquidPanel 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: liquidPanel 0.32s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 .animate-liquid-pop {
-  animation: liquidPop 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: liquidPop 0.34s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 .animate-shake {

@@ -53,10 +53,13 @@ const loadTemplatesView = () =>
   import('./components/TemplatesView').then((m) => ({
     default: m.TemplatesView,
   }))
+const loadBudgetView = () =>
+  import('./components/BudgetView').then((m) => ({ default: m.BudgetView }))
 
 const CartView = lazy(loadCartView)
 const BottomQuickAdd = lazy(loadBottomQuickAdd)
 const TemplatesView = lazy(loadTemplatesView)
+const BudgetView = lazy(loadBudgetView)
 
 const EditItemModal = lazy(() =>
   import('./components/EditItemModal').then((m) => ({
@@ -108,7 +111,12 @@ function resolveInitialTab(hasActiveCartItems: boolean): AppTab {
   if (hasActiveCartItems) return 'keranjang'
   try {
     const saved = window.localStorage.getItem(LAST_TAB_STORAGE_KEY)
-    if (saved === 'keranjang' || saved === 'referensi' || saved === 'paket') {
+    if (
+      saved === 'keranjang' ||
+      saved === 'referensi' ||
+      saved === 'paket' ||
+      saved === 'anggaran'
+    ) {
       return saved
     }
   } catch {
@@ -148,6 +156,7 @@ export function App() {
       void loadCartView()
       void loadBottomQuickAdd()
       void loadTemplatesView()
+      void loadBudgetView()
     }
     const win = window as Window & {
       requestIdleCallback?: (
@@ -314,6 +323,15 @@ export function App() {
 
   const handleGoToCatatan = useCallback(() => setActiveTab('referensi'), [])
   const handleGoToPaket = useCallback(() => setActiveTab('paket'), [])
+
+  // Precompute live monthly grocery spend per YYYY-MM for the Catatan -> Anggaran bridge
+  const grocerySpendByMonth = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const entry of store.monthlyPurchases) {
+      map[entry.monthKey] = (map[entry.monthKey] ?? 0) + (entry.price || 0)
+    }
+    return map
+  }, [store.monthlyPurchases])
   const { setSelectedMonth } = store
   const handleChangeMonth = useCallback(
     (nextMonth: string) => {
@@ -626,6 +644,68 @@ export function App() {
             />
           </Suspense>
         )}
+
+        {activeTab === 'anggaran' && (
+          <Suspense fallback={null}>
+            <BudgetView
+              selectedMonth={store.selectedMonth}
+              pillars={store.budgetPillars}
+              modes={store.budgetModes}
+              budgetMonths={store.budgetMonths}
+              grocerySpendByMonth={grocerySpendByMonth}
+              onChangeMonth={handleChangeMonth}
+              onSeedPreset={(mKey) => {
+                store.seedBudgetMonthWithPreset(mKey)
+                showToast(`Pedoman anggaran ${formatMonthLabel(mKey)} diterapkan`)
+              }}
+              onCopyFromPrevious={(src, target) => {
+                const ok = store.copyBudgetMonthFromPrevious(src, target)
+                if (ok) {
+                  showToast(`Rencana ${formatMonthLabel(src)} disalin ke ${formatMonthLabel(target)}`)
+                }
+              }}
+              onTogglePayFirst={store.toggleBudgetPayFirst}
+              onToggleEfficiency={store.toggleBudgetEfficiency}
+              onUpdateIncome={(mKey, patch) => {
+                store.updateBudgetIncome(mKey, patch)
+                showToast('Pemasukan & target tabungan diperbarui')
+              }}
+              onToggleBillPaid={store.toggleBudgetBillPaid}
+              onStepCounter={store.stepBudgetCounter}
+              onQuickSpend={store.addBudgetQuickSpend}
+              onToggleSweep={store.toggleBudgetSweep}
+              onSaveRealisasi={(mKey, itemId, patch) => {
+                store.updateBudgetItemRealisasi(mKey, itemId, patch)
+                showToast('Realisasi pengeluaran disimpan')
+              }}
+              onUpsertEnvelope={(mKey, input) => {
+                store.upsertBudgetEnvelope(mKey, input)
+                showToast(`Pos "${input.name}" tersimpan`)
+              }}
+              onDeleteEnvelope={(mKey, itemId) => {
+                store.deleteBudgetEnvelope(mKey, itemId)
+                showToast('Pos pengeluaran dihapus')
+              }}
+              onSavePillar={(input) => {
+                const saved = store.upsertBudgetPillar(input)
+                if (saved) showToast(`Pilar "${saved.name}" tersimpan`)
+              }}
+              onDeletePillar={(id) => {
+                const ok = store.deleteBudgetPillar(id)
+                if (ok) showToast('Pilar dihapus')
+              }}
+              onSaveMode={(input) => {
+                const saved = store.upsertBudgetMode(input)
+                if (saved) showToast(`Mode "${saved.label}" tersimpan`)
+              }}
+              onDeleteMode={(id) => {
+                const ok = store.deleteBudgetMode(id)
+                if (ok) showToast('Mode tracking dihapus')
+              }}
+              onGoToCatatan={handleGoToCatatan}
+            />
+          </Suspense>
+        )}
       </main>
 
       {/* Zero-Rerender Isolated Liquid Toast Host (with Undo / Quick Price Edit Support) */}
@@ -854,6 +934,7 @@ export function App() {
             syncConfig={store.sync.syncConfig}
             syncStatus={store.sync.syncStatus}
             syncError={store.sync.syncError}
+            budgetSchemaNeedsUpgrade={store.sync.budgetSchemaNeedsUpgrade}
             lastSyncedAt={store.sync.lastSyncedAt}
             pendingCount={store.sync.pendingCount}
             onClose={() => setSyncModalOpen(false)}

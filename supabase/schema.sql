@@ -25,7 +25,10 @@ alter table public.household_collections
       'categories',
       'templates',
       'frequent',
-      'pin_config'
+      'pin_config',
+      'budget_pillars',
+      'budget_modes',
+      'budget_months'
     )
   );
 

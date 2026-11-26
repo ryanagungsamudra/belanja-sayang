@@ -160,3 +160,64 @@ export interface UpsertTemplateInput {
   description: string
   items: Array<Omit<MealTemplateItem, 'id'> & { id?: string }>
 }
+
+// --- Household Monthly Budget ("Anggaran") ---
+
+export type BudgetTrackingBehavior =
+  | 'bill'
+  | 'counter'
+  | 'spend'
+  | 'sweep'
+  | 'auto'
+
+export interface BudgetPillarConfig {
+  id: string
+  name: string
+  color: string
+  updatedAt?: number
+}
+
+export interface BudgetTrackingModeConfig {
+  id: string
+  label: string
+  desc: string
+  behavior: BudgetTrackingBehavior
+  stepAmount?: number
+  unitLabel?: string
+  isSystem?: boolean
+  updatedAt?: number
+}
+
+export interface BudgetEnvelopeItem {
+  id: string
+  pillarId: string
+  modeId: string
+  name: string
+  budget: number
+  actual?: number
+  paid?: boolean
+  count?: number
+  targetCount?: number
+  unitPrice?: number
+  unitLabel?: string
+  swept?: boolean
+  /** Auto-bridges real-time spend from Catatan Bulanan */
+  autoLink?: 'grocery'
+  note?: string
+  updatedAt?: number
+}
+
+export interface BudgetMonthRecord {
+  /** Equals monthKey (e.g. '2026-11') so 3-way array sync merges cleanly */
+  id: string
+  monthKey: string
+  baseIncome: number
+  extraIncome: number
+  extraIncomeLabel?: string
+  savingsTargetYear: number
+  payFirstDone: boolean
+  effIcloudFamily?: boolean
+  effBrightGas?: boolean
+  items: BudgetEnvelopeItem[]
+  updatedAt: number
+}

@@ -37,7 +37,7 @@ const SETUP_SQL_SNIPPET = `create table if not exists public.household_collectio
 );
 alter table public.household_collections drop constraint if exists household_collections_collection_key_check;
 alter table public.household_collections add constraint household_collections_collection_key_check
-  check (collection_key in ('items','product_refs','monthly_purchases','stores','categories','templates','frequent','pin_config'));
+  check (collection_key in ('items','product_refs','monthly_purchases','stores','categories','templates','frequent','pin_config','budget_pillars','budget_modes','budget_months'));
 alter table public.household_collections replica identity full;
 create index if not exists idx_household_collections_code on public.household_collections (household_code);
 alter table public.household_collections enable row level security;
@@ -58,6 +58,7 @@ interface SyncModalProps {
   syncConfig: SyncConfig
   syncStatus: SyncStatus
   syncError: string | null
+  budgetSchemaNeedsUpgrade?: boolean
   lastSyncedAt: number | null
   pendingCount: number
   onClose: () => void
@@ -88,6 +89,7 @@ export function SyncModal({
   syncConfig,
   syncStatus,
   syncError,
+  budgetSchemaNeedsUpgrade = false,
   lastSyncedAt,
   pendingCount,
   onClose,
@@ -296,6 +298,19 @@ export function SyncModal({
               </p>
             </div>
           </div>
+
+          {budgetSchemaNeedsUpgrade && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 space-y-1.5">
+              <p className="font-bold">
+                Sinkron Anggaran butuh 1x update SQL Supabase
+              </p>
+              <p className="text-[11px] leading-relaxed">
+                Belanja harian tetap sinkron <b>Live</b>. Agar tab{' '}
+                <b>Anggaran</b> ikut sinkron antar HP, salin SQL di bawah lalu
+                jalankan sekali di Supabase SQL Editor.
+              </p>
+            </div>
+          )}
 
           {/* Active Sync Quick Actions */}
           {syncConfig.enabled && (

@@ -1,4 +1,7 @@
 import type {
+  BudgetMonthRecord,
+  BudgetPillarConfig,
+  BudgetTrackingModeConfig,
   CategoryConfig,
   FrequentItem,
   MarketItem,
@@ -8,6 +11,10 @@ import type {
   ProductReference,
   StoreConfig,
 } from '../types/market'
+import {
+  DEFAULT_BUDGET_MODES,
+  DEFAULT_BUDGET_PILLARS,
+} from './budget'
 import { generateId, normalizeItemName } from './format'
 import { buildSeedFromWifeNote } from './noteParser'
 import { DEFAULT_CATEGORIES, DEFAULT_STORES } from './stores'
@@ -30,6 +37,12 @@ export interface MarketStorageAdapter {
   saveMonthlyPurchases(entries: MonthlyPurchaseEntry[]): void
   loadPinConfig(): PinConfig
   savePinConfig(config: PinConfig): void
+  loadBudgetPillars(): BudgetPillarConfig[]
+  saveBudgetPillars(pillars: BudgetPillarConfig[]): void
+  loadBudgetModes(): BudgetTrackingModeConfig[]
+  saveBudgetModes(modes: BudgetTrackingModeConfig[]): void
+  loadBudgetMonths(): BudgetMonthRecord[]
+  saveBudgetMonths(months: BudgetMonthRecord[]): void
 }
 
 const KEYS = {
@@ -42,6 +55,9 @@ const KEYS = {
   productRefs: 'belanjasayang:product-refs:v2',
   monthlyPurchases: 'belanjasayang:monthly-purchases:v1',
   pin: 'belanjasayang:pin:v1',
+  budgetPillars: 'belanjasayang:budget-pillars:v1',
+  budgetModes: 'belanjasayang:budget-modes:v1',
+  budgetMonths: 'belanjasayang:budget-months:v1',
 } as const
 
 const CURRENT_SEED_VERSION = 'v4-clean-with-sync'
@@ -447,5 +463,31 @@ export const localStorageAdapter: MarketStorageAdapter = {
   },
   savePinConfig(config) {
     safeWrite(KEYS.pin, config)
+  },
+  loadBudgetPillars() {
+    const loaded = safeRead<BudgetPillarConfig[]>(
+      KEYS.budgetPillars,
+      () => DEFAULT_BUDGET_PILLARS,
+    )
+    return loaded.length > 0 ? loaded : DEFAULT_BUDGET_PILLARS
+  },
+  saveBudgetPillars(pillars) {
+    safeWrite(KEYS.budgetPillars, pillars)
+  },
+  loadBudgetModes() {
+    const loaded = safeRead<BudgetTrackingModeConfig[]>(
+      KEYS.budgetModes,
+      () => DEFAULT_BUDGET_MODES,
+    )
+    return loaded.length > 0 ? loaded : DEFAULT_BUDGET_MODES
+  },
+  saveBudgetModes(modes) {
+    safeWrite(KEYS.budgetModes, modes)
+  },
+  loadBudgetMonths() {
+    return safeRead<BudgetMonthRecord[]>(KEYS.budgetMonths, () => [])
+  },
+  saveBudgetMonths(months) {
+    safeWrite(KEYS.budgetMonths, months)
   },
 }

@@ -10,6 +10,9 @@ export type CollectionKey =
   | 'templates'
   | 'frequent'
   | 'pin_config'
+  | 'budget_pillars'
+  | 'budget_modes'
+  | 'budget_months'
 
 export const ALL_COLLECTION_KEYS: CollectionKey[] = [
   'stores',
@@ -20,6 +23,15 @@ export const ALL_COLLECTION_KEYS: CollectionKey[] = [
   'templates',
   'frequent',
   'pin_config',
+  'budget_pillars',
+  'budget_modes',
+  'budget_months',
+]
+
+export const BUDGET_COLLECTION_KEYS: CollectionKey[] = [
+  'budget_pillars',
+  'budget_modes',
+  'budget_months',
 ]
 
 export type SyncStatus =

@@ -1,14 +1,17 @@
-import { ChefHat, NotebookPen, ShoppingBasket } from 'lucide-react'
+import { ChefHat, NotebookPen, ShoppingBasket, Wallet } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { triggerHaptic } from '../lib/format'
 
-export type AppTab = 'keranjang' | 'referensi' | 'paket'
+export type AppTab = 'keranjang' | 'referensi' | 'paket' | 'anggaran'
 
-const TAB_ORDER: AppTab[] = ['keranjang', 'referensi', 'paket']
+const TAB_ORDER: AppTab[] = ['keranjang', 'referensi', 'paket', 'anggaran']
+const TAB_COUNT = TAB_ORDER.length
+const MAX_TAB_IDX = TAB_COUNT - 1
 const TAB_INDEX: Record<AppTab, number> = {
   keranjang: 0,
   referensi: 1,
   paket: 2,
+  anggaran: 3,
 }
 
 interface BottomNavProps {
@@ -34,6 +37,7 @@ export const BottomNav = memo(function BottomNav({
   const mirrorWarmRef = useRef<HTMLDivElement>(null)
   const rimGroupRef = useRef<HTMLDivElement>(null)
   const baseVisualRefs = useRef<Array<HTMLDivElement | null>>([
+    null,
     null,
     null,
     null,
@@ -186,9 +190,9 @@ export const BottomNav = memo(function BottomNav({
     const rect = cached ?? dockRef.current?.getBoundingClientRect()
     if (!rect) return targetRef.current
     const innerW = Math.max(1, rect.width - 8)
-    const slotW = innerW / 3
+    const slotW = innerW / TAB_COUNT
     const rel = clientX - rect.left - 4 - slotW / 2
-    return Math.max(-0.1, Math.min(2.1, rel / slotW))
+    return Math.max(-0.1, Math.min(MAX_TAB_IDX + 0.1, rel / slotW))
   }
 
   const handlePointerDown = (e: React.PointerEvent<HTMLElement>) => {
@@ -214,7 +218,7 @@ export const BottomNav = memo(function BottomNav({
     }
     if (!isDraggingRef.current) return
 
-    const slotW = Math.max(1, ((dragRectRef.current?.width ?? 300) - 8) / 3)
+    const slotW = Math.max(1, ((dragRectRef.current?.width ?? 340) - 8) / TAB_COUNT)
     const dx = e.clientX - lastXRef.current
     lastXRef.current = e.clientX
 
@@ -223,7 +227,7 @@ export const BottomNav = memo(function BottomNav({
     posRef.current += (nextPos - posRef.current) * 0.72
     applyOpticalFrame(posRef.current, dragVelRef.current * 4.8, true)
 
-    const nearestIdx = Math.max(0, Math.min(2, Math.round(posRef.current)))
+    const nearestIdx = Math.max(0, Math.min(MAX_TAB_IDX, Math.round(posRef.current)))
     const hoveredTab = TAB_ORDER[nearestIdx]
     if (hoveredTab !== dragPreviewTabRef.current) {
       dragPreviewTabRef.current = hoveredTab
@@ -240,7 +244,7 @@ export const BottomNav = memo(function BottomNav({
 
     const finalIdx = Math.max(
       0,
-      Math.min(2, Math.round(pointerToSlot(e.clientX))),
+      Math.min(MAX_TAB_IDX, Math.round(pointerToSlot(e.clientX))),
     )
     dragRectRef.current = null
     if (dragPreviewTabRef.current !== null) {
@@ -298,10 +302,15 @@ export const BottomNav = memo(function BottomNav({
       badge: templateCount,
       icon: ChefHat,
     },
+    {
+      id: 'anggaran',
+      label: 'Anggaran',
+      icon: Wallet,
+    },
   ]
 
   const getBadgeClass = (isActive: boolean) =>
-    `absolute -top-1 left-[21px] z-10 min-w-[18px] h-[17px] px-1.5 rounded-full text-[10px] font-extrabold leading-none tabular-nums ring-[1.5px] ring-white/95 flex items-center justify-center ${
+    `absolute -top-1 left-[19px] z-10 min-w-[17px] h-[16px] px-1 rounded-full text-[9.5px] font-extrabold leading-none tabular-nums ring-[1.5px] ring-white/95 flex items-center justify-center ${
       isActive
         ? 'bg-emerald-600 text-white shadow-xs'
         : 'bg-slate-200 text-slate-700'
@@ -310,7 +319,7 @@ export const BottomNav = memo(function BottomNav({
   const visualTab = dragPreviewTab ?? activeTab
 
   const renderMirrorItems = (tintClass: string, isChroma = false) => (
-    <div className="w-[300%] h-full grid grid-cols-3 items-center">
+    <div className="w-[400%] h-full grid grid-cols-4 items-center">
       {tabs.map((tab) => {
         const Icon = tab.icon
         const isHighlighted = visualTab === tab.id
@@ -326,14 +335,14 @@ export const BottomNav = memo(function BottomNav({
             }`}
           >
             <div className="relative flex items-center justify-center">
-              <Icon className="w-6 h-6" strokeWidth={2.25} />
+              <Icon className="w-[22px] h-[22px]" strokeWidth={2.25} />
               {tab.badge !== undefined && !isChroma && (
                 <span className={getBadgeClass(isHighlighted)}>
                   {tab.badge}
                 </span>
               )}
             </div>
-            <span className="text-[10.5px] font-bold tracking-[-0.01em] leading-none">
+            <span className="text-[10px] font-bold tracking-[-0.01em] leading-none">
               {tab.label}
             </span>
           </div>
@@ -343,7 +352,7 @@ export const BottomNav = memo(function BottomNav({
   )
 
   return (
-    <div className="w-full min-w-0 px-5 pt-2 pb-[max(14px,calc(env(safe-area-inset-bottom,0px)-14px))] bg-gradient-to-t from-[#f2f6f3]/90 via-[#f2f6f3]/50 to-transparent pointer-events-none">
+    <div className="w-full min-w-0 px-3.5 pt-2 pb-[max(14px,calc(env(safe-area-inset-bottom,0px)-14px))] bg-gradient-to-t from-[#f2f6f3]/90 via-[#f2f6f3]/50 to-transparent pointer-events-none">
       <nav
         ref={dockRef}
         aria-label="Navigasi Utama"
@@ -351,7 +360,7 @@ export const BottomNav = memo(function BottomNav({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
-        className="glass-dock pointer-events-auto rounded-full p-1 h-[62px] grid grid-cols-3 cursor-grab active:cursor-grabbing"
+        className="glass-dock pointer-events-auto rounded-full p-1 h-[62px] grid grid-cols-4 cursor-grab active:cursor-grabbing"
       >
         {/* Base Layer: Accessible Tab Buttons (inner visual fades smoothly under clear droplet) */}
         {tabs.map((tab, idx) => {
@@ -387,7 +396,7 @@ export const BottomNav = memo(function BottomNav({
               >
                 <div className="relative flex items-center justify-center">
                   <Icon
-                    className="w-6 h-6"
+                    className="w-[22px] h-[22px]"
                     strokeWidth={isHighlighted ? 2.25 : 2}
                   />
                   {tab.badge !== undefined && (
@@ -396,7 +405,7 @@ export const BottomNav = memo(function BottomNav({
                     </span>
                   )}
                 </div>
-                <span className="text-[10.5px] font-bold tracking-[-0.01em] leading-none">
+                <span className="text-[10px] font-bold tracking-[-0.01em] leading-none">
                   {tab.label}
                 </span>
               </div>

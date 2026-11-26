@@ -3,6 +3,11 @@ import {
   buildBackupSnapshot,
   type BelanjaBackupSnapshot,
 } from '../lib/backup'
+import {
+  cloneBudgetMonthPlan,
+  createDefaultBudgetMonth,
+  getBudgetItemAllocation,
+} from '../lib/budget'
 import { detectCategory } from '../lib/categories'
 import {
   generateId,
@@ -31,6 +36,10 @@ import { useSupabaseSync } from './useSupabaseSync'
 import type {
   AddItemInput,
   AddPurchaseEntryInput,
+  BudgetEnvelopeItem,
+  BudgetMonthRecord,
+  BudgetPillarConfig,
+  BudgetTrackingModeConfig,
   CategoryConfig,
   FrequentItem,
   MarketCategory,
@@ -180,6 +189,15 @@ export function useMarketStore(
   const [pinConfig, setPinConfig] = useState<PinConfig>(() =>
     adapter.loadPinConfig(),
   )
+  const [budgetPillars, setBudgetPillars] = useState<BudgetPillarConfig[]>(() =>
+    adapter.loadBudgetPillars(),
+  )
+  const [budgetModes, setBudgetModes] = useState<BudgetTrackingModeConfig[]>(
+    () => adapter.loadBudgetModes(),
+  )
+  const [budgetMonths, setBudgetMonths] = useState<BudgetMonthRecord[]>(() =>
+    adapter.loadBudgetMonths(),
+  )
   const [isLocked, setIsLocked] = useState<boolean>(() => {
     const cfg = adapter.loadPinConfig()
     return !cfg.hasCompletedOnboarding || (cfg.pinEnabled && Boolean(cfg.pinHash))
@@ -195,6 +213,9 @@ export function useMarketStore(
     product_refs: false,
     monthly_purchases: false,
     pin_config: false,
+    budget_pillars: false,
+    budget_modes: false,
+    budget_months: false,
   })
   const skipPushRef = useRef<Record<CollectionKey, boolean>>({
     stores: false,
@@ -205,6 +226,9 @@ export function useMarketStore(
     product_refs: false,
     monthly_purchases: false,
     pin_config: false,
+    budget_pillars: false,
+    budget_modes: false,
+    budget_months: false,
   })
 
   const latestDataRef = useRef({
@@ -216,6 +240,9 @@ export function useMarketStore(
     product_refs: productRefs,
     monthly_purchases: monthlyPurchases,
     pin_config: pinConfig,
+    budget_pillars: budgetPillars,
+    budget_modes: budgetModes,
+    budget_months: budgetMonths,
   })
 
   useEffect(() => {
@@ -228,6 +255,9 @@ export function useMarketStore(
       product_refs: productRefs,
       monthly_purchases: monthlyPurchases,
       pin_config: pinConfig,
+      budget_pillars: budgetPillars,
+      budget_modes: budgetModes,
+      budget_months: budgetMonths,
     }
   }, [
     stores,
@@ -238,6 +268,9 @@ export function useMarketStore(
     productRefs,
     monthlyPurchases,
     pinConfig,
+    budgetPillars,
+    budgetModes,
+    budgetMonths,
   ])
 
   const getPayload = useCallback((key: CollectionKey) => {
@@ -303,6 +336,16 @@ export function useMarketStore(
           break
         case 'monthly_purchases':
           setMonthlyPurchases(payload as MonthlyPurchaseEntry[])
+          break
+        case 'budget_pillars':
+          if (payload.length > 0) setBudgetPillars(payload as BudgetPillarConfig[])
+          break
+        case 'budget_modes':
+          if (payload.length > 0)
+            setBudgetModes(payload as BudgetTrackingModeConfig[])
+          break
+        case 'budget_months':
+          setBudgetMonths(payload as BudgetMonthRecord[])
           break
       }
     },
@@ -419,6 +462,45 @@ export function useMarketStore(
     }
     schedulePush('pin_config')
   }, [adapter, pinConfig, schedulePush])
+
+  useEffect(() => {
+    if (!hasMountedRef.current.budget_pillars) {
+      hasMountedRef.current.budget_pillars = true
+      return
+    }
+    adapter.saveBudgetPillars(budgetPillars)
+    if (skipPushRef.current.budget_pillars) {
+      skipPushRef.current.budget_pillars = false
+      return
+    }
+    schedulePush('budget_pillars')
+  }, [adapter, budgetPillars, schedulePush])
+
+  useEffect(() => {
+    if (!hasMountedRef.current.budget_modes) {
+      hasMountedRef.current.budget_modes = true
+      return
+    }
+    adapter.saveBudgetModes(budgetModes)
+    if (skipPushRef.current.budget_modes) {
+      skipPushRef.current.budget_modes = false
+      return
+    }
+    schedulePush('budget_modes')
+  }, [adapter, budgetModes, schedulePush])
+
+  useEffect(() => {
+    if (!hasMountedRef.current.budget_months) {
+      hasMountedRef.current.budget_months = true
+      return
+    }
+    adapter.saveBudgetMonths(budgetMonths)
+    if (skipPushRef.current.budget_months) {
+      skipPushRef.current.budget_months = false
+      return
+    }
+    schedulePush('budget_months')
+  }, [adapter, budgetMonths, schedulePush])
 
   const defaultStoreId = stores[0]?.id ?? 'hypermart'
   const fallbackCategoryId =
@@ -1457,6 +1539,9 @@ export function useMarketStore(
       templates: cur.templates,
       frequentItems: cur.frequent,
       monthlyBudget: cur.pin_config.monthlyBudget ?? null,
+      budgetPillars: cur.budget_pillars,
+      budgetModes: cur.budget_modes,
+      budgetMonths: cur.budget_months,
     })
   }, [])
 
@@ -1471,6 +1556,15 @@ export function useMarketStore(
       if (snapshot.frequentItems.length > 0) {
         setFrequentItems(snapshot.frequentItems)
       }
+      if (snapshot.budgetPillars && snapshot.budgetPillars.length > 0) {
+        setBudgetPillars(snapshot.budgetPillars)
+      }
+      if (snapshot.budgetModes && snapshot.budgetModes.length > 0) {
+        setBudgetModes(snapshot.budgetModes)
+      }
+      if (snapshot.budgetMonths) {
+        setBudgetMonths(snapshot.budgetMonths)
+      }
       if (snapshot.monthlyBudget !== undefined) {
         const nextPin: PinConfig = {
           ...latestDataRef.current.pin_config,
@@ -1484,6 +1578,437 @@ export function useMarketStore(
     },
     [adapter, pushKeyImmediately],
   )
+
+  // --- Household Monthly Budget ("Anggaran") CRUD & Tracking ---
+  const mutateBudgetMonth = useCallback(
+    (
+      monthKey: string,
+      updater: (month: BudgetMonthRecord) => BudgetMonthRecord,
+    ) => {
+      const now = Date.now()
+      setBudgetMonths((prev) => {
+        const idx = prev.findIndex((m) => m.monthKey === monthKey)
+        if (idx >= 0) {
+          const next = [...prev]
+          next[idx] = updater({ ...next[idx], updatedAt: now })
+          return next
+        }
+        const seeded = createDefaultBudgetMonth(monthKey)
+        return [...prev, updater({ ...seeded, updatedAt: now })]
+      })
+    },
+    [],
+  )
+
+  const seedBudgetMonthWithPreset = useCallback((monthKey: string) => {
+    const record = createDefaultBudgetMonth(monthKey)
+    setBudgetMonths((prev) => {
+      const idx = prev.findIndex((m) => m.monthKey === monthKey)
+      if (idx >= 0) {
+        const next = [...prev]
+        next[idx] = record
+        return next
+      }
+      return [...prev, record]
+    })
+    triggerHaptic(12)
+  }, [])
+
+  const copyBudgetMonthFromPrevious = useCallback(
+    (sourceMonthKey: string, targetMonthKey: string): boolean => {
+      const curMonths = latestDataRef.current.budget_months
+      const source = curMonths.find((m) => m.monthKey === sourceMonthKey)
+      if (!source) return false
+      const cloned = cloneBudgetMonthPlan(
+        source,
+        targetMonthKey,
+        latestDataRef.current.budget_modes,
+      )
+      setBudgetMonths((prev) => {
+        const idx = prev.findIndex((m) => m.monthKey === targetMonthKey)
+        if (idx >= 0) {
+          const next = [...prev]
+          next[idx] = cloned
+          return next
+        }
+        return [...prev, cloned]
+      })
+      triggerHaptic(12)
+      return true
+    },
+    [],
+  )
+
+  const toggleBudgetPayFirst = useCallback(
+    (monthKey: string) => {
+      mutateBudgetMonth(monthKey, (m) => ({
+        ...m,
+        payFirstDone: !m.payFirstDone,
+      }))
+      triggerHaptic(10)
+    },
+    [mutateBudgetMonth],
+  )
+
+  const toggleBudgetEfficiency = useCallback(
+    (monthKey: string, key: 'effIcloudFamily' | 'effBrightGas') => {
+      mutateBudgetMonth(monthKey, (m) => ({
+        ...m,
+        [key]: !m[key],
+      }))
+      triggerHaptic(8)
+    },
+    [mutateBudgetMonth],
+  )
+
+  const updateBudgetIncome = useCallback(
+    (
+      monthKey: string,
+      patch: {
+        baseIncome: number
+        extraIncome: number
+        extraIncomeLabel?: string
+        savingsTargetYear: number
+      },
+    ) => {
+      mutateBudgetMonth(monthKey, (m) => ({
+        ...m,
+        baseIncome: Math.max(0, Math.round(patch.baseIncome)),
+        extraIncome: Math.max(0, Math.round(patch.extraIncome)),
+        extraIncomeLabel: patch.extraIncomeLabel?.trim() || undefined,
+        savingsTargetYear: Math.max(0, Math.round(patch.savingsTargetYear)),
+      }))
+      triggerHaptic(10)
+    },
+    [mutateBudgetMonth],
+  )
+
+  const toggleBudgetBillPaid = useCallback(
+    (monthKey: string, itemId: string) => {
+      const modes = latestDataRef.current.budget_modes
+      mutateBudgetMonth(monthKey, (m) => ({
+        ...m,
+        items: m.items.map((item) => {
+          if (item.id !== itemId) return item
+          const nextPaid = !item.paid
+          const alloc = getBudgetItemAllocation(item, modes, m)
+          return {
+            ...item,
+            paid: nextPaid,
+            actual:
+              nextPaid && (!item.actual || item.actual <= 0)
+                ? alloc
+                : item.actual,
+            updatedAt: Date.now(),
+          }
+        }),
+      }))
+      triggerHaptic(12)
+    },
+    [mutateBudgetMonth],
+  )
+
+  const stepBudgetCounter = useCallback(
+    (monthKey: string, itemId: string, delta: number) => {
+      mutateBudgetMonth(monthKey, (m) => ({
+        ...m,
+        items: m.items.map((item) =>
+          item.id === itemId
+            ? {
+                ...item,
+                count: Math.max(0, (item.count || 0) + delta),
+                updatedAt: Date.now(),
+              }
+            : item,
+        ),
+      }))
+      triggerHaptic(8)
+    },
+    [mutateBudgetMonth],
+  )
+
+  const addBudgetQuickSpend = useCallback(
+    (monthKey: string, itemId: string, deltaAmount: number) => {
+      mutateBudgetMonth(monthKey, (m) => ({
+        ...m,
+        items: m.items.map((item) =>
+          item.id === itemId
+            ? {
+                ...item,
+                actual: Math.max(
+                  0,
+                  Math.round((item.actual || 0) + deltaAmount),
+                ),
+                updatedAt: Date.now(),
+              }
+            : item,
+        ),
+      }))
+      triggerHaptic(10)
+    },
+    [mutateBudgetMonth],
+  )
+
+  const toggleBudgetSweep = useCallback(
+    (monthKey: string, itemId: string) => {
+      mutateBudgetMonth(monthKey, (m) => ({
+        ...m,
+        items: m.items.map((item) =>
+          item.id === itemId && (item.actual || 0) === 0
+            ? { ...item, swept: !item.swept, updatedAt: Date.now() }
+            : item,
+        ),
+      }))
+      triggerHaptic(12)
+    },
+    [mutateBudgetMonth],
+  )
+
+  const updateBudgetItemRealisasi = useCallback(
+    (
+      monthKey: string,
+      itemId: string,
+      patch: { actual: number; count?: number; paid?: boolean; note?: string },
+    ) => {
+      mutateBudgetMonth(monthKey, (m) => ({
+        ...m,
+        items: m.items.map((item) =>
+          item.id === itemId
+            ? {
+                ...item,
+                actual: Math.max(0, Math.round(patch.actual)),
+                count:
+                  patch.count !== undefined
+                    ? Math.max(0, Math.round(patch.count))
+                    : item.count,
+                paid: patch.paid !== undefined ? patch.paid : item.paid,
+                note:
+                  patch.note !== undefined
+                    ? patch.note.trim() || undefined
+                    : item.note,
+                updatedAt: Date.now(),
+              }
+            : item,
+        ),
+      }))
+      triggerHaptic(10)
+    },
+    [mutateBudgetMonth],
+  )
+
+  const upsertBudgetEnvelope = useCallback(
+    (
+      monthKey: string,
+      input: {
+        id?: string
+        pillarId: string
+        modeId: string
+        name: string
+        budget: number
+        actual?: number
+        targetCount?: number
+        count?: number
+        unitPrice?: number
+        unitLabel?: string
+        note?: string
+      },
+    ) => {
+      const trimmed = input.name.trim()
+      if (!trimmed) return
+      const now = Date.now()
+      const mode = latestDataRef.current.budget_modes.find(
+        (m) => m.id === input.modeId,
+      )
+      const isCounter = mode?.behavior === 'counter'
+      const isBill = mode?.behavior === 'bill'
+      const targetCount = Math.max(1, Math.round(input.targetCount || 1))
+      const unitPrice = Math.max(0, Math.round(input.unitPrice || 0))
+      const computedBudget = isCounter
+        ? targetCount * unitPrice
+        : Math.max(0, Math.round(input.budget))
+
+      mutateBudgetMonth(monthKey, (m) => {
+        const existingIdx = input.id
+          ? m.items.findIndex((i) => i.id === input.id)
+          : -1
+        if (existingIdx >= 0) {
+          const prevItem = m.items[existingIdx]
+          const next = [...m.items]
+          next[existingIdx] = {
+            ...prevItem,
+            pillarId: input.pillarId,
+            modeId: input.modeId,
+            name: trimmed,
+            budget: computedBudget,
+            actual:
+              input.actual !== undefined
+                ? Math.max(0, Math.round(input.actual))
+                : prevItem.actual,
+            targetCount: isCounter ? targetCount : prevItem.targetCount,
+            count:
+              isCounter && input.count !== undefined
+                ? Math.max(0, Math.round(input.count))
+                : prevItem.count,
+            unitPrice: isCounter ? unitPrice : prevItem.unitPrice,
+            unitLabel: isCounter
+              ? input.unitLabel?.trim() || prevItem.unitLabel || 'x'
+              : prevItem.unitLabel,
+            note: input.note?.trim() || undefined,
+            updatedAt: now,
+          }
+          return { ...m, items: next }
+        }
+
+        const newItem: BudgetEnvelopeItem = {
+          id: `b-${generateId().slice(0, 8)}`,
+          pillarId: input.pillarId,
+          modeId: input.modeId,
+          name: trimmed,
+          budget: computedBudget,
+          actual: isBill ? computedBudget : Math.max(0, Math.round(input.actual || 0)),
+          paid: false,
+          swept: false,
+          count: isCounter ? 0 : undefined,
+          targetCount: isCounter ? targetCount : undefined,
+          unitPrice: isCounter ? unitPrice : undefined,
+          unitLabel: isCounter ? input.unitLabel?.trim() || 'x' : undefined,
+          note: input.note?.trim() || undefined,
+          updatedAt: now,
+        }
+        return { ...m, items: [...m.items, newItem] }
+      })
+      triggerHaptic(12)
+    },
+    [mutateBudgetMonth],
+  )
+
+  const deleteBudgetEnvelope = useCallback(
+    (monthKey: string, itemId: string) => {
+      mutateBudgetMonth(monthKey, (m) => ({
+        ...m,
+        items: m.items.filter((i) => i.id !== itemId),
+      }))
+      triggerHaptic(12)
+    },
+    [mutateBudgetMonth],
+  )
+
+  const upsertBudgetPillar = useCallback(
+    (input: { id?: string; name: string; color: string }): BudgetPillarConfig | null => {
+      const name = input.name.trim()
+      if (!name) return null
+      const now = Date.now()
+      const prevList = latestDataRef.current.budget_pillars
+      const existing = input.id ? prevList.find((p) => p.id === input.id) : undefined
+      const formattedName =
+        existing || /^\d+\./.test(name)
+          ? name
+          : `${prevList.length + 1}. ${name}`
+      const record: BudgetPillarConfig = {
+        id: existing ? existing.id : `p-${generateId().slice(0, 8)}`,
+        name: formattedName,
+        color: input.color || '#059669',
+        updatedAt: now,
+      }
+      setBudgetPillars((prev) => {
+        const idx = prev.findIndex((p) => p.id === record.id)
+        if (idx >= 0) {
+          const next = [...prev]
+          next[idx] = record
+          return next
+        }
+        return [...prev, record]
+      })
+      triggerHaptic(10)
+      return record
+    },
+    [],
+  )
+
+  const deleteBudgetPillar = useCallback((pillarId: string): boolean => {
+    const prevList = latestDataRef.current.budget_pillars
+    if (prevList.length <= 1) return false
+    const remaining = prevList.filter((p) => p.id !== pillarId)
+    const fallbackId = remaining[0].id
+    setBudgetPillars(remaining)
+    setBudgetMonths((prevMonths) =>
+      prevMonths.map((m) => ({
+        ...m,
+        items: m.items.map((item) =>
+          item.pillarId === pillarId
+            ? { ...item, pillarId: fallbackId, updatedAt: Date.now() }
+            : item,
+        ),
+        updatedAt: Date.now(),
+      })),
+    )
+    triggerHaptic(12)
+    return true
+  }, [])
+
+  const upsertBudgetMode = useCallback(
+    (input: {
+      id?: string
+      label: string
+      desc?: string
+      behavior: BudgetTrackingModeConfig['behavior']
+      stepAmount?: number
+      unitLabel?: string
+    }): BudgetTrackingModeConfig | null => {
+      const label = input.label.trim()
+      if (!label) return null
+      const now = Date.now()
+      const prevList = latestDataRef.current.budget_modes
+      const existing = input.id ? prevList.find((m) => m.id === input.id) : undefined
+      const record: BudgetTrackingModeConfig = {
+        id: existing ? existing.id : `mode-${generateId().slice(0, 8)}`,
+        label,
+        desc: input.desc?.trim() || existing?.desc || 'Mode kustom keluarga',
+        behavior: existing?.isSystem ? existing.behavior : input.behavior,
+        stepAmount:
+          input.stepAmount !== undefined
+            ? Math.max(0, Math.round(input.stepAmount))
+            : existing?.stepAmount,
+        unitLabel: input.unitLabel?.trim() || existing?.unitLabel,
+        isSystem: existing?.isSystem ?? false,
+        updatedAt: now,
+      }
+      setBudgetModes((prev) => {
+        const idx = prev.findIndex((m) => m.id === record.id)
+        if (idx >= 0) {
+          const next = [...prev]
+          next[idx] = record
+          return next
+        }
+        return [...prev, record]
+      })
+      triggerHaptic(10)
+      return record
+    },
+    [],
+  )
+
+  const deleteBudgetMode = useCallback((modeId: string): boolean => {
+    const prevList = latestDataRef.current.budget_modes
+    const target = prevList.find((m) => m.id === modeId)
+    if (!target || target.isSystem || prevList.length <= 1) return false
+    const remaining = prevList.filter((m) => m.id !== modeId)
+    const fallbackId = remaining[0].id
+    setBudgetModes(remaining)
+    setBudgetMonths((prevMonths) =>
+      prevMonths.map((m) => ({
+        ...m,
+        items: m.items.map((item) =>
+          item.modeId === modeId
+            ? { ...item, modeId: fallbackId, updatedAt: Date.now() }
+            : item,
+        ),
+        updatedAt: Date.now(),
+      })),
+    )
+    triggerHaptic(12)
+    return true
+  }, [])
 
   const verifyAndUnlock = useCallback(
     (pin: string): boolean => {
@@ -1599,6 +2124,9 @@ export function useMarketStore(
     previousMonthTotalSpend,
     monthlyBudget: pinConfig.monthlyBudget ?? null,
     pinConfig,
+    budgetPillars,
+    budgetModes,
+    budgetMonths,
     isLocked,
     totalCount,
     boughtCount,
@@ -1635,6 +2163,22 @@ export function useMarketStore(
     setMonthlyBudget,
     exportBackupSnapshot,
     restoreBackupSnapshot,
+    seedBudgetMonthWithPreset,
+    copyBudgetMonthFromPrevious,
+    toggleBudgetPayFirst,
+    toggleBudgetEfficiency,
+    updateBudgetIncome,
+    toggleBudgetBillPaid,
+    stepBudgetCounter,
+    addBudgetQuickSpend,
+    toggleBudgetSweep,
+    updateBudgetItemRealisasi,
+    upsertBudgetEnvelope,
+    deleteBudgetEnvelope,
+    upsertBudgetPillar,
+    deleteBudgetPillar,
+    upsertBudgetMode,
+    deleteBudgetMode,
     verifyAndUnlock,
     lockNow,
     sync,

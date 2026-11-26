@@ -80,7 +80,7 @@ export function CategoryGroup({
                 {/* Circular checkbox */}
                 <div
                   aria-hidden="true"
-                  className="w-6 h-6 rounded-full border-2 border-stone-300 group-hover:border-emerald-500 shrink-0 transition-colors"
+                  className="w-6 h-6 rounded-full border-2 border-stone-300 group-hover:border-emerald-500 group-hover:scale-105 group-active:scale-90 shrink-0 transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
                 />
 
                 {/* Compact 2-line Info */}
@@ -107,7 +107,7 @@ export function CategoryGroup({
                           prev === item.id ? null : item.id,
                         )
                       }}
-                      className={`min-h-7 px-2 py-0.5 rounded-lg text-[11px] font-extrabold border inline-flex items-center gap-1 transition-all active:scale-95 cursor-pointer touch-manipulation ${
+                      className={`min-h-7 px-2 py-0.5 rounded-lg text-[11px] font-extrabold border inline-flex items-center gap-1 liquid-press cursor-pointer touch-manipulation ${
                         storeCfg
                           ? ''
                           : 'bg-amber-50 border-dashed border-amber-400 text-amber-800 hover:bg-amber-100'
@@ -122,7 +122,11 @@ export function CategoryGroup({
                       <span>
                         {storeCfg ? storeCfg.shortLabel : 'Pilih toko'}
                       </span>
-                      <ChevronDown className="w-3 h-3 shrink-0 opacity-75" />
+                      <ChevronDown
+                        className={`w-3 h-3 shrink-0 opacity-75 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+                          isPickingStore ? 'rotate-180' : ''
+                        }`}
+                      />
                     </button>
 
                     {item.estimatedPrice > 0 && (
@@ -167,7 +171,7 @@ export function CategoryGroup({
               {isPickingStore && (
                 <div
                   data-testid="inline-store-picker"
-                  className="px-3.5 pb-2.5 pt-1 bg-stone-50/90 border-t border-stone-100 flex flex-wrap items-center gap-1.5 animate-fade-in"
+                  className="px-3.5 pb-2.5 pt-1.5 bg-white/55 border-t border-white/70 flex flex-wrap items-center gap-1.5 animate-liquid-panel"
                 >
                   <span className="text-[10px] font-bold uppercase text-stone-400 mr-0.5">
                     Beli di:

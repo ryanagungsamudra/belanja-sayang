@@ -138,7 +138,7 @@ export function TemplateEditorModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/45 backdrop-blur-[2px] animate-fade-in"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-[5px] animate-fade-in"
       onClick={onClose}
     >
       <div
@@ -148,7 +148,7 @@ export function TemplateEditorModal({
         onClick={(e) => e.stopPropagation()}
         className="glass-sheet w-full max-w-md max-h-[90dvh] rounded-t-3xl flex flex-col overflow-hidden animate-slide-up"
       >
-        <div className="px-5 pt-4 pb-3 bg-white/60 backdrop-blur-md border-b border-white/70 flex items-center justify-between shrink-0">
+        <div className="px-5 pt-4 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <ChefHat className="w-5 h-5" />
@@ -229,7 +229,7 @@ export function TemplateEditorModal({
             </div>
 
             {showRefPicker && (
-              <div className="bg-emerald-50/70 rounded-2xl border border-emerald-200 p-3 space-y-2 animate-fade-in">
+              <div className="bg-emerald-50/70 rounded-2xl border border-emerald-200 p-3 space-y-2 animate-liquid-panel">
                 <div className="min-h-10 bg-white rounded-xl border border-emerald-200 px-3 flex items-center gap-2">
                   <Search className="w-4 h-4 text-emerald-600 shrink-0" />
                   <input

@@ -164,11 +164,40 @@
   -webkit-backdrop-filter: blur(16px) saturate(175%);
   border: 1px solid var(--g-border);
   box-shadow: var(--g-shadow-sm);
-  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease;
+  transition:
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background 0.2s ease,
+    box-shadow 0.22s ease;
 }
 
-.glass-pill:active {
+button.glass-pill:active,
+a.glass-pill:active {
+  transform: scale(0.94);
+}
+
+/* Tactile spring liquid micro-press for interactive buttons, chips, and tiles */
+.liquid-press {
+  transition:
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.22s ease,
+    opacity 0.2s ease;
+}
+
+.liquid-press:active {
   transform: scale(0.95);
+}
+
+/* Frosted dark glass toast pill */
+.liquid-toast {
+  background: rgba(15, 23, 42, 0.84);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 14px 32px -6px rgba(15, 23, 42, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .glass-header {
@@ -191,25 +220,41 @@
   border-top: 1px solid var(--g-divider);
 }
 
-/* Floating iOS 26/27 Clear Liquid Glass Pill Dock & Overhanging Droplet */
+/* Floating iOS 26/27 High-Legibility Liquid Glass Pill Dock & Overhanging Droplet */
 .glass-dock {
   position: relative;
   overflow: visible;
-  background: rgba(255, 255, 255, 0.36);
-  backdrop-filter: blur(18px) saturate(215%) brightness(1.04);
-  -webkit-backdrop-filter: blur(18px) saturate(215%) brightness(1.04);
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  box-shadow:
-    0 14px 36px -8px rgba(15, 23, 42, 0.16),
-    0 0 0 0.5px rgba(15, 23, 42, 0.08),
-    inset 0 1.5px 1px rgba(255, 255, 255, 0.92),
-    inset 0 -1px 2px rgba(15, 23, 42, 0.04);
+  isolation: isolate;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
 }
 
-/* Overhanging crystal-clear transparent water droplet sitting ABOVE the icons */
+/* Dedicated sibling frost layer so Chromium/WebKit never drops backdrop-filter */
+.glass-dock::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.84) 0%,
+    rgba(248, 252, 250, 0.76) 100%
+  );
+  backdrop-filter: blur(28px) saturate(190%) brightness(1.03);
+  -webkit-backdrop-filter: blur(28px) saturate(190%) brightness(1.03);
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 16px 38px -8px rgba(15, 23, 42, 0.22),
+    0 4px 12px -2px rgba(15, 23, 42, 0.08),
+    0 0 0 0.5px rgba(15, 23, 42, 0.1),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.98),
+    inset 0 -1px 2px rgba(15, 23, 42, 0.05);
+}
+
+/* Overhanging liquid glass droplet sitting ABOVE the icons */
 .liquid-droplet {
   position: absolute;
   top: 3px;
@@ -224,23 +269,22 @@
   transform-origin: center center;
   background: radial-gradient(
     ellipse 86% 74% at 50% 46%,
-    rgba(255, 255, 255, 0.06) 0%,
-    rgba(255, 255, 255, 0.22) 66%,
-    rgba(255, 255, 255, 0.62) 100%
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(255, 255, 255, 0.84) 68%,
+    rgba(255, 255, 255, 0.96) 100%
   );
-  backdrop-filter: blur(3px) saturate(230%) brightness(1.07);
-  -webkit-backdrop-filter: blur(3px) saturate(230%) brightness(1.07);
-  border: 1.25px solid rgba(255, 255, 255, 0.9);
+  border: 1.25px solid rgba(255, 255, 255, 0.98);
   box-shadow:
-    0 8px 22px -5px rgba(15, 23, 42, 0.16),
+    0 8px 20px -4px rgba(15, 23, 42, 0.18),
     0 0 0 0.5px rgba(15, 23, 42, 0.09),
-    inset 0 2px 2.5px rgba(255, 255, 255, 0.98),
+    inset 0 2px 2.5px rgba(255, 255, 255, 1),
     inset 0 -2px 5px rgba(15, 23, 42, 0.07),
     inset 2px 0 6px rgba(56, 189, 248, 0.16),
     inset -2px 0 6px rgba(249, 115, 22, 0.14);
   transition:
     top 0.3s cubic-bezier(0.34, 1.62, 0.64, 1),
     bottom 0.3s cubic-bezier(0.34, 1.62, 0.64, 1),
+    background 0.22s ease,
     box-shadow 0.24s ease,
     border-color 0.24s ease;
 }
@@ -249,15 +293,15 @@
 .liquid-droplet-active {
   top: -8px;
   bottom: -8px;
-  border-color: rgba(255, 255, 255, 0.98);
+  border-color: rgba(255, 255, 255, 1);
   background: radial-gradient(
     ellipse 84% 72% at 50% 46%,
-    rgba(255, 255, 255, 0.04) 0%,
-    rgba(255, 255, 255, 0.18) 64%,
-    rgba(255, 255, 255, 0.66) 100%
+    rgba(255, 255, 255, 0.42) 0%,
+    rgba(255, 255, 255, 0.62) 64%,
+    rgba(255, 255, 255, 0.9) 100%
   );
   box-shadow:
-    0 16px 34px -6px rgba(15, 23, 42, 0.24),
+    0 16px 34px -6px rgba(15, 23, 42, 0.26),
     0 0 0 0.75px rgba(15, 23, 42, 0.12),
     inset 0 3px 3px rgba(255, 255, 255, 1),
     inset 0 -3px 7px rgba(15, 23, 42, 0.1),
@@ -307,17 +351,27 @@
 .liquid-seg-track {
   position: relative;
   overflow: visible;
-  background: rgba(255, 255, 255, 0.36);
-  backdrop-filter: blur(16px) saturate(200%);
-  -webkit-backdrop-filter: blur(16px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  box-shadow:
-    0 4px 14px -4px rgba(15, 23, 42, 0.09),
-    0 0 0 0.5px rgba(15, 23, 42, 0.06),
-    inset 0 1px 1px rgba(255, 255, 255, 0.88);
+  isolation: isolate;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.liquid-seg-track::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 0;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.56);
+  backdrop-filter: blur(18px) saturate(190%);
+  -webkit-backdrop-filter: blur(18px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  box-shadow:
+    0 4px 14px -4px rgba(15, 23, 42, 0.09),
+    0 0 0 0.5px rgba(15, 23, 42, 0.06),
+    inset 0 1px 1px rgba(255, 255, 255, 0.92);
 }
 
 .liquid-seg-droplet {
@@ -333,13 +387,11 @@
   transform-origin: center center;
   background: radial-gradient(
     ellipse 86% 74% at 50% 46%,
-    rgba(255, 255, 255, 0.14) 0%,
-    rgba(255, 255, 255, 0.36) 66%,
-    rgba(255, 255, 255, 0.78) 100%
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(255, 255, 255, 0.86) 66%,
+    rgba(255, 255, 255, 0.96) 100%
   );
-  backdrop-filter: blur(3px) saturate(225%) brightness(1.06);
-  -webkit-backdrop-filter: blur(3px) saturate(225%) brightness(1.06);
-  border: 1px solid rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.98);
   box-shadow:
     0 5px 14px -3px rgba(15, 23, 42, 0.14),
     0 0 0 0.5px rgba(15, 23, 42, 0.08),
@@ -348,12 +400,19 @@
   transition:
     top 0.26s cubic-bezier(0.34, 1.62, 0.64, 1),
     bottom 0.26s cubic-bezier(0.34, 1.62, 0.64, 1),
+    background 0.2s ease,
     box-shadow 0.22s ease;
 }
 
 .liquid-seg-droplet-active {
   top: -4px;
   bottom: -4px;
+  background: radial-gradient(
+    ellipse 86% 74% at 50% 46%,
+    rgba(255, 255, 255, 0.44) 0%,
+    rgba(255, 255, 255, 0.68) 66%,
+    rgba(255, 255, 255, 0.92) 100%
+  );
   box-shadow:
     0 10px 22px -4px rgba(15, 23, 42, 0.2),
     0 0 0 0.6px rgba(15, 23, 42, 0.1),
@@ -362,36 +421,12 @@
     inset -2.5px 0 6px rgba(249, 115, 22, 0.32);
 }
 
-/* Sliding Liquid Segmented Toggle (Toko | Kategori) */
-.seg-track {
-  position: relative;
-  background: var(--g-track);
-  padding: 3px;
-  border-radius: 13px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
-
-.seg-lens {
-  position: absolute;
-  top: 3px;
-  bottom: 3px;
-  left: 3px;
-  width: calc(50% - 3px);
-  border-radius: 10px;
-  background: var(--g-capsule);
-  border: 1px solid rgba(255, 255, 255, 0.92);
-  box-shadow: var(--g-shadow-sm);
-  transition: transform 0.38s cubic-bezier(0.34, 1.48, 0.64, 1);
-  pointer-events: none;
-}
-
 /* Liquid Shimmer Progress Bar */
 .liquid-progress {
   position: relative;
   overflow: hidden;
   background: linear-gradient(90deg, #059669, #10b981, #34d399);
-  transition: width 0.5s cubic-bezier(0.34, 1.35, 0.64, 1);
+  transition: width 0.55s cubic-bezier(0.34, 1.35, 0.64, 1);
 }
 
 .liquid-progress::after {
@@ -416,15 +451,19 @@
   }
 }
 
-/* Animations */
+/* Liquid Motion Animations */
 @keyframes slideUp {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(34px) scale(0.975);
   }
-  to {
+  70% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(-2px) scale(1.004);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -438,11 +477,41 @@
 }
 
 @keyframes liquidEnter {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(8px) scale(0.99);
+    transform: translateY(10px) scale(0.985);
   }
-  to {
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes liquidPanel {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(1px) scale(1.005);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes liquidPop {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+  }
+  68% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.03);
+  }
+  100% {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
@@ -461,15 +530,24 @@
 }
 
 .animate-slide-up {
-  animation: slideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slideUp 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.18s ease-out;
+  animation: fadeIn 0.2s ease-out both;
 }
 
 .animate-liquid-enter {
-  animation: liquidEnter 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: liquidEnter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-liquid-panel {
+  transform-origin: top center;
+  animation: liquidPanel 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-liquid-pop {
+  animation: liquidPop 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .animate-shake {
@@ -480,7 +558,13 @@
   .liquid-blob-1,
   .liquid-blob-2,
   .liquid-blob-3,
-  .liquid-progress::after {
-    animation: none;
+  .liquid-progress::after,
+  .animate-slide-up,
+  .animate-fade-in,
+  .animate-liquid-enter,
+  .animate-liquid-panel,
+  .animate-liquid-pop,
+  .animate-shake {
+    animation: none !important;
   }
 }

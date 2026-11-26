@@ -74,7 +74,7 @@ export function EditItemModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/45 backdrop-blur-[2px] animate-fade-in"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-[5px] animate-fade-in"
       onClick={onClose}
     >
       <div
@@ -84,7 +84,7 @@ export function EditItemModal({
         onClick={(e) => e.stopPropagation()}
         className="glass-sheet w-full max-w-md max-h-[88dvh] rounded-t-3xl flex flex-col overflow-hidden animate-slide-up"
       >
-        <div className="px-5 pt-4 pb-3 bg-white/60 backdrop-blur-md border-b border-white/70 flex items-center justify-between shrink-0">
+        <div className="px-5 pt-4 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-base font-bold text-slate-900">
               Ubah Item & Pilih Toko

@@ -45,7 +45,7 @@ export function TemplatesView({
           type="button"
           data-testid="create-template-btn"
           onClick={onCreateNew}
-          className="min-h-11 px-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-emerald-600/25 shrink-0 cursor-pointer"
+          className="min-h-11 px-3.5 rounded-2xl bg-emerald-600/95 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/25 border border-white/30 shrink-0 liquid-press cursor-pointer"
         >
           <Plus className="w-4 h-4" strokeWidth={2.5} />
           <span>Paket</span>
@@ -141,7 +141,7 @@ export function TemplatesView({
                 <button
                   type="button"
                   onClick={() => onEditTemplate(tpl)}
-                  className="min-h-11 px-3 rounded-xl border border-stone-200 bg-stone-50 hover:bg-stone-100 text-slate-700 text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer"
+                  className="glass-pill min-h-11 px-3 rounded-xl text-slate-700 text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                   <span>Edit</span>
@@ -150,7 +150,7 @@ export function TemplatesView({
                   type="button"
                   data-testid={`apply-template-${tpl.id}`}
                   onClick={() => onApplyTemplate(tpl.id)}
-                  className="flex-1 min-h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                  className="flex-1 min-h-11 rounded-xl bg-emerald-600/95 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-600/25 border border-white/30 liquid-press cursor-pointer"
                 >
                   <ShoppingBasket className="w-4 h-4" />
                   <span>Masukkan ke Keranjang</span>
@@ -161,8 +161,8 @@ export function TemplatesView({
         })}
 
         {templates.length === 0 && (
-          <div className="bg-white rounded-3xl border border-stone-200/80 p-6 text-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-stone-100 text-stone-400 mx-auto flex items-center justify-center">
+          <div className="glass-card rounded-3xl p-6 text-center space-y-3 animate-liquid-enter">
+            <div className="w-12 h-12 rounded-2xl bg-white/70 text-slate-400 mx-auto flex items-center justify-center">
               <ChefHat className="w-6 h-6" />
             </div>
             <p className="text-sm font-semibold text-slate-700">
@@ -171,7 +171,7 @@ export function TemplatesView({
             <button
               type="button"
               onClick={onCreateNew}
-              className="min-h-11 px-4 rounded-xl bg-emerald-600 text-white text-xs font-bold cursor-pointer"
+              className="min-h-11 px-4 rounded-xl bg-emerald-600/95 text-white text-xs font-bold liquid-press cursor-pointer"
             >
               + Buat Paket Pertama
             </button>

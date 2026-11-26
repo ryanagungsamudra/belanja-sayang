@@ -1,7 +1,6 @@
 import {
   Check,
   ChevronDown,
-  ChevronUp,
   ShoppingCart,
   Trash2,
 } from 'lucide-react'
@@ -64,16 +63,16 @@ export function BasketDrawer({
           <span className="inline-flex items-center justify-center min-w-7 h-7 px-2 rounded-full bg-emerald-600 text-white text-xs font-bold tabular-nums">
             {items.length}
           </span>
-          {isOpen ? (
-            <ChevronUp className="w-5 h-5" />
-          ) : (
-            <ChevronDown className="w-5 h-5" />
-          )}
+          <ChevronDown
+            className={`w-5 h-5 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+              isOpen ? 'rotate-180' : ''
+            }`}
+          />
         </div>
       </button>
 
       {isOpen && (
-        <div className="border-t border-stone-100 px-3 pb-3 pt-2 space-y-2 animate-fade-in">
+        <div className="border-t border-white/60 px-3 pb-3 pt-2 space-y-2 animate-liquid-panel">
           <div className="space-y-1.5">
             {items.map((item) => {
               const storeCfg = findStore(stores, item.store)

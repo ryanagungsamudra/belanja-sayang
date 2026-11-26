@@ -115,10 +115,10 @@ export function PinLockScreen({
             return (
               <div
                 key={idx}
-                className={`w-4 h-4 rounded-full transition-all duration-150 ${
+                className={`w-4 h-4 rounded-full transition-all duration-300 ease-[cubic-bezier(0.34,1.7,0.64,1)] ${
                   filled
-                    ? 'bg-emerald-600 scale-110'
-                    : 'bg-stone-200 border border-stone-300'
+                    ? 'bg-emerald-600 scale-120 shadow-sm shadow-emerald-600/40'
+                    : 'bg-white/60 border border-white/90 shadow-inner'
                 }`}
               />
             )

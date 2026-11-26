@@ -109,13 +109,18 @@ export function MonthlyDonutChart({
                 r={radius}
                 fill="none"
                 stroke={arc.color}
-                strokeWidth={isSelected ? strokeWidth + 2 : strokeWidth}
+                strokeWidth={isSelected ? strokeWidth + 2.5 : strokeWidth}
                 strokeDasharray={arc.dashArray}
                 strokeDashoffset={arc.dashOffset}
                 strokeLinecap="round"
                 opacity={isDimmed ? 0.25 : 1}
                 onClick={() => onSelectSegment(arc.id)}
-                className="transition-all duration-300 ease-out cursor-pointer"
+                className="transition-all duration-500 ease-[cubic-bezier(0.34,1.35,0.64,1)] cursor-pointer"
+                style={
+                  isSelected
+                    ? { filter: `drop-shadow(0 0 6px ${arc.color}66)` }
+                    : undefined
+                }
               />
             )
           })}
@@ -153,10 +158,10 @@ export function MonthlyDonutChart({
               type="button"
               data-testid={`donut-legend-${seg.id}`}
               onClick={() => onSelectSegment(seg.id)}
-              className={`w-full min-h-8 px-1.5 py-1 rounded-xl flex items-center justify-between gap-1.5 text-left transition-all cursor-pointer ${
+              className={`w-full min-h-8 px-2 py-1 rounded-xl flex items-center justify-between gap-1.5 text-left liquid-press cursor-pointer ${
                 isSelected
-                  ? 'bg-stone-100 ring-1 ring-stone-300'
-                  : 'hover:bg-stone-50'
+                  ? 'bg-white/85 ring-1 ring-white shadow-xs'
+                  : 'hover:bg-white/55'
               } ${isDimmed ? 'opacity-45' : 'opacity-100'}`}
             >
               <div className="flex items-center gap-1.5 min-w-0">

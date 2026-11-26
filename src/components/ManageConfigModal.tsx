@@ -99,7 +99,7 @@ export function ManageConfigModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/45 backdrop-blur-[2px] animate-fade-in"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-[5px] animate-fade-in"
       onClick={onClose}
     >
       <div
@@ -110,7 +110,7 @@ export function ManageConfigModal({
         className="glass-sheet w-full max-w-md max-h-[88dvh] rounded-t-3xl flex flex-col overflow-hidden animate-slide-up"
       >
         {/* Header */}
-        <div className="px-5 pt-4 pb-3 bg-white/60 backdrop-blur-md border-b border-white/70 flex items-center justify-between shrink-0">
+        <div className="px-5 pt-4 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <SlidersHorizontal className="w-5 h-5" />
@@ -159,7 +159,10 @@ export function ManageConfigModal({
         </div>
 
         {/* Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <div
+          key={tab}
+          className="flex-1 overflow-y-auto p-4 space-y-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] animate-liquid-enter"
+        >
           {tab === 'stores' ? (
             <>
               {/* Existing Stores List */}

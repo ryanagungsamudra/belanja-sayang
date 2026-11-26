@@ -79,7 +79,7 @@ export function Header({
           data-testid="header-sync-btn"
           onClick={onOpenSyncModal}
           aria-label="Sedang menyinkronkan"
-          className="min-h-10 px-2.5 rounded-xl border bg-sky-50 border-sky-200 text-sky-700 text-xs font-bold flex items-center gap-1 cursor-pointer"
+          className="glass-pill min-h-10 px-2.5 rounded-2xl text-sky-700 text-xs font-bold flex items-center gap-1 cursor-pointer"
         >
           <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
           <span>Sync</span>
@@ -93,7 +93,7 @@ export function Header({
           data-testid="header-sync-btn"
           onClick={onOpenSyncModal}
           aria-label="Mode Offline"
-          className="min-h-10 px-2.5 rounded-xl border bg-amber-50 border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-1 cursor-pointer"
+          className="glass-pill min-h-10 px-2.5 rounded-2xl text-amber-800 text-xs font-bold flex items-center gap-1 cursor-pointer"
         >
           <CloudOff className="w-3.5 h-3.5 shrink-0" />
           <span>Off</span>
@@ -107,7 +107,7 @@ export function Header({
           data-testid="header-sync-btn"
           onClick={onOpenSyncModal}
           aria-label="Gagal Sinkronisasi"
-          className="min-h-10 px-2.5 rounded-xl border bg-rose-50 border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-1 cursor-pointer"
+          className="glass-pill min-h-10 px-2.5 rounded-2xl text-rose-700 text-xs font-bold flex items-center gap-1 cursor-pointer"
         >
           <CloudOff className="w-3.5 h-3.5 shrink-0" />
           <span>Error</span>

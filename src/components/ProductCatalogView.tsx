@@ -259,8 +259,9 @@ export function ProductCatalogView({
               <ChevronLeft className="w-4 h-4" />
             </button>
             <h2
+              key={selectedMonth}
               data-testid="selected-month-label"
-              className="text-[13px] font-extrabold text-slate-900 capitalize px-1 whitespace-nowrap truncate"
+              className="text-[13px] font-extrabold text-slate-900 capitalize px-1 whitespace-nowrap truncate animate-liquid-enter"
             >
               {formatMonthLabel(selectedMonth)}
             </h2>
@@ -575,7 +576,7 @@ export function ProductCatalogView({
         {openFilterMenu === 'store' && (
           <div
             data-testid="store-filter-panel"
-            className="glass-card rounded-3xl p-3 space-y-2.5 animate-liquid-enter"
+            className="glass-card rounded-3xl p-3 space-y-2.5 animate-liquid-panel"
           >
             <div className="flex items-center justify-between px-0.5">
               <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
@@ -680,7 +681,7 @@ export function ProductCatalogView({
         {openFilterMenu === 'category' && (
           <div
             data-testid="category-filter-panel"
-            className="glass-card rounded-3xl p-3 space-y-2.5 animate-liquid-enter"
+            className="glass-card rounded-3xl p-3 space-y-2.5 animate-liquid-panel"
           >
             <div className="flex items-center justify-between px-0.5">
               <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
@@ -864,7 +865,7 @@ export function ProductCatalogView({
                           type="button"
                           data-testid={`purchase-chip-${entry.id}`}
                           onClick={() => onEditPurchase(ref, entry)}
-                          className={`min-h-7 px-2 rounded-lg text-[11px] font-extrabold border transition-all active:scale-95 cursor-pointer tabular-nums ${
+                          className={`min-h-7 px-2 rounded-lg text-[11px] font-extrabold border liquid-press cursor-pointer tabular-nums ${
                             isMissingPrice
                               ? 'bg-amber-50 border-dashed border-amber-400 text-amber-800'
                               : ''
@@ -909,7 +910,7 @@ export function ProductCatalogView({
                       : 'Masukkan 1 item ke Keranjang Mingguan'
                   }
                   onClick={() => onToggleInCart(ref)}
-                  className={`min-w-11 min-h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all active:scale-90 cursor-pointer ${
+                  className={`min-w-11 min-h-11 rounded-2xl flex items-center justify-center shrink-0 liquid-press cursor-pointer ${
                     isInCart
                       ? 'bg-emerald-600/95 text-white shadow-md shadow-emerald-600/30 border border-white/35'
                       : 'glass-pill text-slate-600 hover:text-emerald-700'
@@ -926,8 +927,8 @@ export function ProductCatalogView({
           })}
         </div>
       ) : (
-        <div className="bg-white rounded-3xl border border-stone-200/80 p-6 text-center space-y-3">
-          <div className="w-11 h-11 rounded-2xl bg-stone-100 text-stone-400 mx-auto flex items-center justify-center">
+        <div className="glass-card rounded-3xl p-6 text-center space-y-3 animate-liquid-enter">
+          <div className="w-11 h-11 rounded-2xl bg-white/70 text-slate-400 mx-auto flex items-center justify-center">
             <Tag className="w-5 h-5" />
           </div>
           <p className="text-sm font-semibold text-slate-700">
@@ -936,7 +937,7 @@ export function ProductCatalogView({
           <button
             type="button"
             onClick={onAddNewRef}
-            className="min-h-11 px-4 rounded-xl bg-emerald-600 text-white text-xs font-bold cursor-pointer"
+            className="min-h-11 px-4 rounded-xl bg-emerald-600/95 text-white text-xs font-bold liquid-press cursor-pointer"
           >
             + Tambah Produk Baru
           </button>

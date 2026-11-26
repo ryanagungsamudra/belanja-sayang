@@ -149,7 +149,7 @@ export function BottomQuickAdd({
                 type="button"
                 data-testid="frequent-chip"
                 onClick={() => handleChipClick(chip)}
-                className="min-h-11 px-3 rounded-full bg-white border border-stone-200/90 hover:border-emerald-400 hover:bg-emerald-50/50 active:scale-[0.96] shadow-2xs flex items-center gap-1.5 shrink-0 transition-all cursor-pointer"
+                className="glass-pill min-h-11 px-3 rounded-full hover:border-emerald-400 flex items-center gap-1.5 shrink-0 cursor-pointer"
               >
                 <Plus
                   className="w-3.5 h-3.5 text-emerald-600 shrink-0"
@@ -166,7 +166,7 @@ export function BottomQuickAdd({
 
       {/* Expanded Auto-Category, Dynamic Store Picker, Reference Matches & Qty/Price */}
       {isExpanded && (
-        <div className="w-full min-w-0 px-3 pb-2.5 space-y-2 animate-fade-in">
+        <div className="w-full min-w-0 px-3 pb-2.5 space-y-2 animate-liquid-panel">
           {refMatches.length > 0 && (
             <div className="w-full min-w-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
               <span className="text-[10px] font-bold uppercase text-emerald-700 shrink-0 flex items-center gap-1">

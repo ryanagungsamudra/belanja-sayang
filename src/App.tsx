@@ -153,16 +153,21 @@ export function App() {
     !store.sync.hasCompletedInitialCheck
   ) {
     return (
-      <div className="w-full max-w-md mx-auto min-h-dvh bg-[#FAF9F6] shadow-xl shadow-stone-900/10 flex flex-col items-center justify-center gap-3 px-6 text-center">
-        <div className="w-14 h-14 rounded-3xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/25 animate-pulse">
-          <ShoppingBasket className="w-7 h-7" />
+      <div className="liquid-shell w-full max-w-md mx-auto min-h-dvh shadow-2xl shadow-slate-900/12 flex flex-col items-center justify-center gap-3 px-6 text-center relative overflow-hidden">
+        <div className="liquid-blob liquid-blob-1 w-64 h-64 -top-14 -left-16" />
+        <div className="liquid-blob liquid-blob-2 w-72 h-72 top-44 -right-24" />
+        <div className="liquid-blob liquid-blob-3 w-64 h-64 bottom-20 -left-16" />
+        <div className="relative z-10 glass-card rounded-3xl px-7 py-6 flex flex-col items-center gap-3 animate-liquid-pop">
+          <div className="w-14 h-14 rounded-3xl bg-emerald-600/95 text-white flex items-center justify-center shadow-lg shadow-emerald-600/25 border border-white/40 animate-pulse">
+            <ShoppingBasket className="w-7 h-7" />
+          </div>
+          <p className="text-sm font-bold text-slate-800">
+            Menghubungkan BelanjaSayang...
+          </p>
+          <p className="text-xs text-slate-500">
+            Memeriksa data & kunci PIN keluarga
+          </p>
         </div>
-        <p className="text-sm font-bold text-slate-800">
-          Menghubungkan BelanjaSayang...
-        </p>
-        <p className="text-xs text-stone-500">
-          Memeriksa data & kunci PIN keluarga
-        </p>
       </div>
     )
   }
@@ -300,7 +305,7 @@ export function App() {
               )}
 
             {/* Dynamic Store Filter & A-Z / Z-A Toggle on Weekly Keranjang */}
-            <div className="w-full min-w-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <div className="w-full min-w-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
               <button
                 type="button"
                 data-testid="cart-sort-order-toggle"
@@ -312,9 +317,9 @@ export function App() {
                 onClick={() =>
                   setCartSortOrder((prev) => (prev === 'az' ? 'za' : 'az'))
                 }
-                className={`min-h-9 px-2.5 rounded-xl border text-[11px] font-extrabold shrink-0 inline-flex items-center gap-1 transition-all active:scale-95 cursor-pointer ${cartSortOrder === 'za'
-                    ? 'bg-emerald-600 border-emerald-600 text-white'
-                    : 'bg-white border-stone-300 text-slate-700 hover:border-emerald-400'
+                className={`min-h-9 px-2.5 rounded-xl border text-[11px] font-extrabold shrink-0 inline-flex items-center gap-1 liquid-press cursor-pointer ${cartSortOrder === 'za'
+                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                    : 'glass-pill text-slate-700 hover:border-emerald-400'
                   }`}
               >
                 {cartSortOrder === 'az' ? (
@@ -334,9 +339,9 @@ export function App() {
                 type="button"
                 data-testid="cart-filter-all"
                 onClick={() => setStoreFilter('all')}
-                className={`min-h-9 px-3 rounded-xl text-xs font-bold border shrink-0 transition-all cursor-pointer ${storeFilter === 'all'
-                    ? 'bg-slate-900 border-slate-900 text-white'
-                    : 'bg-white border-stone-200 text-stone-600'
+                className={`min-h-9 px-3 rounded-xl text-xs font-bold border shrink-0 liquid-press cursor-pointer ${storeFilter === 'all'
+                    ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
+                    : 'glass-pill text-slate-600'
                   }`}
               >
                 Semua ({store.activeItems.length})
@@ -347,9 +352,9 @@ export function App() {
                   type="button"
                   data-testid="cart-filter-unassigned"
                   onClick={() => setStoreFilter('unassigned')}
-                  className={`min-h-9 px-3 rounded-xl text-xs font-bold border shrink-0 transition-all cursor-pointer ${storeFilter === 'unassigned'
-                      ? 'bg-amber-500 border-amber-500 text-white'
-                      : 'bg-amber-50 border-amber-200 text-amber-800'
+                  className={`min-h-9 px-3 rounded-xl text-xs font-bold border shrink-0 liquid-press cursor-pointer ${storeFilter === 'unassigned'
+                      ? 'bg-amber-500 border-amber-500 text-white shadow-xs'
+                      : 'bg-amber-50/85 border-amber-200 text-amber-800'
                     }`}
                 >
                   Belum pilih ({storeCounts.unassigned})
@@ -364,7 +369,7 @@ export function App() {
                     type="button"
                     data-testid={`cart-filter-${s.id}`}
                     onClick={() => setStoreFilter(s.id)}
-                    className="min-h-9 px-3 rounded-xl text-xs font-bold border shrink-0 transition-all cursor-pointer"
+                    className="min-h-9 px-3 rounded-xl text-xs font-bold border shrink-0 liquid-press cursor-pointer"
                     style={
                       isSelected
                         ? getSolidPillStyle(s.color)
@@ -380,7 +385,7 @@ export function App() {
                 type="button"
                 data-testid="cart-add-store-pill"
                 onClick={() => openManageConfig('stores')}
-                className="min-h-9 px-2.5 rounded-xl border border-dashed border-stone-300 bg-white text-[11px] font-bold text-stone-500 hover:text-emerald-700 hover:border-emerald-400 shrink-0 inline-flex items-center gap-0.5 cursor-pointer"
+                className="min-h-9 px-2.5 rounded-xl border border-dashed border-slate-300/80 bg-white/60 text-[11px] font-bold text-slate-500 hover:text-emerald-700 hover:border-emerald-400 shrink-0 inline-flex items-center gap-0.5 liquid-press cursor-pointer"
               >
                 <Plus className="w-3 h-3" />
                 <span>Toko</span>
@@ -413,44 +418,44 @@ export function App() {
                 ))}
               </div>
             ) : hasActiveItems && storeFilter !== 'all' ? (
-              <div className="bg-white rounded-3xl border border-stone-200/80 p-6 text-center space-y-2.5 shadow-xs">
+              <div className="glass-card rounded-3xl p-6 text-center space-y-2.5 animate-liquid-enter">
                 <p className="text-sm font-bold text-slate-800">
                   Belum ada item untuk filter ini
                 </p>
-                <p className="text-xs text-stone-500">
+                <p className="text-xs text-slate-500">
                   Ketuk pill <b>Pilih toko</b> pada item di keranjang untuk
                   menentukan tempat belinya.
                 </p>
                 <button
                   type="button"
                   onClick={() => setStoreFilter('all')}
-                  className="min-h-10 px-4 rounded-xl bg-stone-100 text-slate-700 text-xs font-bold cursor-pointer"
+                  className="glass-pill min-h-10 px-4 rounded-xl text-slate-700 text-xs font-bold cursor-pointer"
                 >
                   Lihat Semua Item
                 </button>
               </div>
             ) : hasBoughtItems ? (
-              <div className="bg-white rounded-3xl border border-emerald-200/80 p-6 text-center space-y-2.5 shadow-xs">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center">
+              <div className="glass-card rounded-3xl p-6 text-center space-y-2.5 animate-liquid-enter">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-50/90 text-emerald-600 mx-auto flex items-center justify-center border border-emerald-200/70">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
                 <h2 className="text-base font-bold text-slate-900">
                   Belanja minggu ini sudah selesai!
                 </h2>
-                <p className="text-xs text-stone-500 leading-relaxed">
+                <p className="text-xs text-slate-500 leading-relaxed">
                   Semua item yang dicentang otomatis masuk ke Catatan Bulanan.
                 </p>
               </div>
             ) : (
-              <div className="bg-white rounded-3xl border border-stone-200/80 p-5 text-center space-y-4 shadow-xs mt-1">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center">
+              <div className="glass-card rounded-3xl p-5 text-center space-y-4 mt-1 animate-liquid-enter">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-50/90 text-emerald-600 mx-auto flex items-center justify-center border border-emerald-200/70">
                   <ShoppingBasket className="w-7 h-7" />
                 </div>
                 <div className="space-y-1">
                   <h2 className="text-base font-bold text-slate-900">
                     Keranjang mingguan masih kosong
                   </h2>
-                  <p className="text-xs text-stone-500 leading-relaxed">
+                  <p className="text-xs text-slate-500 leading-relaxed">
                     Pilih 1 per 1 barang dari <b>Catatan Bulanan</b>, lalu atur
                     beli di toko mana langsung di keranjang.
                   </p>
@@ -459,7 +464,7 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => setActiveTab('referensi')}
-                    className="min-h-12 px-3 rounded-2xl bg-stone-100 hover:bg-stone-200/70 text-slate-800 text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    className="glass-pill min-h-12 px-3 rounded-2xl text-slate-800 text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <NotebookPen className="w-4 h-4 text-emerald-600" />
                     <span>Pilih dari Catatan</span>
@@ -467,7 +472,7 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => setActiveTab('paket')}
-                    className="min-h-12 px-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    className="min-h-12 px-3 rounded-2xl bg-emerald-50/85 hover:bg-emerald-100/90 border border-emerald-200/90 text-emerald-800 text-xs font-bold inline-flex items-center justify-center gap-1.5 liquid-press cursor-pointer"
                   >
                     <ChefHat className="w-4 h-4" />
                     <span>Paket Masak</span>
@@ -554,12 +559,13 @@ export function App() {
         )}
       </main>
 
-      {/* Subtle Floating Toast Feedback */}
+      {/* Liquid Frosted Floating Toast Feedback */}
       {toast && (
         <div
+          key={toast}
           role="status"
           aria-live="polite"
-          className="fixed bottom-44 left-1/2 -translate-x-1/2 z-40 max-w-[calc(100%-2rem)] px-4 py-2.5 rounded-full bg-slate-900/92 text-white text-xs font-semibold shadow-lg animate-fade-in pointer-events-none whitespace-nowrap truncate"
+          className="liquid-toast fixed bottom-44 left-1/2 -translate-x-1/2 z-40 max-w-[calc(100%-2rem)] px-4 py-2.5 rounded-full text-white text-xs font-semibold animate-liquid-pop pointer-events-none whitespace-nowrap truncate"
         >
           {toast}
         </div>

@@ -158,7 +158,11 @@ export function BottomNav({
 
   useEffect(() => {
     const nextSlot = TAB_INDEX[activeTab]
-    if (!isDraggingRef.current && Math.abs(nextSlot - posRef.current) > 0.01) {
+    if (
+      !isDraggingRef.current &&
+      targetRef.current !== nextSlot &&
+      Math.abs(nextSlot - posRef.current) > 0.01
+    ) {
       const kick = (nextSlot - posRef.current) * 0.16
       startSpring(nextSlot, kick)
     }
@@ -302,7 +306,7 @@ export function BottomNav({
   )
 
   return (
-    <div className="w-full min-w-0 px-3 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom))] pointer-events-none">
+    <div className="w-full min-w-0 px-3 pt-4 pb-[max(0.65rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-[#f2f6f3]/92 via-[#f2f6f3]/60 to-transparent pointer-events-none">
       <nav
         ref={dockRef}
         aria-label="Navigasi Utama"

@@ -151,7 +151,11 @@ export function LiquidSegmentedTabs<T extends string>({
   )
 
   useEffect(() => {
-    if (!isDraggingRef.current && Math.abs(activeIdx - posRef.current) > 0.01) {
+    if (
+      !isDraggingRef.current &&
+      targetRef.current !== activeIdx &&
+      Math.abs(activeIdx - posRef.current) > 0.01
+    ) {
       startSpring(activeIdx, (activeIdx - posRef.current) * 0.16)
     }
   }, [activeIdx, startSpring])

@@ -198,7 +198,7 @@ export function SyncModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/45 backdrop-blur-[2px] animate-fade-in"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-[5px] animate-fade-in"
       onClick={onClose}
     >
       <div
@@ -209,7 +209,7 @@ export function SyncModal({
         className="glass-sheet w-full max-w-md max-h-[90dvh] rounded-t-3xl flex flex-col overflow-hidden animate-slide-up"
       >
         {/* Header */}
-        <div className="px-5 pt-4 pb-3 bg-white/60 backdrop-blur-md border-b border-white/70 flex items-center justify-between shrink-0">
+        <div className="px-5 pt-4 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <Cloud className="w-5 h-5" />
@@ -379,7 +379,7 @@ export function SyncModal({
             </button>
 
             {showCredentials && (
-              <div className="space-y-2.5 pt-1 animate-fade-in">
+              <div className="space-y-2.5 pt-1 animate-liquid-panel">
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-stone-500">
                     Supabase Project URL

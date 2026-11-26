@@ -1,43 +1,63 @@
+import { ShoppingBasket } from 'lucide-react'
 import {
-  ArrowDownAZ,
-  ArrowUpZA,
-  CheckCircle2,
-  ChefHat,
-  NotebookPen,
-  Plus,
-  ShoppingBasket,
-} from 'lucide-react'
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import { BottomNav, type AppTab } from './components/BottomNav'
 import { Header } from './components/Header'
 import { ProductCatalogView } from './components/ProductCatalogView'
 import { PwaUpdateBanner } from './components/PwaUpdateBanner'
 import { ToastHost } from './components/ToastHost'
+import { useMarketStore } from './hooks/useMarketStore'
+import { useWakeLock } from './hooks/useWakeLock'
+import { formatRupiah } from './lib/format'
+import {
+  formatMonthLabel,
+  formatPurchaseChip,
+  getCurrentMonthKey,
+  getTodayDateKey,
+  resolvePurchaseDateKey,
+} from './lib/noteParser'
+import {
+  formatCartShareText,
+  formatMonthlyShareText,
+  shareOrCopyText,
+} from './lib/share'
+import { findStore } from './lib/stores'
 import { emitToast } from './lib/toastBus'
+import type {
+  AddItemInput,
+  MarketItem,
+  MealTemplate,
+  MonthlyPurchaseEntry,
+  ProductReference,
+  StoreSource,
+} from './types/market'
 
 const PinLockScreen = lazy(() =>
   import('./components/PinLockScreen').then((m) => ({
     default: m.PinLockScreen,
   })),
 )
-const loadBasketDrawer = () =>
-  import('./components/BasketDrawer').then((m) => ({ default: m.BasketDrawer }))
+const loadCartView = () =>
+  import('./components/CartView').then((m) => ({ default: m.CartView }))
 const loadBottomQuickAdd = () =>
   import('./components/BottomQuickAdd').then((m) => ({
     default: m.BottomQuickAdd,
-  }))
-const loadCategoryGroup = () =>
-  import('./components/CategoryGroup').then((m) => ({
-    default: m.CategoryGroup,
   }))
 const loadTemplatesView = () =>
   import('./components/TemplatesView').then((m) => ({
     default: m.TemplatesView,
   }))
 
-const BasketDrawer = lazy(loadBasketDrawer)
+const CartView = lazy(loadCartView)
 const BottomQuickAdd = lazy(loadBottomQuickAdd)
-const CategoryGroup = lazy(loadCategoryGroup)
+const TemplatesView = lazy(loadTemplatesView)
+
 const EditItemModal = lazy(() =>
   import('./components/EditItemModal').then((m) => ({
     default: m.EditItemModal,
@@ -71,33 +91,31 @@ const TemplateEditorModal = lazy(() =>
     default: m.TemplateEditorModal,
   })),
 )
-const TemplatesView = lazy(loadTemplatesView)
 const PinSettingsModal = lazy(() =>
   import('./components/PinSettingsModal').then((m) => ({
     default: m.PinSettingsModal,
   })),
 )
-import { useMarketStore } from './hooks/useMarketStore'
-import { useWakeLock } from './hooks/useWakeLock'
-import { formatMonthLabel, formatPurchaseChip } from './lib/noteParser'
-import {
-  findCategory,
-  findStore,
-  getSolidPillStyle,
-  getTintedPillStyle,
-  sortByNameAZ,
-} from './lib/stores'
-import type {
-  AddItemInput,
-  CategoryConfig,
-  MarketItem,
-  MealTemplate,
-  MonthlyPurchaseEntry,
-  ProductReference,
-  StoreSource,
-} from './types/market'
+const LiquidDatePickerModal = lazy(() =>
+  import('./components/LiquidDatePickerModal').then((m) => ({
+    default: m.LiquidDatePickerModal,
+  })),
+)
 
-type CartStoreFilter = 'all' | 'unassigned' | StoreSource
+const LAST_TAB_STORAGE_KEY = 'belanjasayang:last-tab:v1'
+
+function resolveInitialTab(hasActiveCartItems: boolean): AppTab {
+  if (hasActiveCartItems) return 'keranjang'
+  try {
+    const saved = window.localStorage.getItem(LAST_TAB_STORAGE_KEY)
+    if (saved === 'keranjang' || saved === 'referensi' || saved === 'paket') {
+      return saved
+    }
+  } catch {
+    // Ignore storage access errors
+  }
+  return 'referensi'
+}
 
 export function App() {
   const showToast = useCallback(
@@ -110,17 +128,32 @@ export function App() {
   const store = useMarketStore(undefined, emitToast)
   const wakeLock = useWakeLock()
 
+  const [activeTab, setActiveTab] = useState<AppTab>(() =>
+    resolveInitialTab(store.activeItems.length > 0),
+  )
+
+  // Remember the user's last active tab across reloads
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(LAST_TAB_STORAGE_KEY, activeTab)
+    } catch {
+      // Ignore storage access errors
+    }
+  }, [activeTab])
+
   // Warm up secondary tab chunks during browser idle time for 0ms tab switches
   useEffect(() => {
     if (store.isLocked) return
     const prefetch = () => {
+      void loadCartView()
       void loadBottomQuickAdd()
-      void loadCategoryGroup()
       void loadTemplatesView()
-      void loadBasketDrawer()
     }
     const win = window as Window & {
-      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
+      requestIdleCallback?: (
+        cb: () => void,
+        opts?: { timeout: number },
+      ) => number
       cancelIdleCallback?: (id: number) => void
     }
     if (typeof win.requestIdleCallback === 'function') {
@@ -130,10 +163,6 @@ export function App() {
     const timer = window.setTimeout(prefetch, 1400)
     return () => window.clearTimeout(timer)
   }, [store.isLocked])
-
-  const [activeTab, setActiveTab] = useState<AppTab>('referensi')
-  const [storeFilter, setStoreFilter] = useState<CartStoreFilter>('all')
-  const [cartSortOrder, setCartSortOrder] = useState<'az' | 'za'>('az')
 
   const [syncModalOpen, setSyncModalOpen] = useState(false)
   const [pinSettingsOpen, setPinSettingsOpen] = useState(false)
@@ -157,6 +186,8 @@ export function App() {
     useState<MonthlyPurchaseEntry | null>(null)
 
   const [importModalOpen, setImportModalOpen] = useState(false)
+  const [datePickerOpen, setDatePickerOpen] = useState(false)
+  const [activeDateFilter, setActiveDateFilter] = useState<string | null>(null)
 
   const [tplModalOpen, setTplModalOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<MealTemplate | null>(
@@ -204,7 +235,7 @@ export function App() {
     },
     [],
   )
-  const { toggleProductInCart } = store
+  const { toggleProductInCart, setMonthlyBudget } = store
   const handleToggleInCart = useCallback(
     (ref: ProductReference) => {
       const res = toggleProductInCart(ref)
@@ -217,52 +248,117 @@ export function App() {
     [showToast, toggleProductInCart],
   )
 
-  // Group active Weekly Keranjang items by dynamic CategoryConfig (items sorted A-Z!)
-  const filteredGroupedActive = useMemo(() => {
-    const filtered = store.activeItems.filter((item) => {
-      if (storeFilter === 'all') return true
-      if (storeFilter === 'unassigned') return item.store === null
-      return item.store === storeFilter
+  const handleSaveBudget = useCallback(
+    (amount: number | null) => {
+      setMonthlyBudget(amount)
+      showToast(
+        amount && amount > 0
+          ? `Target budget ${formatRupiah(amount)} tersimpan`
+          : 'Target budget dihapus',
+      )
+    },
+    [setMonthlyBudget, showToast],
+  )
+
+  const handleShareCart = useCallback(() => {
+    const text = formatCartShareText(store.activeItems, store.stores)
+    if (!text) return
+    void shareOrCopyText({
+      title: 'Daftar Belanja — BelanjaSayang',
+      text,
+    }).then((outcome) => {
+      if (outcome === 'copied') {
+        showToast('Daftar belanja disalin — siap tempel ke WhatsApp')
+      } else if (outcome === 'shared') {
+        showToast('Daftar belanja dibagikan')
+      }
     })
+  }, [showToast, store.activeItems, store.stores])
 
-    const grouped = new Map<string, { config: CategoryConfig; items: MarketItem[] }>()
-    for (const cat of store.categories) {
-      grouped.set(cat.id, { config: cat, items: [] })
+  const handleShareMonthly = useCallback(() => {
+    const text = formatMonthlyShareText(
+      store.selectedMonth,
+      store.productRefs,
+      store.currentMonthEntries,
+      store.stores,
+      store.monthlyTotalSpend,
+      store.monthlySpendByStore,
+    )
+    if (!text) return
+    void shareOrCopyText({
+      title: `Rekap ${formatMonthLabel(store.selectedMonth)} — BelanjaSayang`,
+      text,
+    }).then((outcome) => {
+      if (outcome === 'copied') {
+        showToast('Rekap bulanan disalin — siap tempel ke WhatsApp')
+      } else if (outcome === 'shared') {
+        showToast('Rekap bulanan dibagikan')
+      }
+    })
+  }, [
+    showToast,
+    store.currentMonthEntries,
+    store.monthlySpendByStore,
+    store.monthlyTotalSpend,
+    store.productRefs,
+    store.selectedMonth,
+    store.stores,
+  ])
+
+  const editingRefHistory = useMemo(() => {
+    if (!editingRef) return []
+    return store.monthlyPurchases.filter(
+      (e) => e.productRefId === editingRef.id,
+    )
+  }, [editingRef, store.monthlyPurchases])
+
+  const handleGoToCatatan = useCallback(() => setActiveTab('referensi'), [])
+  const handleGoToPaket = useCallback(() => setActiveTab('paket'), [])
+  const { setSelectedMonth } = store
+  const handleChangeMonth = useCallback(
+    (nextMonth: string) => {
+      setSelectedMonth(nextMonth)
+      setActiveDateFilter(null)
+    },
+    [setSelectedMonth],
+  )
+  const handleOpenDatePicker = useCallback(() => setDatePickerOpen(true), [])
+  const handleClearDateFilter = useCallback(() => setActiveDateFilter(null), [])
+  const lastShoppingTrip = useMemo(() => {
+    if (store.monthlyPurchases.length === 0) return null
+    let latestDate = ''
+    for (const entry of store.monthlyPurchases) {
+      const dk = resolvePurchaseDateKey(entry)
+      if (dk > latestDate) latestDate = dk
     }
-
-    for (const item of filtered) {
-      const catCfg = findCategory(store.categories, item.category)
-      const bucket = grouped.get(catCfg.id)
-      if (bucket) {
-        bucket.items.push(item)
-      } else {
-        grouped.set(catCfg.id, { config: catCfg, items: [item] })
+    if (!latestDate) return null
+    let total = 0
+    let count = 0
+    for (const entry of store.monthlyPurchases) {
+      if (resolvePurchaseDateKey(entry) === latestDate) {
+        total += entry.price || 0
+        count += 1
       }
     }
+    return { dateKey: latestDate, total, count }
+  }, [store.monthlyPurchases])
 
-    return Array.from(grouped.values())
-      .filter((g) => g.items.length > 0)
-      .map((g) => {
-        const sorted = sortByNameAZ(g.items)
-        return {
-          ...g,
-          items: cartSortOrder === 'az' ? sorted : sorted.reverse(),
-        }
-      })
-  }, [cartSortOrder, store.activeItems, store.categories, storeFilter])
+  const handleOpenCalendarForDate = useCallback(
+    (dateKey: string) => {
+      setSelectedMonth(dateKey.slice(0, 7))
+      setActiveDateFilter(dateKey)
+      setActiveTab('referensi')
+      setDatePickerOpen(true)
+    },
+    [setSelectedMonth],
+  )
 
-  const storeCounts = useMemo(() => {
-    const counts: Record<string, number> = { unassigned: 0 }
-    for (const s of store.stores) counts[s.id] = 0
-    for (const item of store.activeItems) {
-      if (!item.store) {
-        counts.unassigned += 1
-      } else {
-        counts[item.store] = (counts[item.store] ?? 0) + 1
-      }
-    }
-    return counts
-  }, [store.activeItems, store.stores])
+  const handleOpenCalendarForToday = useCallback(() => {
+    setSelectedMonth(getCurrentMonthKey())
+    setActiveDateFilter(getTodayDateKey())
+    setActiveTab('referensi')
+    setDatePickerOpen(true)
+  }, [setSelectedMonth])
 
   // On a brand-new browser/device with auto-live sync, wait briefly for cloud shared PIN check
   if (
@@ -275,7 +371,7 @@ export function App() {
         <div className="liquid-blob liquid-blob-2 w-72 h-72 top-44 -right-24" />
         <div className="liquid-blob liquid-blob-3 w-64 h-64 bottom-20 -left-16" />
         <div className="relative z-10 glass-card rounded-3xl px-7 py-6 flex flex-col items-center gap-3 animate-liquid-pop">
-          <div className="w-14 h-14 rounded-3xl bg-emerald-600/95 text-white flex items-center justify-center shadow-lg shadow-emerald-600/25 border border-white/40 animate-pulse">
+          <div className="w-14 h-14 rounded-3xl bg-emerald-600/95 text-white flex items-center justify-center shadow-lg shadow-emerald-600/25 border border-white/40">
             <ShoppingBasket className="w-7 h-7" />
           </div>
           <p className="text-sm font-bold text-slate-800">
@@ -320,19 +416,28 @@ export function App() {
   }
 
   const handleToggleBought = (id: string) => {
-    const target = store.items.find((i) => i.id === id)
-    store.toggleBought(id)
-    if (target && !target.isBought) {
-      const resolvedStore =
-        target.store ??
-        store.findProductRefByName(target.name)?.preferredStore ??
-        store.stores[0]?.id ??
-        'hypermart'
-      const chip = formatPurchaseChip(
-        { store: resolvedStore, price: target.estimatedPrice },
-        store.stores,
+    const result = store.toggleBought(id)
+    if (result?.bought) {
+      const chip = formatPurchaseChip(result.purchaseEntry, store.stores)
+      showToast(
+        `${result.purchaseEntry.productName} (${chip}) tercatat di Catatan Bulanan`,
+        {
+          label: 'Ubah harga',
+          onAction: () =>
+            handleEditPurchase(result.productRef, result.purchaseEntry),
+        },
       )
-      showToast(`${target.name} (${chip}) tercatat di Catatan Bulanan`)
+    }
+  }
+
+  const handleAssignCartStore = (
+    itemId: string,
+    nextStore: StoreSource | null,
+  ) => {
+    store.assignCartItemStore(itemId, nextStore)
+    const label = findStore(store.stores, nextStore)?.shortLabel
+    if (label) {
+      showToast(`Toko diubah ke ${label}`)
     }
   }
 
@@ -340,10 +445,10 @@ export function App() {
     const tpl = store.templates.find((t) => t.id === templateId)
     const { addedCount, skippedCount } = store.applyTemplate(templateId)
     setActiveTab('keranjang')
-    setStoreFilter('all')
     if (addedCount > 0) {
       showToast(
-        `${addedCount} bahan ${tpl?.name ?? 'paket'} masuk keranjang${skippedCount > 0 ? ` (${skippedCount} sudah ada)` : ''
+        `${addedCount} bahan ${tpl?.name ?? 'paket'} masuk keranjang${
+          skippedCount > 0 ? ` (${skippedCount} sudah ada)` : ''
         }`,
       )
     } else {
@@ -397,10 +502,6 @@ export function App() {
     }
   }
 
-  const hasActiveItems = store.activeItems.length > 0
-  const hasFilteredItems = filteredGroupedActive.length > 0
-  const hasBoughtItems = store.boughtItems.length > 0
-
   return (
     <div className="liquid-shell w-full max-w-md mx-auto min-h-dvh overflow-x-clip shadow-2xl shadow-slate-900/12 flex flex-col relative">
       {/* Ambient Morphing Liquid Orbs behind the glass */}
@@ -422,7 +523,6 @@ export function App() {
         onToggleWakeLock={handleToggleWakeLock}
         onOpenSyncModal={handleOpenSyncModal}
         onOpenPinSettings={handleOpenPinSettings}
-        onOpenManageConfig={handleOpenManageStores}
       />
 
       {/* In-App PWA Update Notification */}
@@ -434,225 +534,51 @@ export function App() {
         className="relative z-10 flex-1 w-full min-w-0 px-3.5 pt-3 pb-6 space-y-3.5 animate-liquid-enter"
       >
         {activeTab === 'keranjang' && (
-          <>
-            {/* Live Partner Collaboration Banner when 2+ devices are online */}
-            {store.sync.syncStatus === 'connected' &&
-              store.sync.onlineDevices > 1 && (
-                <div className="glass-chip px-3.5 py-2.5 rounded-2xl text-emerald-800 text-[11px] font-bold flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-2">
-                    <span className="live-dot" />
-                    Belanja bareng aktif ({store.sync.onlineDevices} HP terhubung)
-                  </span>
-                  <span className="text-emerald-600 shrink-0">Real-time</span>
-                </div>
-              )}
-
-            {/* Dynamic Store Filter & A-Z / Z-A Toggle on Weekly Keranjang */}
-            <div className="w-full min-w-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-              <button
-                type="button"
-                data-testid="cart-sort-order-toggle"
-                aria-label={
-                  cartSortOrder === 'az'
-                    ? 'Urutan A sampai Z, ketuk untuk balik ke Z sampai A'
-                    : 'Urutan Z sampai A, ketuk untuk balik ke A sampai Z'
-                }
-                onClick={() =>
-                  setCartSortOrder((prev) => (prev === 'az' ? 'za' : 'az'))
-                }
-                className={`min-h-9 px-2.5 rounded-xl border text-[11px] font-extrabold shrink-0 inline-flex items-center gap-1 liquid-press cursor-pointer ${cartSortOrder === 'za'
-                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
-                    : 'glass-chip text-slate-700 hover:border-emerald-400'
-                  }`}
-              >
-                {cartSortOrder === 'az' ? (
-                  <>
-                    <ArrowDownAZ className="w-3.5 h-3.5" />
-                    <span>A–Z</span>
-                  </>
-                ) : (
-                  <>
-                    <ArrowUpZA className="w-3.5 h-3.5" />
-                    <span>Z–A</span>
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                data-testid="cart-filter-all"
-                onClick={() => setStoreFilter('all')}
-                className={`min-h-9 px-3 rounded-xl text-xs font-bold border shrink-0 liquid-press cursor-pointer ${storeFilter === 'all'
-                    ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
-                    : 'glass-chip text-slate-600'
-                  }`}
-              >
-                Semua ({store.activeItems.length})
-              </button>
-
-              {storeCounts.unassigned > 0 && (
-                <button
-                  type="button"
-                  data-testid="cart-filter-unassigned"
-                  onClick={() => setStoreFilter('unassigned')}
-                  className={`min-h-9 px-3 rounded-xl text-xs font-bold border shrink-0 liquid-press cursor-pointer ${storeFilter === 'unassigned'
-                      ? 'bg-amber-500 border-amber-500 text-white shadow-xs'
-                      : 'bg-amber-50/85 border-amber-200 text-amber-800'
-                    }`}
-                >
-                  Belum pilih ({storeCounts.unassigned})
-                </button>
-              )}
-
-              {store.stores.map((s) => {
-                const isSelected = storeFilter === s.id
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    data-testid={`cart-filter-${s.id}`}
-                    onClick={() => setStoreFilter(s.id)}
-                    className="min-h-9 px-3 rounded-xl text-xs font-bold border shrink-0 liquid-press cursor-pointer"
-                    style={
-                      isSelected
-                        ? getSolidPillStyle(s.color)
-                        : getTintedPillStyle(s.color)
-                    }
-                  >
-                    {s.shortLabel} ({storeCounts[s.id] ?? 0})
-                  </button>
-                )
-              })}
-
-              <button
-                type="button"
-                data-testid="cart-add-store-pill"
-                onClick={() => openManageConfig('stores')}
-                className="min-h-9 px-2.5 rounded-xl border border-dashed border-slate-300/80 bg-white/60 text-[11px] font-bold text-slate-500 hover:text-emerald-700 hover:border-emerald-400 shrink-0 inline-flex items-center gap-0.5 liquid-press cursor-pointer"
-              >
-                <Plus className="w-3 h-3" />
-                <span>Toko</span>
-              </button>
-            </div>
-
-            {hasFilteredItems ? (
-              <Suspense fallback={null}>
-                <div className="space-y-4">
-                  {filteredGroupedActive.map((group) => (
-                    <CategoryGroup
-                      key={group.config.id}
-                      categoryConfig={group.config}
-                      items={group.items}
-                      stores={store.stores}
-                      onToggleBought={handleToggleBought}
-                      onAssignStore={(itemId, nextStore) => {
-                        store.assignCartItemStore(itemId, nextStore)
-                        const label = findStore(
-                          store.stores,
-                          nextStore,
-                        )?.shortLabel
-                        if (label) {
-                          showToast(`Toko diubah ke ${label}`)
-                        }
-                      }}
-                      onOpenManageStores={handleOpenManageStores}
-                      onEditItem={(item) => setEditingItem(item)}
-                      onDeleteItem={handleDeleteCartItem}
-                    />
-                  ))}
-                </div>
-              </Suspense>
-            ) : hasActiveItems && storeFilter !== 'all' ? (
-              <div className="glass-card rounded-3xl p-6 text-center space-y-2.5 animate-liquid-enter">
-                <p className="text-sm font-bold text-slate-800">
-                  Belum ada item untuk filter ini
-                </p>
-                <p className="text-xs text-slate-500">
-                  Ketuk pill <b>Pilih toko</b> pada item di keranjang untuk
-                  menentukan tempat belinya.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setStoreFilter('all')}
-                  className="glass-chip min-h-10 px-4 rounded-xl text-slate-700 text-xs font-bold cursor-pointer"
-                >
-                  Lihat Semua Item
-                </button>
-              </div>
-            ) : hasBoughtItems ? (
-              <div className="glass-card rounded-3xl p-6 text-center space-y-2.5 animate-liquid-enter">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-50/90 text-emerald-600 mx-auto flex items-center justify-center border border-emerald-200/70">
-                  <CheckCircle2 className="w-8 h-8" />
-                </div>
-                <h2 className="text-base font-bold text-slate-900">
-                  Belanja minggu ini sudah selesai!
-                </h2>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Semua item yang dicentang otomatis masuk ke Catatan Bulanan.
-                </p>
-              </div>
-            ) : (
-              <div className="glass-card rounded-3xl p-5 text-center space-y-4 mt-1 animate-liquid-enter">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-50/90 text-emerald-600 mx-auto flex items-center justify-center border border-emerald-200/70">
-                  <ShoppingBasket className="w-7 h-7" />
-                </div>
-                <div className="space-y-1">
-                  <h2 className="text-base font-bold text-slate-900">
-                    Keranjang mingguan masih kosong
-                  </h2>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    Pilih 1 per 1 barang dari <b>Catatan Bulanan</b>, lalu atur
-                    beli di toko mana langsung di keranjang.
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('referensi')}
-                    className="glass-chip min-h-12 px-3 rounded-2xl text-slate-800 text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <NotebookPen className="w-4 h-4 text-emerald-600" />
-                    <span>Pilih dari Catatan</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('paket')}
-                    className="min-h-12 px-3 rounded-2xl bg-emerald-50/85 hover:bg-emerald-100/90 border border-emerald-200/90 text-emerald-800 text-xs font-bold inline-flex items-center justify-center gap-1.5 liquid-press cursor-pointer"
-                  >
-                    <ChefHat className="w-4 h-4" />
-                    <span>Paket Masak</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {store.boughtItems.length > 0 && (
-              <Suspense fallback={null}>
-                <BasketDrawer
-                  items={store.boughtItems}
-                  stores={store.stores}
-                  boughtEstimatedSpend={store.boughtEstimatedSpend}
-                  onToggleBought={handleToggleBought}
-                  onDeleteItem={handleDeleteCartItem}
-                  onClearBought={handleClearBought}
-                />
-              </Suspense>
-            )}
-          </>
+          <Suspense fallback={null}>
+            <CartView
+              activeItems={store.activeItems}
+              boughtItems={store.boughtItems}
+              stores={store.stores}
+              categories={store.categories}
+              boughtEstimatedSpend={store.boughtEstimatedSpend}
+              productRefCount={store.productRefs.length}
+              templateCount={store.templates.length}
+              lastShoppingTrip={lastShoppingTrip}
+              syncStatus={store.sync.syncStatus}
+              onlineDevices={store.sync.onlineDevices}
+              onToggleBought={handleToggleBought}
+              onAssignStore={handleAssignCartStore}
+              onOpenManageStores={handleOpenManageStores}
+              onEditItem={setEditingItem}
+              onDeleteItem={handleDeleteCartItem}
+              onClearBought={handleClearBought}
+              onGoToCatatan={handleGoToCatatan}
+              onGoToPaket={handleGoToPaket}
+              onShareCart={handleShareCart}
+              onOpenCalendarSummary={handleOpenCalendarForToday}
+              onOpenLastTrip={handleOpenCalendarForDate}
+            />
+          </Suspense>
         )}
 
         {activeTab === 'referensi' && (
           <ProductCatalogView
             selectedMonth={store.selectedMonth}
+            activeDateFilter={activeDateFilter}
             stores={store.stores}
             categories={store.categories}
             productRefs={store.productRefs}
             monthEntries={store.currentMonthEntries}
             monthlyTotalSpend={store.monthlyTotalSpend}
             previousMonthTotalSpend={store.previousMonthTotalSpend}
+            monthlyBudget={store.monthlyBudget}
             monthlySpendByStore={store.monthlySpendByStore}
             activeItems={store.activeItems}
-            onChangeMonth={store.setSelectedMonth}
+            onChangeMonth={handleChangeMonth}
+            onOpenDatePicker={handleOpenDatePicker}
+            onClearDateFilter={handleClearDateFilter}
+            onSaveBudget={handleSaveBudget}
+            onShareMonthly={handleShareMonthly}
             onOpenImportModal={handleOpenImportModal}
             onOpenManageConfig={openManageConfig}
             onAddNewRef={handleAddNewRef}
@@ -683,7 +609,9 @@ export function App() {
                 const target = store.templates.find((t) => t.id === id)
                 store.deleteTemplate(id)
                 showToast(
-                  target ? `Paket "${target.name}" dihapus` : 'Paket masak dihapus',
+                  target
+                    ? `Paket "${target.name}" dihapus`
+                    : 'Paket masak dihapus',
                   target
                     ? {
                         label: 'Urungkan',
@@ -700,7 +628,7 @@ export function App() {
         )}
       </main>
 
-      {/* Zero-Rerender Isolated Liquid Toast Host (with Undo Support) */}
+      {/* Zero-Rerender Isolated Liquid Toast Host (with Undo / Quick Price Edit Support) */}
       <ToastHost />
 
       {/* Unified Sticky Bottom Area */}
@@ -712,11 +640,7 @@ export function App() {
               categories={store.categories}
               frequentChips={store.topFrequentChips}
               productRefs={store.productRefs}
-              defaultStore={
-                storeFilter === 'all' || storeFilter === 'unassigned'
-                  ? null
-                  : storeFilter
-              }
+              defaultStore={null}
               resolveDetectedCategory={store.resolveDetectedCategory}
               onAddItem={handleAddItem}
             />
@@ -767,12 +691,14 @@ export function App() {
             productRef={purchaseModalRef}
             editingEntry={editingPurchase}
             stores={store.stores}
+            monthKey={store.selectedMonth}
             monthLabel={formatMonthLabel(store.selectedMonth)}
             onClose={() => setPurchaseModalOpen(false)}
-            onAdd={(s, price, qtyNote) => {
+            onAdd={(s, price, qtyNote, purchasedDate) => {
               if (!purchaseModalRef) return
               const added = store.addPurchaseEntry({
                 monthKey: store.selectedMonth,
+                purchasedDate,
                 productRefId: purchaseModalRef.id,
                 store: s,
                 price,
@@ -784,12 +710,19 @@ export function App() {
                 )
               }
             }}
-            onUpdate={(entryId, s, price, qtyNote) => {
-              store.updatePurchaseEntry(entryId, { store: s, price, qtyNote })
+            onUpdate={(entryId, s, price, qtyNote, purchasedDate) => {
+              store.updatePurchaseEntry(entryId, {
+                store: s,
+                price,
+                qtyNote,
+                purchasedDate,
+              })
               showToast('Catatan pembelian diperbarui')
             }}
             onDelete={(entryId) => {
-              const target = store.monthlyPurchases.find((e) => e.id === entryId)
+              const target = store.monthlyPurchases.find(
+                (e) => e.id === entryId,
+              )
               store.deletePurchaseEntry(entryId)
               showToast(
                 'Catatan pembelian dihapus',
@@ -835,6 +768,7 @@ export function App() {
             initialFocusStore={refFocusStore}
             stores={store.stores}
             categories={store.categories}
+            productHistory={editingRefHistory}
             resolveDetectedCategory={store.resolveDetectedCategory}
             onClose={() => setRefModalOpen(false)}
             onSave={(input) => {
@@ -950,6 +884,39 @@ export function App() {
                   : 'Gagal mengambil dari cloud',
               )
               return ok
+            }}
+            onExportBackup={store.exportBackupSnapshot}
+            onRestoreBackup={(snapshot) => {
+              store.restoreBackupSnapshot(snapshot)
+              showToast('Backup JSON berhasil dipulihkan')
+            }}
+          />
+        )}
+
+        {datePickerOpen && (
+          <LiquidDatePickerModal
+            key={`${store.selectedMonth}-${activeDateFilter ?? 'all'}`}
+            isOpen={datePickerOpen}
+            selectedMonth={store.selectedMonth}
+            activeDateFilter={activeDateFilter}
+            allPurchases={store.monthlyPurchases}
+            stores={store.stores}
+            onClose={() => setDatePickerOpen(false)}
+            onSelectMonthOnly={(monthKey) => {
+              store.setSelectedMonth(monthKey)
+              setActiveDateFilter(null)
+            }}
+            onSelectDateFilter={(monthKey, dateKey) => {
+              store.setSelectedMonth(monthKey)
+              setActiveDateFilter(dateKey)
+            }}
+            onInspectPurchase={(entry) => {
+              const ref =
+                store.productRefs.find((r) => r.id === entry.productRefId) ??
+                store.findProductRefByName(entry.productName)
+              if (ref) {
+                handleEditPurchase(ref, entry)
+              }
             }}
           />
         )}

@@ -11,6 +11,7 @@ import type {
 import { generateId, normalizeItemName } from './format'
 import { buildSeedFromWifeNote } from './noteParser'
 import { DEFAULT_CATEGORIES, DEFAULT_STORES } from './stores'
+import { emitToast } from './toastBus'
 
 export interface MarketStorageAdapter {
   loadStores(): StoreConfig[]
@@ -345,11 +346,23 @@ function safeRead<T>(key: string, fallback: () => T): T {
   }
 }
 
+let lastQuotaWarningAt = 0
+
 function safeWrite(key: string, value: unknown): void {
   try {
     window.localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    // Ignore quota errors gracefully
+  } catch (err) {
+    const now = Date.now()
+    const isQuota =
+      err instanceof DOMException &&
+      (err.name === 'QuotaExceededError' ||
+        err.name === 'NS_ERROR_DOM_QUOTA_REACHED')
+    if (isQuota && now - lastQuotaWarningAt > 30_000) {
+      lastQuotaWarningAt = now
+      emitToast(
+        'Penyimpanan HP hampir penuh — ekspor backup JSON agar data tetap aman',
+      )
+    }
   }
 }
 

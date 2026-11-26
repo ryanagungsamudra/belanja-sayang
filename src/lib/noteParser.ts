@@ -14,6 +14,71 @@ export function getCurrentMonthKey(date = new Date()): string {
   return `${y}-${m}`
 }
 
+export function getTodayDateKey(date = new Date()): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+export function isValidDateKey(val?: string | null): val is string {
+  return typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)
+}
+
+export function resolvePurchaseDateKey(
+  entry: Pick<MonthlyPurchaseEntry, 'purchasedDate' | 'purchasedAt' | 'monthKey'>,
+): string {
+  if (isValidDateKey(entry.purchasedDate)) {
+    return entry.purchasedDate
+  }
+  if (Number.isFinite(entry.purchasedAt) && entry.purchasedAt > 0) {
+    const derived = getTodayDateKey(new Date(entry.purchasedAt))
+    if (derived.startsWith(entry.monthKey)) {
+      return derived
+    }
+  }
+  return `${entry.monthKey}-01`
+}
+
+export function formatFullDateLabel(dateKey: string): string {
+  if (!isValidDateKey(dateKey)) return dateKey
+  const [yStr, mStr, dStr] = dateKey.split('-')
+  try {
+    return new Intl.DateTimeFormat('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).format(new Date(Number(yStr), Number(mStr) - 1, Number(dStr)))
+  } catch {
+    return dateKey
+  }
+}
+
+export function formatShortDateLabel(dateKey: string): string {
+  if (!isValidDateKey(dateKey)) return dateKey
+  const [yStr, mStr, dStr] = dateKey.split('-')
+  try {
+    return new Intl.DateTimeFormat('id-ID', {
+      day: 'numeric',
+      month: 'short',
+    }).format(new Date(Number(yStr), Number(mStr) - 1, Number(dStr)))
+  } catch {
+    return dateKey
+  }
+}
+
+export function formatCompactRupiahShort(amount: number): string {
+  if (!amount || amount <= 0) return ''
+  if (amount >= 1_000_000) {
+    return `${(amount / 1_000_000).toFixed(1).replace(/\.0$/, '').replace('.', ',')}jt`
+  }
+  if (amount >= 1_000) {
+    return `${Math.round(amount / 1_000)}rb`
+  }
+  return String(Math.round(amount))
+}
+
 export function shiftMonthKey(monthKey: string, deltaMonths: number): string {
   const [yStr, mStr] = monthKey.split('-')
   const y = Number(yStr) || new Date().getFullYear()

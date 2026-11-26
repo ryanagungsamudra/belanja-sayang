@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { triggerHaptic } from '../lib/format'
 
 export interface LiquidTabOption<T extends string> {
   id: T
@@ -221,6 +222,7 @@ export function LiquidSegmentedTabs<T extends string>({
     if (hoveredOpt && hoveredOpt.id !== dragPreviewValueRef.current) {
       dragPreviewValueRef.current = hoveredOpt.id
       setDragPreviewValue(hoveredOpt.id)
+      triggerHaptic(8)
     }
   }
 
@@ -247,6 +249,7 @@ export function LiquidSegmentedTabs<T extends string>({
 
     startSpring(finalIdx, kick)
     if (finalOpt && finalOpt.id !== valueRef.current) {
+      triggerHaptic(10)
       onChange(finalOpt.id)
     }
   }

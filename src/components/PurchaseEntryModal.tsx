@@ -1,8 +1,15 @@
 import { ReceiptText, Trash2, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { GlassSheetModal } from './GlassSheetModal'
+import { LiquidMiniDatePicker } from './LiquidMiniDatePicker'
 import { formatIdrInput, formatRupiah, parseIdrInput } from '../lib/format'
-import { formatPurchaseChip, parseShorthandToken } from '../lib/noteParser'
+import {
+  formatPurchaseChip,
+  getCurrentMonthKey,
+  getTodayDateKey,
+  parseShorthandToken,
+  resolvePurchaseDateKey,
+} from '../lib/noteParser'
 import {
   findStore,
   getSolidPillStyle,
@@ -20,14 +27,21 @@ interface PurchaseEntryModalProps {
   productRef: ProductReference | null
   editingEntry: MonthlyPurchaseEntry | null
   stores: StoreConfig[]
+  monthKey: string
   monthLabel: string
   onClose: () => void
-  onAdd: (store: StoreSource, price: number, qtyNote?: string) => void
+  onAdd: (
+    store: StoreSource,
+    price: number,
+    qtyNote?: string,
+    purchasedDate?: string,
+  ) => void
   onUpdate: (
     entryId: string,
     store: StoreSource,
     price: number,
     qtyNote?: string,
+    purchasedDate?: string,
   ) => void
   onDelete: (entryId: string) => void
 }
@@ -37,6 +51,7 @@ export function PurchaseEntryModal({
   productRef,
   editingEntry,
   stores,
+  monthKey,
   monthLabel,
   onClose,
   onAdd,
@@ -52,6 +67,11 @@ export function PurchaseEntryModal({
     editingEntry !== null
       ? editingEntry.price
       : productRef?.prices[initialStore]?.price ?? 0
+  const initialDate = editingEntry
+    ? resolvePurchaseDateKey(editingEntry)
+    : monthKey === getCurrentMonthKey()
+      ? getTodayDateKey()
+      : `${monthKey}-01`
 
   const [shorthand, setShorthand] = useState('')
   const [store, setStore] = useState<StoreSource>(initialStore)
@@ -59,6 +79,7 @@ export function PurchaseEntryModal({
     initialPrice > 0 ? formatIdrInput(initialPrice) : '',
   )
   const [qtyNote, setQtyNote] = useState(editingEntry?.qtyNote ?? '')
+  const [purchasedDate, setPurchasedDate] = useState(initialDate)
 
   if (!isOpen || !productRef) return null
 
@@ -97,15 +118,17 @@ export function PurchaseEntryModal({
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
+    const cleanDate = purchasedDate.trim() || undefined
     if (editingEntry) {
       onUpdate(
         editingEntry.id,
         store,
         numericPrice,
         qtyNote.trim() || undefined,
+        cleanDate,
       )
     } else {
-      onAdd(store, numericPrice, qtyNote.trim() || undefined)
+      onAdd(store, numericPrice, qtyNote.trim() || undefined, cleanDate)
     }
     onClose()
   }
@@ -144,7 +167,7 @@ export function PurchaseEntryModal({
 
         <form
           onSubmit={handleSubmit}
-          className="p-5 space-y-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+          className="flex-1 overflow-y-auto p-5 space-y-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
           {/* Fast Shorthand Input */}
           <div className="space-y-1.5">
@@ -243,6 +266,18 @@ export function PurchaseEntryModal({
                 className="w-full min-h-12 px-3 rounded-xl bg-white border border-stone-300 focus:border-emerald-600 text-sm font-semibold text-slate-900 outline-none"
               />
             </div>
+          </div>
+
+          {/* Minimalist Liquid Glass DatePicker */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-stone-500 uppercase tracking-wide">
+              Tanggal Beli
+            </label>
+            <LiquidMiniDatePicker
+              value={purchasedDate}
+              onChange={setPurchasedDate}
+              testId="purchase-date-input"
+            />
           </div>
 
           <div className="flex items-center gap-2 pt-1">

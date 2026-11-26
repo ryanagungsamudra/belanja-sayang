@@ -1,5 +1,6 @@
 import { ChefHat, NotebookPen, ShoppingBasket } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { triggerHaptic } from '../lib/format'
 
 export type AppTab = 'keranjang' | 'referensi' | 'paket'
 
@@ -227,6 +228,7 @@ export const BottomNav = memo(function BottomNav({
     if (hoveredTab !== dragPreviewTabRef.current) {
       dragPreviewTabRef.current = hoveredTab
       setDragPreviewTab(hoveredTab)
+      triggerHaptic(8)
     }
   }
 
@@ -253,6 +255,7 @@ export const BottomNav = memo(function BottomNav({
 
     startSpring(finalIdx, kick)
     if (finalTab !== activeTabRef.current) {
+      triggerHaptic(10)
       onChangeTab(finalTab)
     }
   }

@@ -6,13 +6,19 @@ import {
   Copy,
   Database,
   Download,
+  FileJson,
   RefreshCw,
   Upload,
   Wifi,
   X,
 } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { GlassSheetModal } from './GlassSheetModal'
+import {
+  downloadBackupFile,
+  parseBackupSnapshot,
+  type BelanjaBackupSnapshot,
+} from '../lib/backup'
 import {
   DEFAULT_HOUSEHOLD_CODE,
   getEnvSyncDefaults,
@@ -33,11 +39,18 @@ alter table public.household_collections drop constraint if exists household_col
 alter table public.household_collections add constraint household_collections_collection_key_check
   check (collection_key in ('items','product_refs','monthly_purchases','stores','categories','templates','frequent','pin_config'));
 alter table public.household_collections replica identity full;
+create index if not exists idx_household_collections_code on public.household_collections (household_code);
 alter table public.household_collections enable row level security;
 drop policy if exists "Allow household sync by code" on public.household_collections;
-create policy "Allow household sync by code"
+drop policy if exists "Allow household read by code" on public.household_collections;
+drop policy if exists "Allow household write by header" on public.household_collections;
+create policy "Allow household read by code"
+  on public.household_collections for select to anon, authenticated
+  using (length(household_code) >= 6);
+create policy "Allow household write by header"
   on public.household_collections for all to anon, authenticated
-  using (length(household_code) >= 6) with check (length(household_code) >= 6);
+  using (length(household_code) >= 6 and current_setting('request.headers', true)::json->>'x-household-code' = household_code)
+  with check (length(household_code) >= 6 and current_setting('request.headers', true)::json->>'x-household-code' = household_code);
 alter publication supabase_realtime add table public.household_collections;`
 
 interface SyncModalProps {
@@ -53,6 +66,8 @@ interface SyncModalProps {
   onSyncNow: () => Promise<void>
   onPushAll: () => Promise<boolean>
   onPullAll: () => Promise<boolean>
+  onExportBackup: () => BelanjaBackupSnapshot
+  onRestoreBackup: (snapshot: BelanjaBackupSnapshot) => void
 }
 
 function formatSyncTime(ts: number | null): string {
@@ -81,8 +96,11 @@ export function SyncModal({
   onSyncNow,
   onPushAll,
   onPullAll,
+  onExportBackup,
+  onRestoreBackup,
 }: SyncModalProps) {
   const envDefaults = getEnvSyncDefaults()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [householdCode, setHouseholdCode] = useState(
     syncConfig.householdCode || DEFAULT_HOUSEHOLD_CODE,
   )
@@ -97,6 +115,40 @@ export function SyncModal({
   const [copiedSql, setCopiedSql] = useState(false)
   const [busy, setBusy] = useState(false)
   const [formError, setFormError] = useState('')
+  const [backupStatus, setBackupStatus] = useState<{
+    type: 'ok' | 'err'
+    text: string
+  } | null>(null)
+
+  const handleExportJson = () => {
+    const snap = onExportBackup()
+    downloadBackupFile(snap)
+    setBackupStatus({
+      type: 'ok',
+      text: `Backup diunduh (${snap.productRefs.length} produk, ${snap.monthlyPurchases.length} catatan).`,
+    })
+  }
+
+  const handleImportJsonFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      const raw = await file.text()
+      const { snapshot, error } = parseBackupSnapshot(raw)
+      if (error || !snapshot) {
+        setBackupStatus({ type: 'err', text: error || 'Backup tidak valid.' })
+        return
+      }
+      onRestoreBackup(snapshot)
+      setBackupStatus({
+        type: 'ok',
+        text: `Berhasil dipulihkan (${snapshot.productRefs.length} produk, ${snapshot.monthlyPurchases.length} catatan).`,
+      })
+    } catch {
+      setBackupStatus({ type: 'err', text: 'Gagal membaca file backup.' })
+    }
+  }
 
   if (!isOpen) return null
 
@@ -425,6 +477,59 @@ export function SyncModal({
                 : 'Aktifkan Sinkron Real-Time'}
             </button>
           </form>
+
+          {/* Full JSON Backup & Restore */}
+          <div className="bg-white rounded-2xl border border-stone-200/90 p-3.5 space-y-2.5">
+            <div className="flex items-center gap-2">
+              <FileJson className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-800">
+                  Backup & Pulihkan Data (JSON)
+                </p>
+                <p className="text-[11px] text-stone-500">
+                  Simpan arsip lengkap semua catatan, produk, toko & paket
+                </p>
+              </div>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              onChange={(e) => void handleImportJsonFile(e)}
+              className="hidden"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                data-testid="backup-export-btn"
+                onClick={handleExportJson}
+                className="min-h-10 px-2.5 rounded-xl bg-stone-50 hover:bg-stone-100 border border-stone-200 text-xs font-bold text-slate-700 inline-flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Unduh Backup</span>
+              </button>
+              <button
+                type="button"
+                data-testid="backup-import-btn"
+                onClick={() => fileInputRef.current?.click()}
+                className="min-h-10 px-2.5 rounded-xl bg-stone-50 hover:bg-stone-100 border border-stone-200 text-xs font-bold text-slate-700 inline-flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Pulihkan JSON</span>
+              </button>
+            </div>
+            {backupStatus && (
+              <p
+                className={`text-[11px] font-semibold ${
+                  backupStatus.type === 'ok'
+                    ? 'text-emerald-700'
+                    : 'text-rose-600'
+                }`}
+              >
+                {backupStatus.text}
+              </p>
+            )}
+          </div>
 
           {/* 1-Tap SQL Setup Helper */}
           <div className="bg-white rounded-2xl border border-stone-200/90 p-3.5 space-y-2">

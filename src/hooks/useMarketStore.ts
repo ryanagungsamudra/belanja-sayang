@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  buildBackupSnapshot,
+  type BelanjaBackupSnapshot,
+} from '../lib/backup'
 import { detectCategory } from '../lib/categories'
 import {
   generateId,
@@ -9,6 +13,8 @@ import {
 import {
   createRefId,
   getCurrentMonthKey,
+  getTodayDateKey,
+  isValidDateKey,
   parseMonthlyNoteText,
   shiftMonthKey,
 } from '../lib/noteParser'
@@ -247,12 +253,19 @@ export function useMarketStore(
         const remotePin = payload as Partial<PinConfig>
         if (typeof remotePin.hasCompletedOnboarding !== 'boolean') return
 
+        const prevPin = latestDataRef.current.pin_config
         const normalized: PinConfig = {
           hasCompletedOnboarding: remotePin.hasCompletedOnboarding,
           pinEnabled: Boolean(remotePin.pinEnabled && remotePin.pinHash),
           pinHash: remotePin.pinHash ?? null,
+          monthlyBudget:
+            remotePin.monthlyBudget !== undefined
+              ? typeof remotePin.monthlyBudget === 'number' &&
+                remotePin.monthlyBudget > 0
+                ? Math.round(remotePin.monthlyBudget)
+                : null
+              : (prevPin.monthlyBudget ?? null),
         }
-        const prevPin = latestDataRef.current.pin_config
         skipPushRef.current.pin_config = true
         setPinConfig(normalized)
 
@@ -804,10 +817,16 @@ export function useMarketStore(
   )
 
   const toggleBought = useCallback(
-    (id: string) => {
+    (
+      id: string,
+    ): {
+      bought: true
+      purchaseEntry: MonthlyPurchaseEntry
+      productRef: ProductReference
+    } | null => {
       triggerHaptic(15)
       const target = items.find((i) => i.id === id)
-      if (!target) return
+      if (!target) return null
 
       if (!target.isBought) {
         const now = Date.now()
@@ -819,33 +838,32 @@ export function useMarketStore(
         const resolvedStore: StoreSource =
           target.store ?? existingRef?.preferredStore ?? defaultStoreId
 
-        let resolvedRefId = existingRef?.id
+        let resolvedRef: ProductReference
 
         if (existingRef) {
+          resolvedRef =
+            target.estimatedPrice > 0
+              ? {
+                  ...existingRef,
+                  preferredStore: resolvedStore,
+                  prices: {
+                    ...existingRef.prices,
+                    [resolvedStore]: {
+                      price: target.estimatedPrice,
+                      updatedAt: now,
+                    },
+                  },
+                  updatedAt: now,
+                }
+              : existingRef
           if (target.estimatedPrice > 0) {
             setProductRefs((prev) =>
-              prev.map((r) =>
-                r.id === existingRef.id
-                  ? {
-                      ...r,
-                      preferredStore: resolvedStore,
-                      prices: {
-                        ...r.prices,
-                        [resolvedStore]: {
-                          price: target.estimatedPrice,
-                          updatedAt: now,
-                        },
-                      },
-                      updatedAt: now,
-                    }
-                  : r,
-              ),
+              prev.map((r) => (r.id === existingRef.id ? resolvedRef : r)),
             )
           }
         } else {
           const createdId = createRefId()
-          resolvedRefId = createdId
-          const newRef: ProductReference = {
+          resolvedRef = {
             id: createdId,
             name: target.name,
             normalizedName: normalizeItemName(target.name),
@@ -863,14 +881,16 @@ export function useMarketStore(
                 : {},
             updatedAt: now,
           }
-          setProductRefs((prev) => [newRef, ...prev])
+          setProductRefs((prev) => [resolvedRef, ...prev])
         }
 
+        const todayDate = getTodayDateKey()
         const purchaseId = `log-${generateId()}`
         const purchaseEntry: MonthlyPurchaseEntry = {
           id: purchaseId,
-          monthKey: selectedMonth,
-          productRefId: resolvedRefId!,
+          monthKey: todayDate.slice(0, 7),
+          purchasedDate: todayDate,
+          productRefId: resolvedRef.id,
           productName: target.name,
           store: resolvedStore,
           price: target.estimatedPrice,
@@ -885,13 +905,18 @@ export function useMarketStore(
                   ...item,
                   isBought: true,
                   store: resolvedStore,
-                  productRefId: resolvedRefId,
+                  productRefId: resolvedRef.id,
                   linkedPurchaseId: purchaseId,
                   updatedAt: now,
                 }
               : item,
           ),
         )
+        return {
+          bought: true,
+          purchaseEntry,
+          productRef: resolvedRef,
+        }
       } else {
         const now = Date.now()
         const linkedId = target.linkedPurchaseId
@@ -910,9 +935,10 @@ export function useMarketStore(
               : item,
           ),
         )
+        return null
       }
     },
-    [defaultStoreId, findProductRefByName, items, productRefs, selectedMonth],
+    [defaultStoreId, findProductRefByName, items, productRefs],
   )
 
   const deleteItem = useCallback((id: string) => {
@@ -933,9 +959,17 @@ export function useMarketStore(
       const now = Date.now()
       const roundedPrice = Math.max(0, Math.round(input.price))
 
+      const resolvedDate = isValidDateKey(input.purchasedDate)
+        ? input.purchasedDate
+        : input.monthKey === getCurrentMonthKey()
+          ? getTodayDateKey()
+          : `${input.monthKey}-01`
+      const resolvedMonthKey = resolvedDate.slice(0, 7)
+
       const entry: MonthlyPurchaseEntry = {
         id: `log-${generateId()}`,
-        monthKey: input.monthKey,
+        monthKey: resolvedMonthKey,
+        purchasedDate: resolvedDate,
         productRefId: ref.id,
         productName: ref.name,
         store: input.store,
@@ -976,8 +1010,17 @@ export function useMarketStore(
       )
       if (!existing) return
       const now = Date.now()
+      const nextPurchasedDate = isValidDateKey(patch.purchasedDate)
+        ? patch.purchasedDate
+        : existing.purchasedDate
+      const nextMonthKey = isValidDateKey(patch.purchasedDate)
+        ? patch.purchasedDate.slice(0, 7)
+        : existing.monthKey
+
       const updated: MonthlyPurchaseEntry = {
         ...existing,
+        monthKey: nextMonthKey,
+        purchasedDate: nextPurchasedDate,
         store: patch.store ?? existing.store,
         price:
           patch.price !== undefined
@@ -993,6 +1036,22 @@ export function useMarketStore(
       setMonthlyPurchases((prev) =>
         prev.map((e) => (e.id === entryId ? updated : e)),
       )
+
+      // Keep linked bought cart item price/store synchronized if edited from toast or Catatan
+      setItems((prev) => {
+        const hasLinked = prev.some((i) => i.linkedPurchaseId === entryId)
+        if (!hasLinked) return prev
+        return prev.map((i) =>
+          i.linkedPurchaseId === entryId
+            ? {
+                ...i,
+                store: updated.store,
+                estimatedPrice: updated.price,
+                updatedAt: now,
+              }
+            : i,
+        )
+      })
 
       if (updated.price > 0) {
         setProductRefs((prev) =>
@@ -1335,10 +1394,11 @@ export function useMarketStore(
     setTemplates((prev) => prev.filter((t) => t.id !== templateId))
   }, [])
 
-  // --- PIN management ---
+  // --- PIN & Household Budget management ---
   const setPin = useCallback(
     (pin: string) => {
       const config: PinConfig = {
+        ...latestDataRef.current.pin_config,
         hasCompletedOnboarding: true,
         pinEnabled: true,
         pinHash: hashPin(pin),
@@ -1354,6 +1414,7 @@ export function useMarketStore(
 
   const disablePin = useCallback(() => {
     const config: PinConfig = {
+      ...latestDataRef.current.pin_config,
       hasCompletedOnboarding: true,
       pinEnabled: false,
       pinHash: null,
@@ -1364,6 +1425,65 @@ export function useMarketStore(
     setIsLocked(false)
     pushKeyImmediately('pin_config', config)
   }, [adapter, pushKeyImmediately])
+
+  const setMonthlyBudget = useCallback(
+    (amount: number | null) => {
+      const normalizedBudget =
+        amount !== null && Number.isFinite(amount) && amount > 0
+          ? Math.round(amount)
+          : null
+      const config: PinConfig = {
+        ...latestDataRef.current.pin_config,
+        monthlyBudget: normalizedBudget,
+      }
+      adapter.savePinConfig(config)
+      skipPushRef.current.pin_config = true
+      setPinConfig(config)
+      pushKeyImmediately('pin_config', config)
+      triggerHaptic(10)
+    },
+    [adapter, pushKeyImmediately],
+  )
+
+  // --- Full JSON Backup & Restore ---
+  const exportBackupSnapshot = useCallback((): BelanjaBackupSnapshot => {
+    const cur = latestDataRef.current
+    return buildBackupSnapshot({
+      stores: cur.stores,
+      categories: cur.categories,
+      productRefs: cur.product_refs,
+      monthlyPurchases: cur.monthly_purchases,
+      items: cur.items,
+      templates: cur.templates,
+      frequentItems: cur.frequent,
+      monthlyBudget: cur.pin_config.monthlyBudget ?? null,
+    })
+  }, [])
+
+  const restoreBackupSnapshot = useCallback(
+    (snapshot: BelanjaBackupSnapshot) => {
+      setStores(snapshot.stores)
+      setCategories(snapshot.categories)
+      setProductRefs(snapshot.productRefs)
+      setMonthlyPurchases(snapshot.monthlyPurchases)
+      setItems(snapshot.items)
+      setTemplates(snapshot.templates)
+      if (snapshot.frequentItems.length > 0) {
+        setFrequentItems(snapshot.frequentItems)
+      }
+      if (snapshot.monthlyBudget !== undefined) {
+        const nextPin: PinConfig = {
+          ...latestDataRef.current.pin_config,
+          monthlyBudget: snapshot.monthlyBudget ?? null,
+        }
+        adapter.savePinConfig(nextPin)
+        setPinConfig(nextPin)
+        pushKeyImmediately('pin_config', nextPin)
+      }
+      triggerHaptic(18)
+    },
+    [adapter, pushKeyImmediately],
+  )
 
   const verifyAndUnlock = useCallback(
     (pin: string): boolean => {
@@ -1477,6 +1597,7 @@ export function useMarketStore(
     monthlySpendByStore,
     monthlyTotalSpend,
     previousMonthTotalSpend,
+    monthlyBudget: pinConfig.monthlyBudget ?? null,
     pinConfig,
     isLocked,
     totalCount,
@@ -1511,6 +1632,9 @@ export function useMarketStore(
     deleteTemplate,
     setPin,
     disablePin,
+    setMonthlyBudget,
+    exportBackupSnapshot,
+    restoreBackupSnapshot,
     verifyAndUnlock,
     lockNow,
     sync,

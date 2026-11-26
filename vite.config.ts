@@ -58,8 +58,8 @@ export default defineConfig(({ mode }) => {
           short_name: 'BelanjaSayang',
           description:
             'Daftar belanja pasar pribadi yang cepat, 100% offline, dan nyaman dipakai satu tangan.',
-          theme_color: '#059669',
-          background_color: '#FAF9F6',
+          theme_color: '#e8f5ee',
+          background_color: '#e8f5ee',
           display: 'standalone',
           orientation: 'portrait',
           scope: '/',

@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   buildSeedFromWifeNote,
   exportMonthlyNoteText,
+  formatCompactRupiahShort,
   formatPurchaseChip,
+  getTodayDateKey,
   parseMonthlyNoteText,
   parseShorthandToken,
+  resolvePurchaseDateKey,
   STARTER_WIFE_NOTE,
 } from '../noteParser'
 import { DEFAULT_STORES } from '../stores'
@@ -91,5 +94,38 @@ describe('noteParser', () => {
     expect(reparsedEntries).toHaveLength(64)
     expect(reparsedEntries.reduce((s, e) => s + e.price, 0)).toBe(904000)
     expect(parseMonthlyNoteText(STARTER_WIFE_NOTE, DEFAULT_STORES)).toHaveLength(40)
+  })
+
+  it('resolves exact shopping dates with backward-compatible fallback and formats compact spend', () => {
+    expect(getTodayDateKey(new Date(2026, 10, 26))).toBe('2026-11-26')
+
+    // Explicit purchasedDate always wins
+    expect(
+      resolvePurchaseDateKey({
+        monthKey: '2026-11',
+        purchasedDate: '2026-11-22',
+        purchasedAt: new Date(2026, 10, 1).getTime(),
+      }),
+    ).toBe('2026-11-22')
+
+    // Legacy entry without purchasedDate derives local YYYY-MM-DD when in same month
+    expect(
+      resolvePurchaseDateKey({
+        monthKey: '2026-11',
+        purchasedAt: new Date(2026, 10, 15, 10, 30).getTime(),
+      }),
+    ).toBe('2026-11-15')
+
+    // Cross-month legacy timestamp falls back cleanly inside its own monthKey
+    expect(
+      resolvePurchaseDateKey({
+        monthKey: '2026-10',
+        purchasedAt: new Date(2026, 10, 26).getTime(),
+      }),
+    ).toBe('2026-10-01')
+
+    expect(formatCompactRupiahShort(189000)).toBe('189rb')
+    expect(formatCompactRupiahShort(1250000)).toBe('1,3jt')
+    expect(formatCompactRupiahShort(0)).toBe('')
   })
 })

@@ -1,6 +1,7 @@
 import {
   ArrowDownAZ,
   ArrowUpZA,
+  CalendarDays,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -8,18 +9,27 @@ import {
   FileText,
   Plus,
   Search,
+  Share2,
   ShoppingBasket,
   SlidersHorizontal,
   Store,
   Tag,
+  Wallet,
   X,
 } from 'lucide-react'
 import { memo, useDeferredValue, useMemo, useState } from 'react'
-import { formatRupiah, normalizeItemName } from '../lib/format'
 import {
+  formatIdrInput,
+  formatRupiah,
+  normalizeItemName,
+  parseIdrInput,
+} from '../lib/format'
+import {
+  formatFullDateLabel,
   formatMonthLabel,
   formatPurchaseChip,
   getStoreCode,
+  resolvePurchaseDateKey,
   shiftMonthKey,
 } from '../lib/noteParser'
 import {
@@ -216,15 +226,21 @@ const ProductRefRow = memo(function ProductRefRow({
 
 interface ProductCatalogViewProps {
   selectedMonth: string
+  activeDateFilter: string | null
   stores: StoreConfig[]
   categories: CategoryConfig[]
   productRefs: ProductReference[]
   monthEntries: MonthlyPurchaseEntry[]
   monthlyTotalSpend: number
   previousMonthTotalSpend?: number
+  monthlyBudget?: number | null
   monthlySpendByStore: Record<string, number>
   activeItems: MarketItem[]
   onChangeMonth: (monthKey: string) => void
+  onOpenDatePicker: () => void
+  onClearDateFilter: () => void
+  onSaveBudget: (amount: number | null) => void
+  onShareMonthly: () => void
   onOpenImportModal: () => void
   onOpenManageConfig: (tab: 'stores' | 'categories') => void
   onAddNewRef: () => void
@@ -236,15 +252,21 @@ interface ProductCatalogViewProps {
 
 export const ProductCatalogView = memo(function ProductCatalogView({
   selectedMonth,
+  activeDateFilter,
   stores,
   categories,
   productRefs,
   monthEntries,
   monthlyTotalSpend,
   previousMonthTotalSpend = 0,
+  monthlyBudget = null,
   monthlySpendByStore,
   activeItems,
   onChangeMonth,
+  onOpenDatePicker,
+  onClearDateFilter,
+  onSaveBudget,
+  onShareMonthly,
   onOpenImportModal,
   onOpenManageConfig,
   onAddNewRef,
@@ -264,6 +286,19 @@ export const ProductCatalogView = memo(function ProductCatalogView({
   const [selectedCategory, setSelectedCategory] = useState<
     MarketCategory | 'all'
   >('all')
+  const [editingBudget, setEditingBudget] = useState(false)
+  const [budgetDraft, setBudgetDraft] = useState('')
+
+  const budgetPct =
+    monthlyBudget && monthlyBudget > 0
+      ? Math.round((monthlyTotalSpend / monthlyBudget) * 100)
+      : null
+  const isOverBudget =
+    monthlyBudget !== null &&
+    monthlyBudget > 0 &&
+    monthlyTotalSpend > monthlyBudget
+  const isNearBudget =
+    !isOverBudget && budgetPct !== null && budgetPct >= 80
 
   const activeNameSet = useMemo(
     () => new Set(activeItems.map((i) => normalizeItemName(i.name))),
@@ -276,25 +311,47 @@ export const ProductCatalogView = memo(function ProductCatalogView({
     return map
   }, [productRefs])
 
+  const scopedEntries = useMemo(() => {
+    if (!activeDateFilter) return monthEntries
+    return monthEntries.filter(
+      (e) => resolvePurchaseDateKey(e) === activeDateFilter,
+    )
+  }, [activeDateFilter, monthEntries])
+
+  const scopedTotalSpend = useMemo(() => {
+    if (!activeDateFilter) return monthlyTotalSpend
+    return scopedEntries.reduce((sum, e) => sum + (e.price || 0), 0)
+  }, [activeDateFilter, monthlyTotalSpend, scopedEntries])
+
+  const scopedSpendByStore = useMemo(() => {
+    if (!activeDateFilter) return monthlySpendByStore
+    const sums: Record<string, number> = {}
+    for (const s of stores) sums[s.id] = 0
+    for (const e of scopedEntries) {
+      sums[e.store] = (sums[e.store] ?? 0) + (e.price || 0)
+    }
+    return sums
+  }, [activeDateFilter, monthlySpendByStore, scopedEntries, stores])
+
   const entriesByRef = useMemo(() => {
     const map = new Map<string, MonthlyPurchaseEntry[]>()
-    for (const entry of monthEntries) {
+    for (const entry of scopedEntries) {
       const list = map.get(entry.productRefId) ?? []
       list.push(entry)
       map.set(entry.productRefId, list)
     }
     return map
-  }, [monthEntries])
+  }, [scopedEntries])
 
   const monthlySpendByCategory = useMemo(() => {
     const sums: Record<string, number> = {}
     for (const c of categories) sums[c.id] = 0
-    for (const entry of monthEntries) {
+    for (const entry of scopedEntries) {
       const catId = refById.get(entry.productRefId)?.category ?? 'Lainnya'
       sums[catId] = (sums[catId] ?? 0) + (entry.price || 0)
     }
     return sums
-  }, [categories, monthEntries, refById])
+  }, [categories, refById, scopedEntries])
 
   const donutSegments: DonutSegment[] = useMemo(() => {
     if (chartMode === 'store') {
@@ -302,7 +359,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
         id: s.id,
         label: s.name,
         shortLabel: s.shortLabel,
-        value: monthlySpendByStore[s.id] ?? 0,
+        value: scopedSpendByStore[s.id] ?? 0,
         color: s.color,
         bgClass: '',
       }))
@@ -322,7 +379,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
     categories,
     chartMode,
     monthlySpendByCategory,
-    monthlySpendByStore,
+    scopedSpendByStore,
     stores,
   ])
 
@@ -347,6 +404,10 @@ export const ProductCatalogView = memo(function ProductCatalogView({
   const filteredRefs = useMemo(() => {
     const q = deferredSearch.trim().toLowerCase()
     const list = productRefs.filter((ref) => {
+      if (activeDateFilter) {
+        const dayEntries = entriesByRef.get(ref.id)
+        if (!dayEntries || dayEntries.length === 0) return false
+      }
       if (
         q &&
         !ref.name.toLowerCase().includes(q) &&
@@ -373,6 +434,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
     })
     return sortOrder === 'az' ? list : [...list].reverse()
   }, [
+    activeDateFilter,
     deferredSearch,
     entriesByRef,
     productRefs,
@@ -450,13 +512,23 @@ export const ProductCatalogView = memo(function ProductCatalogView({
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <h2
-              key={selectedMonth}
+            <button
+              type="button"
               data-testid="selected-month-label"
-              className="text-[13px] font-extrabold text-slate-900 capitalize px-1 whitespace-nowrap truncate animate-liquid-enter"
+              aria-label={`Buka kalender belanja (${formatMonthLabel(selectedMonth)})`}
+              onClick={onOpenDatePicker}
+              className={`glass-chip min-h-7 px-2 rounded-xl inline-flex items-center gap-1 text-[12.5px] font-extrabold capitalize whitespace-nowrap truncate cursor-pointer ${
+                activeDateFilter
+                  ? 'text-emerald-700 ring-1 ring-emerald-500/35'
+                  : 'text-slate-900 hover:text-emerald-700'
+              }`}
             >
-              {formatMonthLabel(selectedMonth)}
-            </h2>
+              <CalendarDays className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span key={selectedMonth} className="truncate animate-liquid-enter">
+                {formatMonthLabel(selectedMonth)}
+              </span>
+              <ChevronDown className="w-3 h-3 text-emerald-600 shrink-0 opacity-80" />
+            </button>
             <button
               type="button"
               aria-label="Bulan berikutnya"
@@ -485,16 +557,150 @@ export const ProductCatalogView = memo(function ProductCatalogView({
           />
         </div>
 
+        {/* Active Single-Day Shopping Filter Banner (only when user picks a specific date) */}
+        {activeDateFilter && (
+          <div
+            data-testid="active-date-filter-banner"
+            className="glass-chip rounded-2xl px-3 py-2 flex items-center justify-between gap-2 bg-emerald-50/90 border-emerald-200/80 animate-liquid-panel"
+          >
+            <button
+              type="button"
+              onClick={onOpenDatePicker}
+              className="min-w-0 text-left cursor-pointer"
+            >
+              <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                Ringkasan Hari Belanja
+              </p>
+              <p className="text-xs font-extrabold text-slate-900 capitalize truncate">
+                {formatFullDateLabel(activeDateFilter)}
+              </p>
+            </button>
+            <button
+              type="button"
+              data-testid="clear-date-filter-btn"
+              onClick={onClearDateFilter}
+              className="px-2.5 py-1 rounded-xl bg-white hover:bg-stone-50 text-[11px] font-bold text-slate-700 border border-emerald-200/80 inline-flex items-center gap-1 shrink-0 cursor-pointer"
+            >
+              <span>1 Bulan</span>
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        )}
+
         {/* Interactive Circle (Donut) Diagram + Legend */}
         <MonthlyDonutChart
           segments={donutSegments}
-          total={monthlyTotalSpend}
-          purchaseCount={monthEntries.length}
+          total={scopedTotalSpend}
+          purchaseCount={scopedEntries.length}
           activeSegmentId={activeDonutId}
           onSelectSegment={handleSelectDonutSegment}
         />
 
-        {/* Exact Total Footer + MoM Delta + Manage Stores/Categories Link */}
+        {/* Optional Synced Monthly Budget Target & Progress Bar */}
+        {editingBudget ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              const parsed = parseIdrInput(budgetDraft)
+              onSaveBudget(parsed > 0 ? parsed : null)
+              setEditingBudget(false)
+            }}
+            className="glass-chip rounded-2xl p-2.5 space-y-2 animate-liquid-panel"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-bold text-slate-700 inline-flex items-center gap-1">
+                <Wallet className="w-3.5 h-3.5 text-emerald-600" />
+                Target Budget Bulanan
+              </span>
+              <button
+                type="button"
+                aria-label="Tutup pengaturan budget"
+                onClick={() => setEditingBudget(false)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="flex-1 min-w-0 min-h-9 px-2.5 rounded-xl bg-white border border-stone-200 focus-within:border-emerald-600 flex items-center gap-1">
+                <span className="text-xs font-bold text-stone-400">Rp</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoFocus
+                  data-testid="monthly-budget-input"
+                  value={budgetDraft}
+                  onChange={(e) => setBudgetDraft(formatIdrInput(e.target.value))}
+                  placeholder="1.500.000"
+                  className="flex-1 min-w-0 bg-transparent text-xs font-extrabold text-slate-900 outline-none tabular-nums"
+                />
+              </div>
+              {monthlyBudget && monthlyBudget > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSaveBudget(null)
+                    setEditingBudget(false)
+                  }}
+                  className="min-h-9 px-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold cursor-pointer shrink-0"
+                >
+                  Hapus
+                </button>
+              )}
+              <button
+                type="submit"
+                data-testid="monthly-budget-save-btn"
+                className="min-h-9 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold cursor-pointer shrink-0"
+              >
+                Simpan
+              </button>
+            </div>
+          </form>
+        ) : monthlyBudget && monthlyBudget > 0 ? (
+          <button
+            type="button"
+            data-testid="monthly-budget-bar"
+            onClick={() => {
+              setBudgetDraft(formatIdrInput(monthlyBudget))
+              setEditingBudget(true)
+            }}
+            className="w-full glass-chip rounded-2xl px-3 py-2 text-left space-y-1.5 cursor-pointer"
+          >
+            <div className="flex items-center justify-between gap-2 text-[11px]">
+              <span className="font-bold text-slate-600 inline-flex items-center gap-1">
+                <Wallet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Budget {formatRupiah(monthlyBudget)}</span>
+              </span>
+              <span
+                className={`font-extrabold tabular-nums ${
+                  isOverBudget
+                    ? 'text-rose-600'
+                    : isNearBudget
+                      ? 'text-amber-700'
+                      : 'text-emerald-700'
+                }`}
+              >
+                {isOverBudget
+                  ? `Lewat ${formatRupiah(monthlyTotalSpend - monthlyBudget)}`
+                  : `Sisa ${formatRupiah(monthlyBudget - monthlyTotalSpend)} (${budgetPct}%)`}
+              </span>
+            </div>
+            <div className="h-1.5 w-full rounded-full bg-slate-900/8 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${
+                  isOverBudget
+                    ? 'bg-rose-500'
+                    : isNearBudget
+                      ? 'bg-amber-500'
+                      : 'bg-emerald-500'
+                }`}
+                style={{ width: `${Math.min(100, budgetPct ?? 0)}%` }}
+              />
+            </div>
+          </button>
+        ) : null}
+
+        {/* Exact Total Footer + MoM Delta + Budget / Share / Manage Actions */}
         <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-2 text-xs">
           <div className="text-stone-500 flex items-center gap-1.5 flex-wrap min-w-0">
             <span>
@@ -503,10 +709,12 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                 data-testid="monthly-exact-total"
                 className="font-extrabold text-slate-900 tabular-nums"
               >
-                {formatRupiah(monthlyTotalSpend)}
+                {formatRupiah(scopedTotalSpend)}
               </span>
             </span>
-            {previousMonthTotalSpend > 0 && monthlyTotalSpend > 0 && (
+            {!activeDateFilter &&
+              previousMonthTotalSpend > 0 &&
+              monthlyTotalSpend > 0 && (
               <span
                 className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums ${
                   monthlyTotalSpend <= previousMonthTotalSpend
@@ -522,37 +730,65 @@ export const ProductCatalogView = memo(function ProductCatalogView({
               </span>
             )}
           </div>
-          {hasFilter ? (
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedStore('all')
-                setSelectedCategory('all')
-                setSearch('')
-                setOpenFilterMenu(null)
-              }}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 text-[11px] font-bold cursor-pointer"
-            >
-              <X className="w-3 h-3" />
-              <span>Reset filter</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              data-testid="dashboard-manage-config-btn"
-              onClick={() =>
-                onOpenManageConfig(
-                  chartMode === 'store' ? 'stores' : 'categories',
-                )
-              }
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 cursor-pointer"
-            >
-              <SlidersHorizontal className="w-3 h-3" />
-              <span>
-                Atur {chartMode === 'store' ? 'Toko' : 'Kategori'}
-              </span>
-            </button>
-          )}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {!monthlyBudget && !editingBudget && (
+              <button
+                type="button"
+                data-testid="set-monthly-budget-btn"
+                onClick={() => {
+                  setBudgetDraft('')
+                  setEditingBudget(true)
+                }}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50/90 hover:bg-emerald-100 text-emerald-700 text-[11px] font-bold cursor-pointer"
+              >
+                <Wallet className="w-3 h-3" />
+                <span>Budget</span>
+              </button>
+            )}
+            {monthEntries.length > 0 && (
+              <button
+                type="button"
+                data-testid="share-monthly-btn"
+                aria-label="Bagikan rekap bulanan ke WhatsApp"
+                title="Bagikan rekap ke WhatsApp"
+                onClick={onShareMonthly}
+                className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-stone-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 cursor-pointer"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {hasFilter ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedStore('all')
+                  setSelectedCategory('all')
+                  setSearch('')
+                  setOpenFilterMenu(null)
+                }}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 text-[11px] font-bold cursor-pointer"
+              >
+                <X className="w-3 h-3" />
+                <span>Reset</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                data-testid="dashboard-manage-config-btn"
+                onClick={() =>
+                  onOpenManageConfig(
+                    chartMode === 'store' ? 'stores' : 'categories',
+                  )
+                }
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 cursor-pointer"
+              >
+                <SlidersHorizontal className="w-3 h-3" />
+                <span>
+                  Atur {chartMode === 'store' ? 'Toko' : 'Kategori'}
+                </span>
+              </button>
+            )}
+          </div>
         </div>
       </section>
 

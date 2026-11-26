@@ -1,11 +1,13 @@
-import { Store, Trash2, X } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { History, Store, Trash2, X } from 'lucide-react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { GlassSheetModal } from './GlassSheetModal'
-import { formatIdrInput, parseIdrInput } from '../lib/format'
+import { formatIdrInput, formatRupiah, parseIdrInput } from '../lib/format'
+import { formatMonthLabel, formatPurchaseChip } from '../lib/noteParser'
 import { getSolidPillStyle, getTintedPillStyle } from '../lib/stores'
 import type {
   CategoryConfig,
   MarketCategory,
+  MonthlyPurchaseEntry,
   ProductReference,
   StoreConfig,
   StoreSource,
@@ -18,6 +20,7 @@ interface ProductRefModalProps {
   initialFocusStore?: StoreSource
   stores: StoreConfig[]
   categories: CategoryConfig[]
+  productHistory?: MonthlyPurchaseEntry[]
   resolveDetectedCategory: (name: string) => MarketCategory
   onClose: () => void
   onSave: (input: UpsertProductRefInput) => void
@@ -30,6 +33,7 @@ export function ProductRefModal({
   initialFocusStore,
   stores,
   categories,
+  productHistory = [],
   resolveDetectedCategory,
   onClose,
   onSave,
@@ -58,6 +62,39 @@ export function ProductRefModal({
     return map
   })
   const [notes, setNotes] = useState(editingRef?.notes ?? '')
+
+  // Group multi-month purchase history (newest 6 months) + calculate price trend
+  const monthlyHistory = useMemo(() => {
+    if (!editingRef || productHistory.length === 0) return []
+    const byMonth = new Map<string, MonthlyPurchaseEntry[]>()
+    for (const e of productHistory) {
+      const list = byMonth.get(e.monthKey) ?? []
+      list.push(e)
+      byMonth.set(e.monthKey, list)
+    }
+    return Array.from(byMonth.entries())
+      .sort(([a], [b]) => b.localeCompare(a))
+      .slice(0, 6)
+      .map(([monthKey, entries]) => {
+        const priced = entries.filter((e) => e.price > 0)
+        const avgPrice =
+          priced.length > 0
+            ? Math.round(
+                priced.reduce((sum, e) => sum + e.price, 0) / priced.length,
+              )
+            : 0
+        return { monthKey, entries, avgPrice }
+      })
+  }, [editingRef, productHistory])
+
+  const priceTrendPct = useMemo(() => {
+    const pricedMonths = monthlyHistory.filter((m) => m.avgPrice > 0)
+    if (pricedMonths.length < 2) return null
+    const latest = pricedMonths[0].avgPrice
+    const prev = pricedMonths[1].avgPrice
+    if (prev <= 0) return null
+    return Math.round(((latest - prev) / prev) * 100)
+  }, [monthlyHistory])
 
   if (!isOpen) return null
 
@@ -188,6 +225,60 @@ export function ProductRefModal({
               </label>
             ))}
           </div>
+
+          {/* Multi-Month Price History & Trend */}
+          {monthlyHistory.length > 0 && (
+            <div
+              data-testid="product-price-history"
+              className="bg-white rounded-2xl border border-stone-200/90 p-3.5 space-y-2"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold text-slate-700 uppercase tracking-wide inline-flex items-center gap-1.5">
+                  <History className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Riwayat Harga ({monthlyHistory.length} bln)</span>
+                </p>
+                {priceTrendPct !== null && priceTrendPct !== 0 && (
+                  <span
+                    className={`px-2 py-0.5 rounded-md text-[10.5px] font-extrabold tabular-nums ${
+                      priceTrendPct > 0
+                        ? 'bg-amber-50 text-amber-700'
+                        : 'bg-emerald-50 text-emerald-700'
+                    }`}
+                  >
+                    {priceTrendPct > 0 ? `▲ +${priceTrendPct}%` : `▼ ${priceTrendPct}%`}
+                  </span>
+                )}
+              </div>
+
+              <div className="divide-y divide-stone-100">
+                {monthlyHistory.map((row) => (
+                  <div
+                    key={row.monthKey}
+                    className="py-1.5 flex items-center justify-between gap-2 text-xs"
+                  >
+                    <span className="font-semibold text-stone-600 capitalize shrink-0">
+                      {formatMonthLabel(row.monthKey)}
+                    </span>
+                    <div className="flex items-center gap-1 flex-wrap justify-end">
+                      {row.entries.slice(-3).map((e) => (
+                        <span
+                          key={e.id}
+                          className="px-1.5 py-0.5 rounded-md bg-stone-100 text-slate-700 text-[10.5px] font-bold tabular-nums"
+                        >
+                          {formatPurchaseChip(e, stores)}
+                        </span>
+                      ))}
+                      {row.avgPrice > 0 && (
+                        <span className="text-[11px] font-extrabold text-emerald-700 tabular-nums ml-0.5">
+                          {formatRupiah(row.avgPrice)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Preferred Store */}
           <div className="space-y-1.5">

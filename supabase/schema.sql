@@ -58,17 +58,11 @@ create policy "Allow household write by header"
   to anon, authenticated
   using (
     length(household_code) >= 6
-    and coalesce(
-      current_setting('request.headers', true)::json->>'x-household-code',
-      household_code
-    ) = household_code
+    and current_setting('request.headers', true)::json->>'x-household-code' = household_code
   )
   with check (
     length(household_code) >= 6
-    and coalesce(
-      current_setting('request.headers', true)::json->>'x-household-code',
-      household_code
-    ) = household_code
+    and current_setting('request.headers', true)::json->>'x-household-code' = household_code
   );
 
 -- Enable Realtime broadcasts for this table

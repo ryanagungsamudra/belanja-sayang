@@ -43,6 +43,8 @@ export interface ProductReference {
 export interface MonthlyPurchaseEntry {
   id: string
   monthKey: string // YYYY-MM, e.g. '2026-11'
+  /** Exact local shopping date YYYY-MM-DD, e.g. '2026-11-26' (auto-derived from purchasedAt if omitted) */
+  purchasedDate?: string
   productRefId: string
   productName: string
   store: StoreSource
@@ -102,6 +104,8 @@ export interface PinConfig {
   hasCompletedOnboarding: boolean
   pinEnabled: boolean
   pinHash: string | null
+  /** Optional household monthly spending target in Rp (synced with cloud) */
+  monthlyBudget?: number | null
 }
 
 export interface AddItemInput {
@@ -135,6 +139,7 @@ export interface UpsertProductRefInput {
 
 export interface AddPurchaseEntryInput {
   monthKey: string
+  purchasedDate?: string
   productRefId: string
   store: StoreSource
   price: number
@@ -145,6 +150,7 @@ export interface UpdatePurchaseEntryInput {
   store?: StoreSource
   price?: number
   qtyNote?: string
+  purchasedDate?: string
 }
 
 export interface UpsertTemplateInput {

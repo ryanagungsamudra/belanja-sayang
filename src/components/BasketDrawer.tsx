@@ -1,12 +1,13 @@
 import {
+  CalendarDays,
   Check,
   ChevronDown,
   ShoppingCart,
   Trash2,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { formatRupiah } from '../lib/format'
-import { findStore } from '../lib/stores'
+import { findStore, getTintedPillStyle } from '../lib/stores'
 import type { MarketItem, StoreConfig } from '../types/market'
 
 interface BasketDrawerProps {
@@ -16,6 +17,7 @@ interface BasketDrawerProps {
   onToggleBought: (id: string) => void
   onDeleteItem: (id: string) => void
   onClearBought: () => void
+  onOpenCalendarSummary?: () => void
 }
 
 export function BasketDrawer({
@@ -25,8 +27,24 @@ export function BasketDrawer({
   onToggleBought,
   onDeleteItem,
   onClearBought,
+  onOpenCalendarSummary,
 }: BasketDrawerProps) {
   const [isOpen, setIsOpen] = useState(false)
+
+  const spendByStore = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const item of items) {
+      if (!item.store || item.estimatedPrice <= 0) continue
+      map.set(item.store, (map.get(item.store) ?? 0) + item.estimatedPrice)
+    }
+    return Array.from(map.entries())
+      .map(([storeId, sum]) => ({
+        storeId,
+        cfg: findStore(stores, storeId),
+        sum,
+      }))
+      .sort((a, b) => b.sum - a.sum)
+  }, [items, stores])
 
   if (items.length === 0) return null
 
@@ -73,6 +91,33 @@ export function BasketDrawer({
 
       {isOpen && (
         <div className="border-t border-white/60 px-3 pb-3 pt-2 space-y-2 animate-liquid-panel">
+          {(spendByStore.length > 0 || onOpenCalendarSummary) && (
+            <div className="flex items-center justify-between gap-2 flex-wrap px-0.5 pb-1">
+              <div className="flex flex-wrap gap-1">
+                {spendByStore.map(({ storeId, cfg, sum }) => (
+                  <span
+                    key={storeId}
+                    className="px-2 py-0.5 rounded-lg text-[10.5px] font-extrabold border tabular-nums"
+                    style={getTintedPillStyle(cfg?.color ?? '#059669')}
+                  >
+                    {cfg?.shortLabel ?? storeId} · {formatRupiah(sum)}
+                  </span>
+                ))}
+              </div>
+              {onOpenCalendarSummary && (
+                <button
+                  type="button"
+                  data-testid="basket-open-calendar-btn"
+                  onClick={onOpenCalendarSummary}
+                  className="glass-chip px-2.5 py-1 rounded-xl text-[11px] font-bold text-emerald-700 inline-flex items-center gap-1 cursor-pointer shrink-0"
+                >
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  <span>Kalender</span>
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="space-y-1.5">
             {items.map((item) => {
               const storeCfg = findStore(stores, item.store)

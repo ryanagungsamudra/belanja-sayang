@@ -83,6 +83,9 @@ export function useSupabaseSync({
   const lastPullAtRef = useRef<number>(0)
   const debounceTimersRef = useRef<Partial<Record<CollectionKey, number>>>({})
   const reconnectTimerRef = useRef<number | null>(null)
+  const reconnectAttemptRef = useRef<number>(0)
+  const presenceDropTimerRef = useRef<number | null>(null)
+  const onlineDevicesRef = useRef<number>(1)
 
   const getPayloadRef = useRef(getPayload)
   const applyRemoteRef = useRef(applyRemotePayload)
@@ -332,25 +335,30 @@ export function useSupabaseSync({
     return true
   }, [reconcileRemoteRow])
 
-  const syncNow = useCallback(async () => {
-    if (!isValidSyncConfig(configRef.current)) return
-    if (syncInFlightRef.current) return syncInFlightRef.current
+  const syncNow = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!isValidSyncConfig(configRef.current)) return
+      if (syncInFlightRef.current) return syncInFlightRef.current
 
-    const run = (async () => {
-      setSyncStatus('syncing')
-      if (pendingRef.current.length > 0) {
-        await flushPending()
+      const run = (async () => {
+        if (!options?.silent) {
+          setSyncStatus('syncing')
+        }
+        if (pendingRef.current.length > 0) {
+          await flushPending()
+        }
+        await pullAllFromCloud()
+      })()
+
+      syncInFlightRef.current = run
+      try {
+        await run
+      } finally {
+        syncInFlightRef.current = null
       }
-      await pullAllFromCloud()
-    })()
-
-    syncInFlightRef.current = run
-    try {
-      await run
-    } finally {
-      syncInFlightRef.current = null
-    }
-  }, [flushPending, pullAllFromCloud])
+    },
+    [flushPending, pullAllFromCloud],
+  )
 
   // Manage Supabase connection lifecycle, auto-live hydration, Realtime & mobile wake resync
   useEffect(() => {
@@ -378,6 +386,10 @@ export function useSupabaseSync({
         window.clearTimeout(reconnectTimerRef.current)
         reconnectTimerRef.current = null
       }
+      if (presenceDropTimerRef.current) {
+        window.clearTimeout(presenceDropTimerRef.current)
+        presenceDropTimerRef.current = null
+      }
       if (channelRef.current && conn.realtime) {
         void conn.realtime.removeChannel(channelRef.current)
         channelRef.current = null
@@ -400,6 +412,7 @@ export function useSupabaseSync({
             if (cancelled) return
             if (state === 'SUBSCRIBED') {
               channelSubscribedRef.current = true
+              reconnectAttemptRef.current = 0
               setSyncStatus('connected')
               setSyncError(null)
             } else if (state === 'CHANNEL_ERROR' || state === 'CLOSED') {
@@ -408,20 +421,42 @@ export function useSupabaseSync({
                 setSyncStatus('offline')
               } else {
                 if (state === 'CHANNEL_ERROR') setSyncStatus('error')
-                // Auto-reconnect Realtime WebSocket after short delay
+                // Exponential backoff (3s -> 6s -> 12s -> 24s -> 30s cap) to save phone battery on weak signal
                 if (!reconnectTimerRef.current) {
+                  const attempt = reconnectAttemptRef.current
+                  const delayMs = Math.min(30_000, 3_000 * 2 ** attempt)
+                  reconnectAttemptRef.current = Math.min(attempt + 1, 4)
                   reconnectTimerRef.current = window.setTimeout(() => {
                     reconnectTimerRef.current = null
                     if (!cancelled && navigator.onLine) {
                       void subscribeChannel()
                     }
-                  }, 3500)
+                  }, delayMs)
                 }
               }
             }
           },
           (count) => {
-            if (!cancelled) setOnlineDevices(count)
+            if (cancelled) return
+            const nextCount = Math.max(1, count)
+            if (presenceDropTimerRef.current) {
+              window.clearTimeout(presenceDropTimerRef.current)
+              presenceDropTimerRef.current = null
+            }
+            if (nextCount >= onlineDevicesRef.current) {
+              // Immediately reflect partner joining so Live · 2 feels instant
+              onlineDevicesRef.current = nextCount
+              setOnlineDevices(nextCount)
+            } else {
+              // Debounce drops by 2.5s so brief partner socket hiccups never flicker Live · 2 / banner
+              presenceDropTimerRef.current = window.setTimeout(() => {
+                presenceDropTimerRef.current = null
+                if (!cancelled) {
+                  onlineDevicesRef.current = nextCount
+                  setOnlineDevices(nextCount)
+                }
+              }, 2500)
+            }
           },
         )
         if (cancelled) {
@@ -532,6 +567,7 @@ export function useSupabaseSync({
 
     const handleOnline = () => {
       if (cancelled) return
+      reconnectAttemptRef.current = 0
       void startSync()
     }
     const handleOffline = () => {
@@ -539,13 +575,14 @@ export function useSupabaseSync({
       channelSubscribedRef.current = false
       setSyncStatus('offline')
     }
-    // Mobile PWA wake-up: deduplicated pull + Realtime re-subscribe if socket slept
+    // Mobile PWA wake-up: silent deduplicated pull (never flashes Live -> Sync -> Live!) + Realtime re-subscribe if socket slept
     const handleVisibilityOrFocus = () => {
       if (cancelled) return
       if (document.visibilityState === 'visible' && navigator.onLine) {
+        reconnectAttemptRef.current = 0
         const recentlyPulled = Date.now() - lastPullAtRef.current < 4000
         if (!recentlyPulled || !channelSubscribedRef.current) {
-          void syncNow()
+          void syncNow({ silent: channelSubscribedRef.current })
         }
         if (!channelSubscribedRef.current) {
           void subscribeChannel()
@@ -569,6 +606,10 @@ export function useSupabaseSync({
       if (reconnectTimerRef.current) {
         window.clearTimeout(reconnectTimerRef.current)
         reconnectTimerRef.current = null
+      }
+      if (presenceDropTimerRef.current) {
+        window.clearTimeout(presenceDropTimerRef.current)
+        presenceDropTimerRef.current = null
       }
       for (const timer of Object.values(debounceTimersRef.current)) {
         if (timer) window.clearTimeout(timer)
@@ -604,6 +645,11 @@ export function useSupabaseSync({
     setSyncConfig(disabled)
     setPendingKeys([])
     setSyncError(null)
+    if (presenceDropTimerRef.current) {
+      window.clearTimeout(presenceDropTimerRef.current)
+      presenceDropTimerRef.current = null
+    }
+    onlineDevicesRef.current = 1
     setOnlineDevices(1)
   }, [])
 
@@ -616,7 +662,10 @@ export function useSupabaseSync({
     syncStatus: effectiveSyncStatus,
     syncError: isValidSyncConfig(syncConfig) ? syncError : null,
     lastSyncedAt,
-    onlineDevices: effectiveSyncStatus === 'connected' ? onlineDevices : 1,
+    onlineDevices:
+      effectiveSyncStatus === 'connected' || effectiveSyncStatus === 'syncing'
+        ? onlineDevices
+        : 1,
     hasCompletedInitialCheck:
       !isValidSyncConfig(syncConfig) || hasCompletedInitialCheck,
     pendingCount: pendingKeys.length,

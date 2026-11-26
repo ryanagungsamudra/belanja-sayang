@@ -5,7 +5,6 @@ import {
   LockOpen,
   RefreshCw,
   ShoppingBasket,
-  SlidersHorizontal,
   Sun,
   SunMedium,
 } from 'lucide-react'
@@ -27,7 +26,6 @@ interface HeaderProps {
   onToggleWakeLock: () => void
   onOpenSyncModal: () => void
   onOpenPinSettings: () => void
-  onOpenManageConfig: () => void
 }
 
 export const Header = memo(function Header({
@@ -43,11 +41,10 @@ export const Header = memo(function Header({
   onToggleWakeLock,
   onOpenSyncModal,
   onOpenPinSettings,
-  onOpenManageConfig,
 }: HeaderProps) {
   const progressPct =
     totalCount > 0 ? Math.round((boughtCount / totalCount) * 100) : 0
-  const showCartBar = activeTab === 'keranjang'
+  const showCartBar = activeTab === 'keranjang' && totalCount > 0
 
   const renderSyncPill = () => {
     if (syncStatus === 'connected') {
@@ -66,7 +63,7 @@ export const Header = memo(function Header({
               ? `${onlineDevices} HP sedang online bersama`
               : 'Sinkron Real-Time Aktif'
           }
-          className="glass-chip min-h-10 px-2 rounded-2xl text-emerald-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+          className="glass-chip min-h-10 px-2.5 rounded-2xl text-emerald-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap tabular-nums"
         >
           <span className="live-dot" />
           <span>{onlineDevices > 1 ? `Live · ${onlineDevices}` : 'Live'}</span>
@@ -132,8 +129,8 @@ export const Header = memo(function Header({
 
   return (
     <header className="glass-header sticky top-0 z-20 px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2">
-      {/* Compact Single-Row Top Bar */}
-      <div className="flex items-center justify-between gap-1">
+      {/* Compact Single-Row Top Bar (sibling above .glass-header::before frost layer) */}
+      <div className="relative z-10 flex items-center justify-between gap-1">
         <div className="flex items-center gap-1.5 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-emerald-600/95 text-white flex items-center justify-center shadow-md shadow-emerald-600/25 border border-white/40 shrink-0">
             <ShoppingBasket className="w-4 h-4" strokeWidth={2.3} />
@@ -146,18 +143,6 @@ export const Header = memo(function Header({
         <div className="flex items-center gap-1 shrink-0">
           {/* Live Real-Time Sync Status Pill */}
           {renderSyncPill()}
-
-          {/* Manage Stores & Categories Button */}
-          <button
-            type="button"
-            data-testid="header-manage-config-btn"
-            onClick={onOpenManageConfig}
-            aria-label="Kelola Tempat Belanja dan Kategori"
-            title="Kelola Toko & Kategori"
-            className="glass-chip min-h-10 min-w-10 rounded-2xl text-slate-600 hover:text-slate-900 flex items-center justify-center cursor-pointer"
-          >
-            <SlidersHorizontal className="w-4 h-4 shrink-0" />
-          </button>
 
           {/* Privacy Lock Badge */}
           <button
@@ -210,9 +195,9 @@ export const Header = memo(function Header({
         </div>
       </div>
 
-      {/* Slim Liquid Progress Strip (only on Keranjang tab) */}
+      {/* Slim Liquid Progress Strip (only on Keranjang tab when items exist) */}
       {showCartBar && (
-        <div className="glass-chip mt-2 rounded-2xl px-3 py-1.5">
+        <div className="relative z-10 glass-chip mt-2 rounded-2xl px-3 py-1.5 animate-liquid-panel">
           <div className="flex items-center justify-between gap-2 text-xs">
             <span className="text-slate-600 font-medium">
               Keranjang{' '}

@@ -229,13 +229,21 @@ a.glass-chip:active {
 }
 
 .glass-header {
-  background: rgba(255, 255, 255, 0.62);
+  isolation: isolate;
+}
+
+/* Dedicated sibling frost layer on sticky header (matches .glass-dock::before — prevents iOS Safari PWA child glitches on Live/Lock/Sun buttons!) */
+.glass-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.68);
   backdrop-filter: blur(24px) saturate(190%);
   -webkit-backdrop-filter: blur(24px) saturate(190%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.76);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.78);
   box-shadow: 0 4px 20px -10px rgba(15, 23, 42, 0.08);
-  transform: translate3d(0, 0, 0);
-  -webkit-transform: translate3d(0, 0, 0);
 }
 
 .glass-sheet {
@@ -394,14 +402,13 @@ a.glass-chip:active {
   border-radius: inherit;
   z-index: 0;
   pointer-events: none;
-  background: rgba(255, 255, 255, 0.56);
-  backdrop-filter: blur(18px) saturate(190%);
-  -webkit-backdrop-filter: blur(18px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.84);
+  /* Translucent frost without nested backdrop-filter (parent .glass-card/.glass-sheet is already blurred — prevents iOS WebKit flicker) */
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow:
-    0 4px 14px -4px rgba(15, 23, 42, 0.09),
+    0 4px 14px -4px rgba(15, 23, 42, 0.08),
     0 0 0 0.5px rgba(15, 23, 42, 0.06),
-    inset 0 1px 1px rgba(255, 255, 255, 0.92);
+    inset 0 1px 1px rgba(255, 255, 255, 0.96);
 }
 
 .liquid-seg-droplet {

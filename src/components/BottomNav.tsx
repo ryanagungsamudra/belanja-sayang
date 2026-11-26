@@ -49,8 +49,10 @@ export const BottomNav = memo(function BottomNav({
   const dragRectRef = useRef<{ left: number; width: number } | null>(null)
   const rafRef = useRef<number | null>(null)
   const activeTabRef = useRef<AppTab>(activeTab)
+  const dragPreviewTabRef = useRef<AppTab | null>(null)
 
   const [isDropletActive, setIsDropletActive] = useState(false)
+  const [dragPreviewTab, setDragPreviewTab] = useState<AppTab | null>(null)
 
   useEffect(() => {
     activeTabRef.current = activeTab
@@ -221,13 +223,14 @@ export const BottomNav = memo(function BottomNav({
     applyOpticalFrame(posRef.current, dragVelRef.current * 4.8, true)
 
     const nearestIdx = Math.max(0, Math.min(2, Math.round(posRef.current)))
-    const nextTab = TAB_ORDER[nearestIdx]
-    if (nextTab !== activeTabRef.current) {
-      onChangeTab(nextTab)
+    const hoveredTab = TAB_ORDER[nearestIdx]
+    if (hoveredTab !== dragPreviewTabRef.current) {
+      dragPreviewTabRef.current = hoveredTab
+      setDragPreviewTab(hoveredTab)
     }
   }
 
-  const finishInteraction = (e: React.PointerEvent<HTMLElement>) => {
+  const handlePointerUp = (e: React.PointerEvent<HTMLElement>) => {
     if (!isPointerDownRef.current) return
     const wasDrag = isDraggingRef.current
     isPointerDownRef.current = false
@@ -238,15 +241,34 @@ export const BottomNav = memo(function BottomNav({
       Math.min(2, Math.round(pointerToSlot(e.clientX))),
     )
     dragRectRef.current = null
+    if (dragPreviewTabRef.current !== null) {
+      dragPreviewTabRef.current = null
+      setDragPreviewTab(null)
+    }
+
     const finalTab = TAB_ORDER[finalIdx]
     const kick = wasDrag
       ? dragVelRef.current * 0.9
       : (finalIdx - posRef.current) * 0.17
 
+    startSpring(finalIdx, kick)
     if (finalTab !== activeTabRef.current) {
       onChangeTab(finalTab)
     }
-    startSpring(finalIdx, kick)
+  }
+
+  const handlePointerCancel = () => {
+    if (!isPointerDownRef.current) return
+    isPointerDownRef.current = false
+    isDraggingRef.current = false
+    dragRectRef.current = null
+    if (dragPreviewTabRef.current !== null) {
+      dragPreviewTabRef.current = null
+      setDragPreviewTab(null)
+    }
+
+    const activeIdx = TAB_INDEX[activeTabRef.current]
+    startSpring(activeIdx, (activeIdx - posRef.current) * 0.16)
   }
 
   const tabs: Array<{
@@ -282,18 +304,20 @@ export const BottomNav = memo(function BottomNav({
         : 'bg-slate-200 text-slate-700'
     }`
 
+  const visualTab = dragPreviewTab ?? activeTab
+
   const renderMirrorItems = (tintClass: string, isChroma = false) => (
     <div className="w-[300%] h-full grid grid-cols-3 items-center">
       {tabs.map((tab) => {
         const Icon = tab.icon
-        const isActive = activeTab === tab.id
+        const isHighlighted = visualTab === tab.id
         return (
           <div
             key={tab.id}
             className={`flex flex-col items-center justify-center gap-[3px] ${
               isChroma
                 ? tintClass
-                : isActive
+                : isHighlighted
                   ? 'text-emerald-700'
                   : 'text-slate-900'
             }`}
@@ -301,7 +325,9 @@ export const BottomNav = memo(function BottomNav({
             <div className="relative flex items-center justify-center">
               <Icon className="w-6 h-6" strokeWidth={2.25} />
               {tab.badge !== undefined && !isChroma && (
-                <span className={getBadgeClass(isActive)}>{tab.badge}</span>
+                <span className={getBadgeClass(isHighlighted)}>
+                  {tab.badge}
+                </span>
               )}
             </div>
             <span className="text-[10.5px] font-bold tracking-[-0.01em] leading-none">
@@ -320,14 +346,15 @@ export const BottomNav = memo(function BottomNav({
         aria-label="Navigasi Utama"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        onPointerUp={finishInteraction}
-        onPointerCancel={finishInteraction}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
         className="glass-dock pointer-events-auto rounded-full p-1 h-[62px] grid grid-cols-3 cursor-grab active:cursor-grabbing"
       >
         {/* Base Layer: Accessible Tab Buttons (inner visual fades smoothly under clear droplet) */}
         {tabs.map((tab, idx) => {
           const Icon = tab.icon
-          const isActive = activeTab === tab.id
+          const isCurrentPage = activeTab === tab.id
+          const isHighlighted = visualTab === tab.id
           return (
             <button
               key={tab.id}
@@ -338,7 +365,7 @@ export const BottomNav = memo(function BottomNav({
                   ? `${tab.label} (${tab.badge})`
                   : tab.label
               }
-              aria-current={isActive ? 'page' : undefined}
+              aria-current={isCurrentPage ? 'page' : undefined}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault()
@@ -352,13 +379,18 @@ export const BottomNav = memo(function BottomNav({
                   baseVisualRefs.current[idx] = el
                 }}
                 className={`flex flex-col items-center justify-center gap-[3px] pointer-events-none ${
-                  isActive ? 'text-emerald-700' : 'text-slate-900'
+                  isHighlighted ? 'text-emerald-700' : 'text-slate-900'
                 }`}
               >
                 <div className="relative flex items-center justify-center">
-                  <Icon className="w-6 h-6" strokeWidth={isActive ? 2.25 : 2} />
+                  <Icon
+                    className="w-6 h-6"
+                    strokeWidth={isHighlighted ? 2.25 : 2}
+                  />
                   {tab.badge !== undefined && (
-                    <span className={getBadgeClass(isActive)}>{tab.badge}</span>
+                    <span className={getBadgeClass(isHighlighted)}>
+                      {tab.badge}
+                    </span>
                   )}
                 </div>
                 <span className="text-[10.5px] font-bold tracking-[-0.01em] leading-none">

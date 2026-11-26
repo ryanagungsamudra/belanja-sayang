@@ -1,4 +1,4 @@
-import { RefreshCw, Sparkles, X } from 'lucide-react'
+import { RefreshCw, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -8,16 +8,29 @@ import { createPortal } from 'react-dom'
  * pop-up modal with a 1-tap reload trigger.
  */
 export function PwaUpdateBanner() {
-  const [updateReady, setUpdateReady] = useState(false)
+  const [updateReady, setUpdateReady] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('previewUpdate') === '1',
+  )
   const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
-    if (
-      typeof window === 'undefined' ||
-      !('serviceWorker' in navigator) ||
-      import.meta.env.DEV
-    ) {
-      return
+    if (typeof window === 'undefined') return
+
+    const onPreviewEvent = () => {
+      setUpdateReady(true)
+      setDismissed(false)
+    }
+    window.addEventListener('belanjasayang:preview-pwa-update', onPreviewEvent)
+
+    if (!('serviceWorker' in navigator) || import.meta.env.DEV) {
+      return () => {
+        window.removeEventListener(
+          'belanjasayang:preview-pwa-update',
+          onPreviewEvent,
+        )
+      }
     }
 
     let refreshing = false
@@ -54,6 +67,10 @@ export function PwaUpdateBanner() {
 
     return () => {
       refreshing = true
+      window.removeEventListener(
+        'belanjasayang:preview-pwa-update',
+        onPreviewEvent,
+      )
       navigator.serviceWorker.removeEventListener(
         'controllerchange',
         onControllerChange,
@@ -65,7 +82,7 @@ export function PwaUpdateBanner() {
 
   const modalNode = (
     <div
-      className="fixed inset-0 h-dvh z-50 flex items-center justify-center p-5 bg-slate-900/40 backdrop-blur-[5px] animate-fade-in overscroll-contain"
+      className="fixed inset-0 h-dvh z-50 flex items-center justify-center p-6 bg-slate-900/45 backdrop-blur-[8px] animate-fade-in overscroll-contain"
       onClick={() => setDismissed(true)}
     >
       <div
@@ -73,46 +90,49 @@ export function PwaUpdateBanner() {
         aria-modal="true"
         aria-label="Pembaruan Aplikasi Tersedia"
         onClick={(e) => e.stopPropagation()}
-        className="glass-card w-full max-w-xs rounded-3xl p-5 text-center space-y-4 animate-liquid-pop relative"
+        className="w-[calc(100%-2rem)] max-w-[300px] max-h-[80dvh] overflow-y-auto rounded-[28px] p-5 text-center space-y-3.5 animate-liquid-pop relative bg-[rgba(250,252,251,0.92)] backdrop-blur-2xl border border-white shadow-[0_24px_64px_-12px_rgba(15,23,42,0.38),0_0_0_0.5px_rgba(15,23,42,0.08),inset_0_1.5px_1px_rgba(255,255,255,1)]"
       >
-        <button
-          type="button"
-          aria-label="Tutup pemberitahuan"
-          onClick={() => setDismissed(true)}
-          className="absolute top-3 right-3 w-8 h-8 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-white/70 flex items-center justify-center cursor-pointer"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 w-44 h-24 rounded-full bg-emerald-400/20 blur-2xl"
+        />
 
-        <div className="w-12 h-12 rounded-2xl bg-emerald-600/95 text-white mx-auto flex items-center justify-center shadow-lg shadow-emerald-600/25 border border-white/40">
-          <Sparkles className="w-6 h-6" />
+        <div className="relative flex flex-col items-center gap-2.5">
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-b from-emerald-500 to-emerald-600 text-white flex items-center justify-center border border-white/50 shadow-[0_12px_26px_-6px_rgba(5,150,105,0.42),inset_0_1.5px_1px_rgba(255,255,255,0.65)]">
+            <Sparkles className="w-6 h-6" />
+          </div>
+
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/12 border border-emerald-500/25 text-[10.5px] font-extrabold uppercase tracking-wider text-emerald-700">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            Versi Baru Siap
+          </span>
         </div>
 
-        <div className="space-y-1">
-          <h2 className="text-base font-extrabold text-slate-900">
-            Pembaruan Tersedia
+        <div className="relative space-y-1.5">
+          <h2 className="text-[17px] font-extrabold text-slate-900 tracking-tight">
+            Pembaruan BelanjaSayang
           </h2>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Versi terbaru <b>BelanjaSayang</b> sudah siap dengan peningkatan
-            terbaru.
+          <p className="text-[13px] font-medium text-slate-700 leading-relaxed">
+            Pembaruan aplikasi sudah siap dipakai. Muat ulang sekarang agar
+            perubahan terbaru aktif.
           </p>
         </div>
 
-        <div className="space-y-2 pt-0.5">
+        <div className="relative space-y-2 pt-1">
           <button
             type="button"
             data-testid="pwa-reload-btn"
             onClick={() => window.location.reload()}
-            className="w-full min-h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold inline-flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/25 border border-white/30 liquid-press cursor-pointer"
+            className="w-full min-h-12 rounded-2xl bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 text-white text-[13px] font-extrabold inline-flex items-center justify-center gap-2 border border-white/45 shadow-[0_10px_24px_-6px_rgba(5,150,105,0.45),inset_0_1.5px_1px_rgba(255,255,255,0.55)] liquid-press cursor-pointer"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshCw className="w-4 h-4" />
             <span>Muat Ulang Sekarang</span>
           </button>
 
           <button
             type="button"
             onClick={() => setDismissed(true)}
-            className="glass-chip w-full min-h-10 rounded-2xl text-slate-600 text-xs font-bold cursor-pointer"
+            className="w-full min-h-10 rounded-2xl bg-white/80 hover:bg-white text-slate-700 hover:text-slate-900 text-xs font-bold border border-slate-200/80 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.95)] liquid-press cursor-pointer"
           >
             Nanti Saja
           </button>

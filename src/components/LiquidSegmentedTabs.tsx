@@ -57,8 +57,10 @@ export function LiquidSegmentedTabs<T extends string>({
   const rafRef = useRef<number | null>(null)
   const valueRef = useRef<T>(value)
   const optionsRef = useRef(options)
+  const dragPreviewValueRef = useRef<T | null>(null)
 
   const [isActive, setIsActive] = useState(false)
+  const [dragPreviewValue, setDragPreviewValue] = useState<T | null>(null)
 
   useEffect(() => {
     valueRef.current = value
@@ -215,13 +217,14 @@ export function LiquidSegmentedTabs<T extends string>({
       0,
       Math.min(count - 1, Math.round(posRef.current)),
     )
-    const nextOpt = optionsRef.current[nearest]
-    if (nextOpt && nextOpt.id !== valueRef.current) {
-      onChange(nextOpt.id)
+    const hoveredOpt = optionsRef.current[nearest]
+    if (hoveredOpt && hoveredOpt.id !== dragPreviewValueRef.current) {
+      dragPreviewValueRef.current = hoveredOpt.id
+      setDragPreviewValue(hoveredOpt.id)
     }
   }
 
-  const finishInteraction = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isPointerDownRef.current) return
     const wasDrag = isDraggingRef.current
     isPointerDownRef.current = false
@@ -232,18 +235,41 @@ export function LiquidSegmentedTabs<T extends string>({
       Math.min(count - 1, Math.round(pointerToSlot(e.clientX))),
     )
     dragRectRef.current = null
+    if (dragPreviewValueRef.current !== null) {
+      dragPreviewValueRef.current = null
+      setDragPreviewValue(null)
+    }
+
     const finalOpt = optionsRef.current[finalIdx]
     const kick = wasDrag
       ? dragVelRef.current * 0.85
       : (finalIdx - posRef.current) * 0.16
 
+    startSpring(finalIdx, kick)
     if (finalOpt && finalOpt.id !== valueRef.current) {
       onChange(finalOpt.id)
     }
-    startSpring(finalIdx, kick)
+  }
+
+  const handlePointerCancel = () => {
+    if (!isPointerDownRef.current) return
+    isPointerDownRef.current = false
+    isDraggingRef.current = false
+    dragRectRef.current = null
+    if (dragPreviewValueRef.current !== null) {
+      dragPreviewValueRef.current = null
+      setDragPreviewValue(null)
+    }
+
+    const committedIdx = Math.max(
+      0,
+      optionsRef.current.findIndex((o) => o.id === valueRef.current),
+    )
+    startSpring(committedIdx, (committedIdx - posRef.current) * 0.16)
   }
 
   const heightCls = size === 'md' ? 'min-h-10 text-xs' : 'min-h-8 text-[11px]'
+  const visualValue = dragPreviewValue ?? value
 
   const renderMirror = (tintClass: string, isChroma = false) => (
     <div
@@ -259,7 +285,7 @@ export function LiquidSegmentedTabs<T extends string>({
           className={`flex items-center justify-center gap-1.5 font-extrabold truncate px-1 ${
             isChroma
               ? tintClass
-              : opt.id === value
+              : opt.id === visualValue
                 ? 'text-emerald-700'
                 : 'text-slate-900'
           }`}
@@ -278,8 +304,8 @@ export function LiquidSegmentedTabs<T extends string>({
       aria-label={ariaLabel}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
-      onPointerUp={finishInteraction}
-      onPointerCancel={finishInteraction}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
       className={`liquid-seg-track rounded-full p-[3px] grid cursor-grab active:cursor-grabbing ${className}`}
       style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}
     >

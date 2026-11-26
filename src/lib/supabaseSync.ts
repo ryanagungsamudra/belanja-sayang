@@ -53,6 +53,7 @@ export interface HouseholdCollectionRow {
 const SYNC_CONFIG_KEY = 'belanjasayang:sync-config:v1'
 const CLIENT_ID_KEY = 'belanjasayang:client-id:v1'
 const PENDING_KEYS_STORAGE = 'belanjasayang:sync-pending:v1'
+export const DEFAULT_HOUSEHOLD_CODE = 'belanjasayang-rumah'
 
 export function getEnvSyncDefaults(): {
   supabaseUrl: string
@@ -62,12 +63,16 @@ export function getEnvSyncDefaults(): {
 } {
   const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL ?? '').trim()
   const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? '').trim()
-  const householdCode = (import.meta.env.VITE_HOUSEHOLD_CODE ?? '').trim()
+  const hasEnvCredentials = Boolean(supabaseUrl && supabaseAnonKey)
+  const rawCode = (import.meta.env.VITE_HOUSEHOLD_CODE ?? '').trim()
+  const householdCode = normalizeHouseholdCode(
+    rawCode || (hasEnvCredentials ? DEFAULT_HOUSEHOLD_CODE : ''),
+  )
   return {
     supabaseUrl,
     supabaseAnonKey,
     householdCode,
-    hasEnvCredentials: Boolean(supabaseUrl && supabaseAnonKey),
+    hasEnvCredentials,
   }
 }
 

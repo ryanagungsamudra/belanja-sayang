@@ -300,7 +300,7 @@ export function useMarketStore(
     applyRemotePayload,
     onRemoteNotice: onRemoteSyncNotice,
   })
-  const { schedulePush } = sync
+  const { schedulePush, pushKeyImmediately } = sync
 
   useEffect(() => {
     adapter.saveStores(stores)
@@ -1277,15 +1277,21 @@ export function useMarketStore(
   }, [])
 
   // --- PIN management ---
-  const setPin = useCallback((pin: string) => {
-    const config: PinConfig = {
-      hasCompletedOnboarding: true,
-      pinEnabled: true,
-      pinHash: hashPin(pin),
-    }
-    setPinConfig(config)
-    setIsLocked(false)
-  }, [])
+  const setPin = useCallback(
+    (pin: string) => {
+      const config: PinConfig = {
+        hasCompletedOnboarding: true,
+        pinEnabled: true,
+        pinHash: hashPin(pin),
+      }
+      adapter.savePinConfig(config)
+      skipPushRef.current.pin_config = true
+      setPinConfig(config)
+      setIsLocked(false)
+      pushKeyImmediately('pin_config', config)
+    },
+    [adapter, pushKeyImmediately],
+  )
 
   const disablePin = useCallback(() => {
     const config: PinConfig = {
@@ -1293,9 +1299,12 @@ export function useMarketStore(
       pinEnabled: false,
       pinHash: null,
     }
+    adapter.savePinConfig(config)
+    skipPushRef.current.pin_config = true
     setPinConfig(config)
     setIsLocked(false)
-  }, [])
+    pushKeyImmediately('pin_config', config)
+  }, [adapter, pushKeyImmediately])
 
   const verifyAndUnlock = useCallback(
     (pin: string): boolean => {

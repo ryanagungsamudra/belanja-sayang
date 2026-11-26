@@ -67,8 +67,10 @@ export function useSupabaseSync({
   const clientIdRef = useRef<string>(getOrCreateClientId())
   const clientRef = useRef<SupabaseClient | null>(null)
   const channelRef = useRef<RealtimeChannel | null>(null)
+  const channelSubscribedRef = useRef<boolean>(false)
   const isHydratedRef = useRef<boolean>(false)
   const debounceTimersRef = useRef<Partial<Record<CollectionKey, number>>>({})
+  const reconnectTimerRef = useRef<number | null>(null)
 
   const getPayloadRef = useRef(getPayload)
   const applyRemoteRef = useRef(applyRemotePayload)
@@ -106,19 +108,27 @@ export function useSupabaseSync({
   }, [])
 
   const pushKeyNow = useCallback(
-    async (key: CollectionKey): Promise<boolean> => {
+    async (
+      key: CollectionKey,
+      payloadOverride?: unknown,
+    ): Promise<boolean> => {
       const client = clientRef.current
       const cfg = configRef.current
-      if (!client || !isValidSyncConfig(cfg)) return false
+      if (!isValidSyncConfig(cfg)) return false
 
-      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      if (!client || (typeof navigator !== 'undefined' && !navigator.onLine)) {
         addPendingKey(key)
-        setSyncStatus('offline')
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          setSyncStatus('offline')
+        }
         return false
       }
 
       const code = normalizeHouseholdCode(cfg.householdCode)
-      const payload = getPayloadRef.current(key)
+      const payload =
+        payloadOverride !== undefined
+          ? payloadOverride
+          : getPayloadRef.current(key)
       const { error } = await pushHouseholdCollection(
         client,
         code,
@@ -145,6 +155,38 @@ export function useSupabaseSync({
       return true
     },
     [addPendingKey, removePendingKey],
+  )
+
+  /**
+   * Immediately pushes a critical user-initiated change (such as setting or
+   * disabling the global household PIN) with 0ms debounce, queuing it safely
+   * into pendingKeys if offline or still connecting so it is never dropped.
+   */
+  const pushKeyImmediately = useCallback(
+    (key: CollectionKey, payloadOverride?: unknown) => {
+      const cfg = configRef.current
+      if (!isValidSyncConfig(cfg)) return
+
+      const prevTimer = debounceTimersRef.current[key]
+      if (prevTimer) {
+        window.clearTimeout(prevTimer)
+        delete debounceTimersRef.current[key]
+      }
+
+      if (
+        !clientRef.current ||
+        (typeof navigator !== 'undefined' && !navigator.onLine)
+      ) {
+        addPendingKey(key)
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          setSyncStatus('offline')
+        }
+        return
+      }
+
+      void pushKeyNow(key, payloadOverride)
+    },
+    [addPendingKey, pushKeyNow],
   )
 
   /**
@@ -243,6 +285,7 @@ export function useSupabaseSync({
       void clientRef.current.removeChannel(channelRef.current)
       channelRef.current = null
     }
+    channelSubscribedRef.current = false
     clientRef.current = null
     isHydratedRef.current = false
 
@@ -255,9 +298,64 @@ export function useSupabaseSync({
     clientRef.current = client
     let cancelled = false
 
+    const subscribeChannel = () => {
+      if (cancelled) return
+      if (reconnectTimerRef.current) {
+        window.clearTimeout(reconnectTimerRef.current)
+        reconnectTimerRef.current = null
+      }
+      if (channelRef.current) {
+        void client.removeChannel(channelRef.current)
+        channelRef.current = null
+      }
+      channelSubscribedRef.current = false
+
+      const channel = subscribeHouseholdRealtime(
+        client,
+        code,
+        clientIdRef.current,
+        (row: HouseholdCollectionRow) => {
+          applyRemoteRef.current(row.collection_key, row.payload)
+          setLastSyncedAt(Date.now())
+          onRemoteNoticeRef.current?.(
+            `${COLLECTION_LABEL[row.collection_key] ?? 'Data'} diperbarui pasangan`,
+          )
+        },
+        (state) => {
+          if (cancelled) return
+          if (state === 'SUBSCRIBED') {
+            channelSubscribedRef.current = true
+            setSyncStatus('connected')
+            setSyncError(null)
+          } else if (state === 'CHANNEL_ERROR' || state === 'CLOSED') {
+            channelSubscribedRef.current = false
+            if (typeof navigator !== 'undefined' && !navigator.onLine) {
+              setSyncStatus('offline')
+            } else {
+              if (state === 'CHANNEL_ERROR') setSyncStatus('error')
+              // Auto-reconnect Realtime WebSocket after short delay
+              if (!reconnectTimerRef.current) {
+                reconnectTimerRef.current = window.setTimeout(() => {
+                  reconnectTimerRef.current = null
+                  if (!cancelled && navigator.onLine) {
+                    subscribeChannel()
+                  }
+                }, 3500)
+              }
+            }
+          }
+        },
+        (count) => {
+          if (!cancelled) setOnlineDevices(count)
+        },
+      )
+      channelRef.current = channel
+    }
+
     const startSync = async () => {
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
         setSyncStatus('offline')
+        setHasCompletedInitialCheck(true)
         return
       }
 
@@ -300,6 +398,30 @@ export function useSupabaseSync({
         for (const row of data) {
           applyRemoteRef.current(row.collection_key, row.payload)
         }
+
+        // Backfill shared pin_config if cloud room existed before global PIN sync
+        // and this device already has an active PIN configured locally
+        const hasRemotePin = data.some(
+          (row) => row.collection_key === 'pin_config',
+        )
+        if (!hasRemotePin) {
+          const localPin = getPayloadRef.current('pin_config') as
+            | {
+                hasCompletedOnboarding?: boolean
+                pinEnabled?: boolean
+                pinHash?: string | null
+              }
+            | undefined
+          if (localPin?.pinEnabled && localPin?.pinHash) {
+            await pushHouseholdCollection(
+              client,
+              code,
+              'pin_config',
+              localPin,
+              clientIdRef.current,
+            )
+          }
+        }
       }
 
       if (cancelled) return
@@ -308,38 +430,7 @@ export function useSupabaseSync({
       setLastSyncedAt(Date.now())
 
       // 3. Subscribe to Supabase Realtime + Presence (collaborator count)
-      if (channelRef.current) {
-        void client.removeChannel(channelRef.current)
-      }
-      const channel = subscribeHouseholdRealtime(
-        client,
-        code,
-        clientIdRef.current,
-        (row: HouseholdCollectionRow) => {
-          applyRemoteRef.current(row.collection_key, row.payload)
-          setLastSyncedAt(Date.now())
-          onRemoteNoticeRef.current?.(
-            `${COLLECTION_LABEL[row.collection_key] ?? 'Data'} diperbarui pasangan`,
-          )
-        },
-        (state) => {
-          if (cancelled) return
-          if (state === 'SUBSCRIBED') {
-            setSyncStatus('connected')
-            setSyncError(null)
-          } else if (state === 'CHANNEL_ERROR') {
-            setSyncStatus(
-              typeof navigator !== 'undefined' && !navigator.onLine
-                ? 'offline'
-                : 'error',
-            )
-          }
-        },
-        (count) => {
-          if (!cancelled) setOnlineDevices(count)
-        },
-      )
-      channelRef.current = channel
+      subscribeChannel()
     }
 
     void startSync()
@@ -350,13 +441,17 @@ export function useSupabaseSync({
     }
     const handleOffline = () => {
       if (cancelled) return
+      channelSubscribedRef.current = false
       setSyncStatus('offline')
     }
-    // Mobile PWA wake-up: re-pull latest cart when user unlocks phone or returns to tab
+    // Mobile PWA wake-up: re-pull latest data AND re-subscribe Realtime if socket slept
     const handleVisibilityOrFocus = () => {
       if (cancelled) return
       if (document.visibilityState === 'visible' && navigator.onLine) {
         void syncNow()
+        if (!channelSubscribedRef.current) {
+          subscribeChannel()
+        }
       }
     }
 
@@ -368,10 +463,15 @@ export function useSupabaseSync({
     return () => {
       cancelled = true
       isHydratedRef.current = false
+      channelSubscribedRef.current = false
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
       window.removeEventListener('focus', handleVisibilityOrFocus)
       document.removeEventListener('visibilitychange', handleVisibilityOrFocus)
+      if (reconnectTimerRef.current) {
+        window.clearTimeout(reconnectTimerRef.current)
+        reconnectTimerRef.current = null
+      }
       for (const timer of Object.values(debounceTimersRef.current)) {
         if (timer) window.clearTimeout(timer)
       }
@@ -422,6 +522,7 @@ export function useSupabaseSync({
       !isValidSyncConfig(syncConfig) || hasCompletedInitialCheck,
     pendingCount: pendingKeys.length,
     schedulePush,
+    pushKeyImmediately,
     updateSyncConfig,
     disconnectSync,
     syncNow,

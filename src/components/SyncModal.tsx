@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import {
+  DEFAULT_HOUSEHOLD_CODE,
   getEnvSyncDefaults,
   normalizeHouseholdCode,
   type SyncConfig,
@@ -82,7 +83,7 @@ export function SyncModal({
 }: SyncModalProps) {
   const envDefaults = getEnvSyncDefaults()
   const [householdCode, setHouseholdCode] = useState(
-    syncConfig.householdCode || 'belanjasayang-rumah',
+    syncConfig.householdCode || DEFAULT_HOUSEHOLD_CODE,
   )
   const [supabaseUrl, setSupabaseUrl] = useState(syncConfig.supabaseUrl)
   const [supabaseAnonKey, setSupabaseAnonKey] = useState(
@@ -468,6 +469,15 @@ export function SyncModal({
               <li>
                 Masukkan <b>Kode Keluarga</b> yang sama di HP kamu & HP istri!
               </li>
+              {!envDefaults.hasEnvCredentials && (
+                <li className="text-amber-700 font-semibold">
+                  Agar <b>auto-live otomatis</b> di browser/HP baru tanpa input
+                  manual, tambahkan <code>VITE_SUPABASE_URL</code>,{' '}
+                  <code>VITE_SUPABASE_ANON_KEY</code>, dan{' '}
+                  <code>VITE_HOUSEHOLD_CODE</code> di Environment Variables
+                  hosting (Vercel/Netlify) lalu <b>Redeploy</b>.
+                </li>
+              )}
             </ol>
           </div>
         </div>

@@ -181,9 +181,9 @@ export function BottomNav({
     const dock = dockRef.current
     if (!dock) return targetRef.current
     const rect = dock.getBoundingClientRect()
-    const innerW = Math.max(1, rect.width - 12)
+    const innerW = Math.max(1, rect.width - 8)
     const slotW = innerW / 3
-    const rel = clientX - rect.left - 6 - slotW / 2
+    const rel = clientX - rect.left - 4 - slotW / 2
     return Math.max(-0.1, Math.min(2.1, rel / slotW))
   }
 
@@ -208,7 +208,7 @@ export function BottomNav({
     const dock = dockRef.current
     const slotW = Math.max(
       1,
-      ((dock?.getBoundingClientRect().width ?? 300) - 12) / 3,
+      ((dock?.getBoundingClientRect().width ?? 300) - 8) / 3,
     )
     const dx = e.clientX - lastXRef.current
     lastXRef.current = e.clientX
@@ -280,7 +280,7 @@ export function BottomNav({
         return (
           <div
             key={tab.id}
-            className={`flex flex-col items-center justify-center gap-0.5 ${
+            className={`flex flex-col items-center justify-center gap-[3px] ${
               isChroma
                 ? tintClass
                 : isActive
@@ -289,14 +289,14 @@ export function BottomNav({
             }`}
           >
             <div className="relative flex items-center justify-center">
-              <Icon className="w-5 h-5" strokeWidth={2.35} />
+              <Icon className="w-6 h-6" strokeWidth={2.25} />
               {tab.badge !== undefined && !isChroma && (
-                <span className="ml-1 px-1.5 rounded-full text-[10px] font-extrabold tabular-nums bg-emerald-600 text-white shadow-2xs">
+                <span className="absolute -top-1.5 -right-3.5 min-w-[18px] h-[17px] px-1.5 rounded-full text-[10px] font-extrabold leading-none tabular-nums bg-emerald-600 text-white shadow-xs flex items-center justify-center">
                   {tab.badge}
                 </span>
               )}
             </div>
-            <span className="text-[11px] font-bold leading-none">
+            <span className="text-[10.5px] font-bold tracking-[-0.01em] leading-none">
               {tab.label}
             </span>
           </div>
@@ -306,7 +306,7 @@ export function BottomNav({
   )
 
   return (
-    <div className="w-full min-w-0 px-3 pt-4 pb-[max(0.65rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-[#f2f6f3]/92 via-[#f2f6f3]/60 to-transparent pointer-events-none">
+    <div className="w-full min-w-0 px-5 pt-2 pb-[max(14px,calc(env(safe-area-inset-bottom,0px)-14px))] bg-gradient-to-t from-[#f2f6f3]/90 via-[#f2f6f3]/50 to-transparent pointer-events-none">
       <nav
         ref={dockRef}
         aria-label="Navigasi Utama"
@@ -314,7 +314,7 @@ export function BottomNav({
         onPointerMove={handlePointerMove}
         onPointerUp={finishInteraction}
         onPointerCancel={finishInteraction}
-        className="glass-dock pointer-events-auto rounded-full px-1.5 py-1 grid grid-cols-3 cursor-grab active:cursor-grabbing"
+        className="glass-dock pointer-events-auto rounded-full p-1 h-[62px] grid grid-cols-3 cursor-grab active:cursor-grabbing"
       >
         {/* Base Layer: Accessible Tab Buttons (inner visual fades smoothly under clear droplet) */}
         {tabs.map((tab, idx) => {
@@ -337,23 +337,23 @@ export function BottomNav({
                   onChangeTab(tab.id)
                 }
               }}
-              className="relative z-10 min-h-12 rounded-full flex items-center justify-center cursor-pointer"
+              className="relative z-10 h-full rounded-full flex items-center justify-center cursor-pointer"
             >
               <div
                 ref={(el) => {
                   baseVisualRefs.current[idx] = el
                 }}
-                className={`flex flex-col items-center justify-center gap-0.5 pointer-events-none ${
-                  isActive ? 'text-emerald-700' : 'text-slate-800'
+                className={`flex flex-col items-center justify-center gap-[3px] pointer-events-none ${
+                  isActive ? 'text-emerald-700' : 'text-slate-900'
                 }`}
               >
                 <div className="relative flex items-center justify-center">
-                  <Icon className="w-5 h-5" strokeWidth={isActive ? 2.3 : 2} />
+                  <Icon className="w-6 h-6" strokeWidth={isActive ? 2.25 : 2} />
                   {tab.badge !== undefined && (
                     <span
-                      className={`ml-1 px-1.5 rounded-full text-[10px] font-bold tabular-nums ${
+                      className={`absolute -top-1.5 -right-3.5 min-w-[18px] h-[17px] px-1.5 rounded-full text-[10px] font-extrabold leading-none tabular-nums flex items-center justify-center ${
                         tab.id === 'keranjang' || isActive
-                          ? 'bg-emerald-600 text-white'
+                          ? 'bg-emerald-600 text-white shadow-xs'
                           : 'bg-slate-900/12 text-slate-800'
                       }`}
                     >
@@ -361,7 +361,7 @@ export function BottomNav({
                     </span>
                   )}
                 </div>
-                <span className="text-[11px] font-bold leading-none">
+                <span className="text-[10.5px] font-bold tracking-[-0.01em] leading-none">
                   {tab.label}
                 </span>
               </div>

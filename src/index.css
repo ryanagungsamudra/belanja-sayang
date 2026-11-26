@@ -257,10 +257,10 @@ a.glass-pill:active {
 /* Overhanging liquid glass droplet sitting ABOVE the icons */
 .liquid-droplet {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
-  left: 6px;
-  width: calc((100% - 12px) / 3);
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc((100% - 8px) / 3);
   border-radius: 9999px;
   overflow: hidden;
   pointer-events: none;

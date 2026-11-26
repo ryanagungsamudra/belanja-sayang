@@ -79,9 +79,12 @@ export function PinLockScreen({
         : 'Kunci daftar belanja di HP bersama. Bisa diubah atau dimatikan kapan saja.'
 
   return (
-    <div className="max-w-md mx-auto min-h-dvh bg-[#FAF9F6] shadow-xl shadow-stone-900/5 flex flex-col justify-between px-6 py-8">
+    <div className="liquid-shell max-w-md mx-auto min-h-dvh shadow-2xl shadow-slate-900/10 flex flex-col justify-between px-6 py-8 relative overflow-hidden">
+      <div className="liquid-blob liquid-blob-1 w-64 h-64 -top-16 -left-16" />
+      <div className="liquid-blob liquid-blob-2 w-72 h-72 top-44 -right-24" />
+      <div className="liquid-blob liquid-blob-3 w-64 h-64 bottom-10 -left-16" />
       {/* Top Brand & Prompt */}
-      <div className="pt-6 text-center space-y-4">
+      <div className="relative z-10 pt-6 text-center space-y-4">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/25">
           {mode === 'unlock' ? (
             <Lock className="w-7 h-7" />
@@ -128,7 +131,7 @@ export function PinLockScreen({
       </div>
 
       {/* Numeric Keypad */}
-      <div className="space-y-5 pb-[env(safe-area-inset-bottom)]">
+      <div className="relative z-10 space-y-5 pb-[env(safe-area-inset-bottom)]">
         <div className="grid grid-cols-3 gap-3 max-w-[280px] mx-auto">
           {KEYPAD.map((key, idx) => {
             if (key === '') {
@@ -141,7 +144,7 @@ export function PinLockScreen({
                   type="button"
                   aria-label="Hapus digit"
                   onClick={handleBackspace}
-                  className="min-h-14 rounded-2xl bg-stone-100 hover:bg-stone-200 active:scale-95 text-slate-700 flex items-center justify-center transition-all cursor-pointer"
+                  className="glass-pill min-h-14 rounded-2xl text-slate-700 flex items-center justify-center cursor-pointer"
                 >
                   <Delete className="w-6 h-6" />
                 </button>
@@ -153,7 +156,7 @@ export function PinLockScreen({
                 type="button"
                 data-testid={`pin-key-${key}`}
                 onClick={() => handleDigit(key)}
-                className="min-h-14 rounded-2xl bg-white border border-stone-200/90 hover:border-emerald-400 active:scale-95 active:bg-emerald-50 text-2xl font-bold text-slate-900 shadow-2xs transition-all cursor-pointer tabular-nums"
+                className="glass-pill min-h-14 rounded-2xl text-2xl font-bold text-slate-900 cursor-pointer tabular-nums"
               >
                 {key}
               </button>

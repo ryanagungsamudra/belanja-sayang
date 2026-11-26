@@ -26,7 +26,6 @@ import {
   findCategory,
   findStore,
   getReferencePriceForStore,
-  getSolidPillStyle,
   getTintedPillStyle,
 } from '../lib/stores'
 import type {
@@ -38,6 +37,7 @@ import type {
   StoreConfig,
   StoreSource,
 } from '../types/market'
+import { LiquidSegmentedTabs } from './LiquidSegmentedTabs'
 import { MonthlyDonutChart, type DonutSegment } from './MonthlyDonutChart'
 
 interface ProductCatalogViewProps {
@@ -207,6 +207,32 @@ export function ProductCatalogView({
   const hasFilter =
     selectedStore !== 'all' || selectedCategory !== 'all' || search.length > 0
 
+  // Live item counts per store & per category for the upgraded filter cards
+  const storeItemCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const s of stores) counts[s.id] = 0
+    for (const ref of productRefs) {
+      const refEntries = entriesByRef.get(ref.id) ?? []
+      for (const s of stores) {
+        const match =
+          refEntries.some((e) => e.store === s.id) ||
+          Boolean(ref.prices[s.id]?.price) ||
+          ref.preferredStore === s.id
+        if (match) counts[s.id] = (counts[s.id] ?? 0) + 1
+      }
+    }
+    return counts
+  }, [entriesByRef, productRefs, stores])
+
+  const categoryItemCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const c of categories) counts[c.id] = 0
+    for (const ref of productRefs) {
+      counts[ref.category] = (counts[ref.category] ?? 0) + 1
+    }
+    return counts
+  }, [categories, productRefs])
+
   const selectedStoreCfg =
     selectedStore !== 'all' ? findStore(stores, selectedStore) : undefined
   const selectedCategoryCfg =
@@ -216,25 +242,25 @@ export function ProductCatalogView({
 
   return (
     <div className="space-y-3">
-      {/* Compact Dashboard Card with Circle Diagram */}
+      {/* Compact Liquid Glass Dashboard Card with Circle Diagram */}
       <section
         aria-label="Dashboard Pengeluaran Bulanan"
-        className="bg-white rounded-3xl border border-stone-200/80 p-3.5 shadow-xs space-y-3"
+        className="glass-card rounded-3xl p-3.5 space-y-3"
       >
-        {/* Top Row: Compact Month Switcher + Chart Mode Toggle */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1">
+        {/* Top Row: Compact Month Switcher + Spring-Sliding Liquid Segmented Toggle */}
+        <div className="flex items-center justify-between gap-1.5">
+          <div className="flex items-center gap-1 min-w-0">
             <button
               type="button"
               aria-label="Bulan sebelumnya"
               onClick={() => onChangeMonth(shiftMonthKey(selectedMonth, -1))}
-              className="w-8 h-8 rounded-xl bg-stone-100 hover:bg-stone-200/80 text-slate-700 flex items-center justify-center cursor-pointer"
+              className="glass-pill w-7 h-7 rounded-xl text-slate-700 flex items-center justify-center shrink-0 cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <h2
               data-testid="selected-month-label"
-              className="text-sm font-extrabold text-slate-900 capitalize px-1.5"
+              className="text-[13px] font-extrabold text-slate-900 capitalize px-1 whitespace-nowrap truncate"
             >
               {formatMonthLabel(selectedMonth)}
             </h2>
@@ -242,39 +268,28 @@ export function ProductCatalogView({
               type="button"
               aria-label="Bulan berikutnya"
               onClick={() => onChangeMonth(shiftMonthKey(selectedMonth, 1))}
-              className="w-8 h-8 rounded-xl bg-stone-100 hover:bg-stone-200/80 text-slate-700 flex items-center justify-center cursor-pointer"
+              className="glass-pill w-7 h-7 rounded-xl text-slate-700 flex items-center justify-center shrink-0 cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Segmented Toggle: Per Toko vs Per Kategori */}
-          <div className="bg-stone-100 p-0.5 rounded-xl flex items-center text-[11px] font-bold">
-            <button
-              type="button"
-              data-testid="chart-mode-store"
-              onClick={() => setChartMode('store')}
-              className={`px-2.5 py-1.5 rounded-[10px] transition-all cursor-pointer ${
-                chartMode === 'store'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-stone-500 hover:text-slate-700'
-              }`}
-            >
-              Toko
-            </button>
-            <button
-              type="button"
-              data-testid="chart-mode-category"
-              onClick={() => setChartMode('category')}
-              className={`px-2.5 py-1.5 rounded-[10px] transition-all cursor-pointer ${
-                chartMode === 'category'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-stone-500 hover:text-slate-700'
-              }`}
-            >
-              Kategori
-            </button>
-          </div>
+          {/* Draggable iOS Liquid Glass Switcher: Toko | Kategori */}
+          <LiquidSegmentedTabs
+            ariaLabel="Mode Diagram"
+            size="sm"
+            className="w-[146px] shrink-0"
+            value={chartMode}
+            onChange={setChartMode}
+            options={[
+              { id: 'store', label: 'Toko', testId: 'chart-mode-store' },
+              {
+                id: 'category',
+                label: 'Kategori',
+                testId: 'chart-mode-category',
+              },
+            ]}
+          />
         </div>
 
         {/* Interactive Circle (Donut) Diagram + Legend */}
@@ -331,24 +346,24 @@ export function ProductCatalogView({
         </div>
       </section>
 
-      {/* Single Compact Toolbar: Search + Impor Teks + Tambah Produk */}
+      {/* Single Compact Frosted Toolbar: Search + Impor Teks + Tambah Produk */}
       <div className="flex items-center gap-1.5">
-        <div className="flex-1 min-w-0 min-h-11 bg-white rounded-2xl border border-stone-200/90 focus-within:border-emerald-600 px-3 flex items-center gap-2 shadow-2xs">
-          <Search className="w-4 h-4 text-stone-400 shrink-0" />
+        <div className="glass-pill flex-1 min-w-0 min-h-11 rounded-2xl focus-within:ring-2 focus-within:ring-emerald-500/30 px-3 flex items-center gap-2">
+          <Search className="w-4 h-4 text-slate-400 shrink-0" />
           <input
             type="text"
             data-testid="ref-search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari bahan..."
-            className="flex-1 min-w-0 bg-transparent text-sm font-medium text-slate-900 placeholder:text-stone-400 outline-none"
+            className="flex-1 min-w-0 bg-transparent text-sm font-medium text-slate-900 placeholder:text-slate-400 outline-none"
           />
           {search && (
             <button
               type="button"
               aria-label="Hapus pencarian"
               onClick={() => setSearch('')}
-              className="text-stone-400 hover:text-stone-600 cursor-pointer"
+              className="text-slate-400 hover:text-slate-600 cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -360,7 +375,7 @@ export function ProductCatalogView({
           data-testid="open-import-note-btn"
           aria-label="Impor atau salin catatan teks"
           onClick={onOpenImportModal}
-          className="min-h-11 px-3 rounded-2xl bg-white border border-stone-200/90 hover:border-emerald-400 text-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-2xs shrink-0 cursor-pointer"
+          className="glass-pill min-h-11 px-3 rounded-2xl text-slate-700 text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer"
         >
           <FileText className="w-4 h-4 text-emerald-600" />
           <span>Teks</span>
@@ -371,16 +386,16 @@ export function ProductCatalogView({
           data-testid="add-product-ref-btn"
           aria-label="Tambah produk baru"
           onClick={onAddNewRef}
-          className="min-h-11 min-w-11 px-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold flex items-center justify-center gap-1 shadow-xs shadow-emerald-600/20 shrink-0 cursor-pointer"
+          className="min-h-11 min-w-11 px-3 rounded-2xl bg-emerald-600/95 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold flex items-center justify-center gap-1 shadow-md shadow-emerald-600/25 border border-white/30 shrink-0 cursor-pointer transition-transform"
         >
           <Plus className="w-4 h-4" strokeWidth={2.6} />
           <span>Baru</span>
         </button>
       </div>
 
-      {/* Ultra-Compact Single-Row Filter Bar (Sort + Toko + Kategori + Count) */}
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-1.5">
+      {/* Upgraded Liquid Glass Unified Filter Bar + Rich Store/Category Picker Cards */}
+      <div className="space-y-2">
+        <div className="glass-pill rounded-2xl p-1 flex items-center gap-1">
           {/* A-Z / Z-A Reverse Toggle */}
           <button
             type="button"
@@ -393,10 +408,10 @@ export function ProductCatalogView({
             onClick={() =>
               setSortOrder((prev) => (prev === 'az' ? 'za' : 'az'))
             }
-            className={`min-h-9 px-2.5 rounded-xl border text-xs font-extrabold shrink-0 inline-flex items-center gap-1 transition-all active:scale-95 cursor-pointer ${
+            className={`min-h-8 px-2.5 rounded-xl text-[11px] font-extrabold shrink-0 inline-flex items-center gap-1 transition-all active:scale-95 cursor-pointer ${
               sortOrder === 'za'
-                ? 'bg-emerald-600 border-emerald-600 text-white'
-                : 'bg-white border-stone-200/90 text-slate-700 hover:border-emerald-400'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-white/60 text-slate-700 hover:bg-white/85'
             }`}
           >
             {sortOrder === 'az' ? (
@@ -412,7 +427,7 @@ export function ProductCatalogView({
             )}
           </button>
 
-          {/* Compact Store Filter Dropdown Trigger */}
+          {/* Toko Filter Pill */}
           <button
             type="button"
             data-testid="filter-store-trigger"
@@ -420,12 +435,12 @@ export function ProductCatalogView({
             onClick={() =>
               setOpenFilterMenu((prev) => (prev === 'store' ? null : 'store'))
             }
-            className={`flex-1 min-w-0 min-h-9 px-2.5 rounded-xl border text-xs font-bold inline-flex items-center justify-between gap-1 transition-all cursor-pointer ${
+            className={`flex-1 min-w-0 min-h-8 px-2.5 rounded-xl text-xs font-bold inline-flex items-center justify-between gap-1 transition-all cursor-pointer border ${
               selectedStoreCfg
                 ? ''
                 : openFilterMenu === 'store'
-                  ? 'bg-stone-100 border-stone-300 text-slate-900'
-                  : 'bg-white border-stone-200/90 text-slate-700 hover:bg-stone-50'
+                  ? 'bg-white/95 border-white text-slate-900 shadow-xs'
+                  : 'bg-white/50 border-transparent text-slate-700 hover:bg-white/75'
             }`}
             style={
               selectedStoreCfg
@@ -433,12 +448,17 @@ export function ProductCatalogView({
                 : undefined
             }
           >
-            <span className="inline-flex items-center gap-1 min-w-0 truncate">
-              <Store className="w-3.5 h-3.5 shrink-0 opacity-80" />
+            <span className="inline-flex items-center gap-1.5 min-w-0 truncate">
+              {selectedStoreCfg ? (
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: selectedStoreCfg.color }}
+                />
+              ) : (
+                <Store className="w-3.5 h-3.5 shrink-0 text-slate-500" />
+              )}
               <span className="truncate">
-                {selectedStoreCfg
-                  ? `${selectedStoreCfg.code} · ${selectedStoreCfg.shortLabel}`
-                  : 'Toko'}
+                {selectedStoreCfg ? selectedStoreCfg.shortLabel : 'Toko'}
               </span>
             </span>
             {selectedStoreCfg ? (
@@ -460,7 +480,7 @@ export function ProductCatalogView({
                     setOpenFilterMenu(null)
                   }
                 }}
-                className="p-0.5 rounded hover:bg-black/10 shrink-0"
+                className="p-0.5 rounded-md hover:bg-black/10 shrink-0"
               >
                 <X className="w-3 h-3" />
               </span>
@@ -473,7 +493,7 @@ export function ProductCatalogView({
             )}
           </button>
 
-          {/* Compact Category Filter Dropdown Trigger */}
+          {/* Kategori Filter Pill */}
           <button
             type="button"
             data-testid="filter-category-trigger"
@@ -483,12 +503,12 @@ export function ProductCatalogView({
                 prev === 'category' ? null : 'category',
               )
             }
-            className={`flex-1 min-w-0 min-h-9 px-2.5 rounded-xl border text-xs font-bold inline-flex items-center justify-between gap-1 transition-all cursor-pointer ${
+            className={`flex-1 min-w-0 min-h-8 px-2.5 rounded-xl text-xs font-bold inline-flex items-center justify-between gap-1 transition-all cursor-pointer border ${
               selectedCategoryCfg
                 ? ''
                 : openFilterMenu === 'category'
-                  ? 'bg-stone-100 border-stone-300 text-slate-900'
-                  : 'bg-white border-stone-200/90 text-slate-700 hover:bg-stone-50'
+                  ? 'bg-white/95 border-white text-slate-900 shadow-xs'
+                  : 'bg-white/50 border-transparent text-slate-700 hover:bg-white/75'
             }`}
             style={
               selectedCategoryCfg
@@ -496,8 +516,15 @@ export function ProductCatalogView({
                 : undefined
             }
           >
-            <span className="inline-flex items-center gap-1 min-w-0 truncate">
-              <Tag className="w-3.5 h-3.5 shrink-0 opacity-80" />
+            <span className="inline-flex items-center gap-1.5 min-w-0 truncate">
+              {selectedCategoryCfg ? (
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: selectedCategoryCfg.color }}
+                />
+              ) : (
+                <Tag className="w-3.5 h-3.5 shrink-0 text-slate-500" />
+              )}
               <span className="truncate">
                 {selectedCategoryCfg
                   ? selectedCategoryCfg.shortLabel
@@ -522,7 +549,7 @@ export function ProductCatalogView({
                     setOpenFilterMenu(null)
                   }
                 }}
-                className="p-0.5 rounded hover:bg-black/10 shrink-0"
+                className="p-0.5 rounded-md hover:bg-black/10 shrink-0"
               >
                 <X className="w-3 h-3" />
               </span>
@@ -535,136 +562,235 @@ export function ProductCatalogView({
             )}
           </button>
 
-          {/* Compact Result Count */}
+          {/* Compact Result Count Pill */}
           <span
             data-testid="filtered-ref-count"
-            className="text-[11px] font-bold text-stone-400 tabular-nums shrink-0 px-0.5"
+            className="min-w-7 h-7 px-1.5 rounded-xl bg-slate-900/8 text-[11px] font-extrabold text-slate-700 tabular-nums inline-flex items-center justify-center shrink-0"
           >
             {filteredRefs.length}
           </span>
         </div>
 
-        {/* Expandable Inline Store Picker Panel */}
+        {/* Rich Liquid Glass Store Picker Card Grid */}
         {openFilterMenu === 'store' && (
           <div
             data-testid="store-filter-panel"
-            className="bg-white rounded-2xl border border-stone-200/90 p-2.5 shadow-sm flex flex-wrap gap-1.5 animate-fade-in"
+            className="glass-card rounded-3xl p-3 space-y-2.5 animate-liquid-enter"
           >
-            <button
-              type="button"
-              data-testid="note-store-filter-all-panel"
-              onClick={() => {
-                setSelectedStore('all')
-                setOpenFilterMenu(null)
-              }}
-              className={`min-h-8 px-2.5 rounded-lg text-xs font-bold border cursor-pointer ${
-                selectedStore === 'all'
-                  ? 'bg-slate-900 border-slate-900 text-white'
-                  : 'bg-stone-50 border-stone-200 text-stone-600'
-              }`}
-            >
-              Semua Toko
-            </button>
-            {stores.map((s) => {
-              const active = selectedStore === s.id
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  data-testid={`note-store-filter-${s.id}`}
-                  onClick={() => {
-                    setSelectedStore(active ? 'all' : s.id)
-                    setOpenFilterMenu(null)
-                  }}
-                  className="min-h-8 px-2.5 rounded-lg text-xs font-bold border transition-all cursor-pointer"
-                  style={
-                    active
-                      ? getSolidPillStyle(s.color)
-                      : getTintedPillStyle(s.color)
-                  }
+            <div className="flex items-center justify-between px-0.5">
+              <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
+                Filter Tempat Belanja
+              </span>
+              <button
+                type="button"
+                data-testid="edit-stores-pill"
+                onClick={() => {
+                  setOpenFilterMenu(null)
+                  onOpenManageConfig('stores')
+                }}
+                className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1 cursor-pointer"
+              >
+                <SlidersHorizontal className="w-3 h-3" />
+                <span>Atur Toko</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                data-testid="note-store-filter-all-panel"
+                onClick={() => {
+                  setSelectedStore('all')
+                  setOpenFilterMenu(null)
+                }}
+                className={`min-h-14 px-3 py-2 rounded-2xl border text-left flex flex-col justify-between transition-all active:scale-[0.97] cursor-pointer ${
+                  selectedStore === 'all'
+                    ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
+                    : 'bg-white/60 border-white/80 text-slate-800 hover:bg-white/85'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-xs font-extrabold">Semua Toko</span>
+                  {selectedStore === 'all' && <Check className="w-3.5 h-3.5" />}
+                </div>
+                <span
+                  className={`text-[11px] font-semibold tabular-nums ${
+                    selectedStore === 'all' ? 'text-white/75' : 'text-slate-500'
+                  }`}
                 >
-                  {s.code} · {s.shortLabel}
-                </button>
-              )
-            })}
-            <button
-              type="button"
-              data-testid="edit-stores-pill"
-              onClick={() => {
-                setOpenFilterMenu(null)
-                onOpenManageConfig('stores')
-              }}
-              className="min-h-8 px-2.5 rounded-lg border border-dashed border-stone-300 bg-white text-xs font-bold text-stone-500 hover:text-emerald-700 hover:border-emerald-400 inline-flex items-center gap-1 cursor-pointer"
-            >
-              <Plus className="w-3 h-3" />
-              <span>Atur Toko</span>
-            </button>
+                  {productRefs.length} bahan · {formatRupiah(monthlyTotalSpend)}
+                </span>
+              </button>
+
+              {stores.map((s) => {
+                const active = selectedStore === s.id
+                const spend = monthlySpendByStore[s.id] ?? 0
+                const count = storeItemCounts[s.id] ?? 0
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    data-testid={`note-store-filter-${s.id}`}
+                    onClick={() => {
+                      setSelectedStore(active ? 'all' : s.id)
+                      setOpenFilterMenu(null)
+                    }}
+                    className={`min-h-14 px-3 py-2 rounded-2xl border text-left flex flex-col justify-between transition-all active:scale-[0.97] cursor-pointer ${
+                      active
+                        ? 'shadow-sm'
+                        : 'bg-white/60 border-white/80 hover:bg-white/85'
+                    }`}
+                    style={
+                      active
+                        ? {
+                            backgroundColor: `${s.color}20`,
+                            borderColor: s.color,
+                          }
+                        : undefined
+                    }
+                  >
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="inline-flex items-center gap-1.5 min-w-0">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: s.color }}
+                        />
+                        <span className="text-xs font-extrabold text-slate-900 truncate">
+                          {s.shortLabel}
+                        </span>
+                      </span>
+                      <span
+                        className="px-1.5 py-0.2 rounded-md text-[10px] font-extrabold shrink-0"
+                        style={getTintedPillStyle(s.color)}
+                      >
+                        {s.code}
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-semibold text-slate-500 tabular-nums truncate">
+                      {count} bahan · {formatRupiah(spend)}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         )}
 
-        {/* Expandable Inline Category Picker Panel */}
+        {/* Rich Liquid Glass Category Picker Card Grid */}
         {openFilterMenu === 'category' && (
           <div
             data-testid="category-filter-panel"
-            className="bg-white rounded-2xl border border-stone-200/90 p-2.5 shadow-sm flex flex-wrap gap-1.5 animate-fade-in"
+            className="glass-card rounded-3xl p-3 space-y-2.5 animate-liquid-enter"
           >
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedCategory('all')
-                setOpenFilterMenu(null)
-              }}
-              className={`min-h-8 px-2.5 rounded-lg text-xs font-bold border cursor-pointer ${
-                selectedCategory === 'all'
-                  ? 'bg-slate-900 border-slate-900 text-white'
-                  : 'bg-stone-50 border-stone-200 text-stone-600'
-              }`}
-            >
-              Semua Kategori
-            </button>
-            {categories.map((cat) => {
-              const active = selectedCategory === cat.id
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  data-testid={`cat-filter-${cat.id}`}
-                  onClick={() => {
-                    setSelectedCategory(active ? 'all' : cat.id)
-                    setOpenFilterMenu(null)
-                  }}
-                  className="min-h-8 px-2.5 rounded-lg text-xs font-bold border transition-all cursor-pointer"
-                  style={
-                    active
-                      ? getSolidPillStyle(cat.color)
-                      : getTintedPillStyle(cat.color)
-                  }
+            <div className="flex items-center justify-between px-0.5">
+              <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
+                Filter Kategori
+              </span>
+              <button
+                type="button"
+                data-testid="edit-categories-pill"
+                onClick={() => {
+                  setOpenFilterMenu(null)
+                  onOpenManageConfig('categories')
+                }}
+                className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1 cursor-pointer"
+              >
+                <SlidersHorizontal className="w-3 h-3" />
+                <span>Atur Kategori</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCategory('all')
+                  setOpenFilterMenu(null)
+                }}
+                className={`min-h-14 px-3 py-2 rounded-2xl border text-left flex flex-col justify-between transition-all active:scale-[0.97] cursor-pointer ${
+                  selectedCategory === 'all'
+                    ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
+                    : 'bg-white/60 border-white/80 text-slate-800 hover:bg-white/85'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-xs font-extrabold">Semua Kategori</span>
+                  {selectedCategory === 'all' && (
+                    <Check className="w-3.5 h-3.5" />
+                  )}
+                </div>
+                <span
+                  className={`text-[11px] font-semibold tabular-nums ${
+                    selectedCategory === 'all'
+                      ? 'text-white/75'
+                      : 'text-slate-500'
+                  }`}
                 >
-                  {cat.shortLabel}
-                </button>
-              )
-            })}
-            <button
-              type="button"
-              data-testid="edit-categories-pill"
-              onClick={() => {
-                setOpenFilterMenu(null)
-                onOpenManageConfig('categories')
-              }}
-              className="min-h-8 px-2.5 rounded-lg border border-dashed border-stone-300 bg-white text-xs font-bold text-stone-500 hover:text-emerald-700 hover:border-emerald-400 inline-flex items-center gap-1 cursor-pointer"
-            >
-              <Plus className="w-3 h-3" />
-              <span>Atur Kategori</span>
-            </button>
+                  {productRefs.length} bahan
+                </span>
+              </button>
+
+              {categories.map((cat) => {
+                const active = selectedCategory === cat.id
+                const count = categoryItemCounts[cat.id] ?? 0
+                const spend = monthlySpendByCategory[cat.id] ?? 0
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    data-testid={`cat-filter-${cat.id}`}
+                    onClick={() => {
+                      setSelectedCategory(active ? 'all' : cat.id)
+                      setOpenFilterMenu(null)
+                    }}
+                    className={`min-h-14 px-3 py-2 rounded-2xl border text-left flex flex-col justify-between transition-all active:scale-[0.97] cursor-pointer ${
+                      active
+                        ? 'shadow-sm'
+                        : 'bg-white/60 border-white/80 hover:bg-white/85'
+                    }`}
+                    style={
+                      active
+                        ? {
+                            backgroundColor: `${cat.color}20`,
+                            borderColor: cat.color,
+                          }
+                        : undefined
+                    }
+                  >
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="inline-flex items-center gap-1.5 min-w-0">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: cat.color }}
+                        />
+                        <span className="text-xs font-extrabold text-slate-900 truncate">
+                          {cat.name}
+                        </span>
+                      </span>
+                      {active && (
+                        <Check
+                          className="w-3.5 h-3.5 shrink-0"
+                          style={{ color: cat.color }}
+                        />
+                      )}
+                    </div>
+                    <span className="text-[11px] font-semibold text-slate-500 tabular-nums truncate">
+                      {count} bahan
+                      {spend > 0 ? ` · ${formatRupiah(spend)}` : ''}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Compact Scannable Monthly Note List (Sorted A-Z or Z-A) */}
+      {/* Compact Liquid Glass Monthly Note List (Sorted A-Z or Z-A) */}
       {filteredRefs.length > 0 ? (
         <div
           data-testid="product-ref-list"
-          className="bg-white rounded-2xl border border-stone-200/80 divide-y divide-stone-100 shadow-2xs overflow-hidden"
+          className="glass-card rounded-3xl glass-divide overflow-hidden"
         >
           {filteredRefs.map((ref) => {
             const entries = entriesByRef.get(ref.id) ?? []
@@ -785,8 +911,8 @@ export function ProductCatalogView({
                   onClick={() => onToggleInCart(ref)}
                   className={`min-w-11 min-h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all active:scale-90 cursor-pointer ${
                     isInCart
-                      ? 'bg-emerald-600 text-white shadow-xs shadow-emerald-600/25'
-                      : 'bg-stone-100 hover:bg-emerald-50 text-stone-600 hover:text-emerald-700 border border-stone-200/80'
+                      ? 'bg-emerald-600/95 text-white shadow-md shadow-emerald-600/30 border border-white/35'
+                      : 'glass-pill text-slate-600 hover:text-emerald-700'
                   }`}
                 >
                   {isInCart ? (

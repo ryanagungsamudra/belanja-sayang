@@ -2,49 +2,6 @@ import type { MarketCategory } from '../types/market'
 
 const KEYWORD_MAP: Array<{ category: MarketCategory; keywords: string[] }> = [
   {
-    category: 'Daging & Ikan',
-    keywords: [
-      'ayam',
-      'daging',
-      'sapi',
-      'kambing',
-      'ikan',
-      'udang',
-      'cumi',
-      'kepiting',
-      'tongkol',
-      'lele',
-      'gurame',
-      'nila',
-      'salmon',
-      'tuna',
-      'teri',
-      'bakso',
-      'sosis',
-      'ati',
-      'ampela',
-      'ceker',
-      'iga',
-      'tetelan',
-      'bebek',
-      'pindang',
-      'bandeng',
-      'kakap',
-      'kerang',
-      'kikil',
-      'kornet',
-      'fillet',
-      'rendang',
-      'patin',
-      'kembung',
-      'cakalang',
-      'seafood',
-      'sarden',
-      'kingfish',
-      'champ',
-    ],
-  },
-  {
     category: 'Bumbu & Rempah',
     keywords: [
       'cabai',
@@ -95,6 +52,49 @@ const KEYWORD_MAP: Array<{ category: MarketCategory; keywords: string[] }> = [
       'tauco',
       'leekumkee',
       'delmonte',
+    ],
+  },
+  {
+    category: 'Daging & Ikan',
+    keywords: [
+      'ayam',
+      'daging',
+      'sapi',
+      'kambing',
+      'ikan',
+      'udang',
+      'cumi',
+      'kepiting',
+      'tongkol',
+      'lele',
+      'gurame',
+      'nila',
+      'salmon',
+      'tuna',
+      'teri',
+      'bakso',
+      'sosis',
+      'ati',
+      'ampela',
+      'ceker',
+      'iga',
+      'tetelan',
+      'bebek',
+      'pindang',
+      'bandeng',
+      'kakap',
+      'kerang',
+      'kikil',
+      'kornet',
+      'fillet',
+      'rendang',
+      'patin',
+      'kembung',
+      'cakalang',
+      'seafood',
+      'sarden',
+      'kingfish',
+      'champ',
     ],
   },
   {
@@ -214,10 +214,11 @@ export function detectCategory(itemName: string): MarketCategory {
   const normalized = itemName.trim().toLowerCase()
   if (!normalized) return 'Lainnya'
 
-  // Check multi-word keywords and exact tokens first
+  // Check whole-word / phrase keywords first to avoid substring false-positives (e.g. "santan" inside "santang")
   for (const group of KEYWORD_MAP) {
     for (const kw of group.keywords) {
-      if (normalized.includes(kw)) {
+      const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      if (new RegExp(`(?:^|\\b)${escaped}(?:\\b|$)`).test(normalized)) {
         return group.category
       }
     }

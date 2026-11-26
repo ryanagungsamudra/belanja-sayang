@@ -19,6 +19,7 @@ interface HeaderProps {
   totalCount: number
   totalEstimatedSpend: number
   syncStatus: SyncStatus
+  onlineDevices: number
   pinEnabled: boolean
   wakeLockSupported: boolean
   wakeLockActive: boolean
@@ -34,6 +35,7 @@ export function Header({
   totalCount,
   totalEstimatedSpend,
   syncStatus,
+  onlineDevices,
   pinEnabled,
   wakeLockSupported,
   wakeLockActive,
@@ -53,12 +55,20 @@ export function Header({
           type="button"
           data-testid="header-sync-btn"
           onClick={onOpenSyncModal}
-          aria-label="Sinkronisasi Real-Time Aktif"
-          title="Sinkron Real-Time Aktif"
-          className="min-h-10 px-2.5 rounded-xl border bg-emerald-50 border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-1.5 transition-colors active:scale-[0.97] cursor-pointer"
+          aria-label={
+            onlineDevices > 1
+              ? `Sinkron Real-Time Aktif (${onlineDevices} perangkat online)`
+              : 'Sinkronisasi Real-Time Aktif'
+          }
+          title={
+            onlineDevices > 1
+              ? `${onlineDevices} HP sedang online bersama`
+              : 'Sinkron Real-Time Aktif'
+          }
+          className="glass-pill min-h-10 px-2 rounded-2xl text-emerald-700 text-xs font-bold flex items-center gap-1 cursor-pointer whitespace-nowrap"
         >
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-          <span>Live</span>
+          <span>{onlineDevices > 1 ? `Live · ${onlineDevices}` : 'Live'}</span>
         </button>
       )
     }
@@ -111,7 +121,7 @@ export function Header({
         onClick={onOpenSyncModal}
         aria-label="Atur Sinkronisasi Real-Time"
         title="Hubungkan Sinkronisasi Real-Time"
-        className="min-h-10 px-2.5 rounded-xl border bg-white border-stone-200 text-stone-600 hover:bg-stone-50 hover:text-emerald-700 text-xs font-bold flex items-center gap-1 transition-colors active:scale-[0.97] cursor-pointer"
+        className="glass-pill min-h-10 px-2.5 rounded-2xl text-slate-700 hover:text-emerald-700 text-xs font-bold flex items-center gap-1 cursor-pointer"
       >
         <Cloud className="w-3.5 h-3.5 shrink-0" />
         <span>Sync</span>
@@ -120,11 +130,11 @@ export function Header({
   }
 
   return (
-    <header className="sticky top-0 z-20 bg-[#FAF9F6]/95 backdrop-blur-md border-b border-stone-200/75 px-3.5 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2">
+    <header className="glass-header sticky top-0 z-20 px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2">
       {/* Compact Single-Row Top Bar */}
-      <div className="flex items-center justify-between gap-1.5">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shadow-emerald-600/25 shrink-0">
+      <div className="flex items-center justify-between gap-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-emerald-600/95 text-white flex items-center justify-center shadow-md shadow-emerald-600/25 border border-white/40 shrink-0">
             <ShoppingBasket className="w-4 h-4" strokeWidth={2.3} />
           </div>
           <h1 className="text-[15px] font-extrabold tracking-tight text-slate-900 leading-none truncate">
@@ -143,7 +153,7 @@ export function Header({
             onClick={onOpenManageConfig}
             aria-label="Kelola Tempat Belanja dan Kategori"
             title="Kelola Toko & Kategori"
-            className="min-h-10 min-w-10 rounded-xl border bg-white border-stone-200 text-stone-600 hover:bg-stone-50 hover:text-slate-900 flex items-center justify-center transition-colors active:scale-[0.97] cursor-pointer"
+            className="glass-pill min-h-10 min-w-10 rounded-2xl text-slate-600 hover:text-slate-900 flex items-center justify-center cursor-pointer"
           >
             <SlidersHorizontal className="w-4 h-4 shrink-0" />
           </button>
@@ -158,16 +168,14 @@ export function Header({
                 : 'Pengaturan PIN Privat (Nonaktif)'
             }
             title={pinEnabled ? 'PIN Privat Aktif' : 'Atur PIN Privat'}
-            className={`min-h-10 min-w-10 rounded-xl border flex items-center justify-center transition-colors active:scale-[0.97] cursor-pointer ${
-              pinEnabled
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                : 'bg-white border-stone-200 text-stone-500 hover:bg-stone-50'
+            className={`glass-pill min-h-10 min-w-10 rounded-2xl flex items-center justify-center cursor-pointer ${
+              pinEnabled ? 'text-emerald-700' : 'text-slate-500'
             }`}
           >
             {pinEnabled ? (
               <Lock className="w-4 h-4 shrink-0" />
             ) : (
-              <LockOpen className="w-4 h-4 shrink-0 text-stone-400" />
+              <LockOpen className="w-4 h-4 shrink-0 text-slate-400" />
             )}
           </button>
 
@@ -187,27 +195,25 @@ export function Header({
                   ? 'Layar tetap menyala (Aktif)'
                   : 'Jaga layar tetap menyala saat belanja'
               }
-              className={`min-h-10 min-w-10 rounded-xl border flex items-center justify-center transition-all active:scale-[0.97] cursor-pointer ${
-                wakeLockActive
-                  ? 'bg-amber-50 border-amber-300 text-amber-800 shadow-2xs'
-                  : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
+              className={`glass-pill min-h-10 min-w-10 rounded-2xl flex items-center justify-center cursor-pointer ${
+                wakeLockActive ? 'text-amber-600' : 'text-slate-500'
               }`}
             >
               {wakeLockActive ? (
                 <Sun className="w-4 h-4 text-amber-500 shrink-0" />
               ) : (
-                <SunMedium className="w-4 h-4 text-stone-400 shrink-0" />
+                <SunMedium className="w-4 h-4 text-slate-400 shrink-0" />
               )}
             </button>
           )}
         </div>
       </div>
 
-      {/* Slim Weekly Cart Progress Strip (only on Keranjang tab) */}
+      {/* Slim Liquid Progress Strip (only on Keranjang tab) */}
       {showCartBar && (
-        <div className="mt-2 bg-white rounded-xl border border-stone-200/80 px-3 py-1.5 shadow-2xs">
+        <div className="glass-card mt-2 rounded-2xl px-3 py-1.5">
           <div className="flex items-center justify-between gap-2 text-xs">
-            <span className="text-stone-500 font-medium">
+            <span className="text-slate-600 font-medium">
               Keranjang{' '}
               <strong
                 data-testid="bought-counter"
@@ -223,9 +229,9 @@ export function Header({
               {formatRupiah(totalEstimatedSpend)}
             </span>
           </div>
-          <div className="mt-1 h-1 w-full rounded-full bg-stone-100 overflow-hidden">
+          <div className="mt-1.5 h-1.5 w-full rounded-full bg-slate-900/8 overflow-hidden">
             <div
-              className="h-full rounded-full bg-emerald-600 transition-all duration-300 ease-out"
+              className="liquid-progress h-full rounded-full"
               style={{ width: `${progressPct}%` }}
             />
           </div>

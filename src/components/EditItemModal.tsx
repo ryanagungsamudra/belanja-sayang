@@ -82,9 +82,9 @@ export function EditItemModal({
         aria-modal="true"
         aria-label="Ubah Item & Harga"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md max-h-[88dvh] bg-[#FAF9F6] rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-slide-up"
+        className="glass-sheet w-full max-w-md max-h-[88dvh] rounded-t-3xl flex flex-col overflow-hidden animate-slide-up"
       >
-        <div className="px-5 pt-4 pb-3 bg-white border-b border-stone-200/80 flex items-center justify-between shrink-0">
+        <div className="px-5 pt-4 pb-3 bg-white/60 backdrop-blur-md border-b border-white/70 flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-base font-bold text-slate-900">
               Ubah Item & Pilih Toko

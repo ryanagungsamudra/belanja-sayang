@@ -134,7 +134,7 @@ export function BottomQuickAdd({
   }
 
   return (
-    <div className="w-full min-w-0 max-w-full bg-[#FAF9F6]/98 backdrop-blur-md border-t border-stone-200/90 shadow-[0_-6px_24px_-10px_rgba(15,23,42,0.10)] pt-2 pb-2">
+    <div className="w-full min-w-0 max-w-full bg-white/55 backdrop-blur-2xl border-t border-white/75 shadow-[0_-8px_28px_-10px_rgba(15,23,42,0.10)] pt-2 pb-2">
       {/* Horizontal Scrollable Frequent Items 1-Tap Chips */}
       {frequentChips.length > 0 && !isExpanded && (
         <div className="w-full min-w-0 px-3 pb-2">

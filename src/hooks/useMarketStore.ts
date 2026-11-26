@@ -187,6 +187,7 @@ export function useMarketStore(
     templates: false,
     product_refs: false,
     monthly_purchases: false,
+    pin_config: false,
   })
   const skipPushRef = useRef<Record<CollectionKey, boolean>>({
     stores: false,
@@ -196,6 +197,7 @@ export function useMarketStore(
     templates: false,
     product_refs: false,
     monthly_purchases: false,
+    pin_config: false,
   })
 
   const latestDataRef = useRef({
@@ -206,6 +208,7 @@ export function useMarketStore(
     templates,
     product_refs: productRefs,
     monthly_purchases: monthlyPurchases,
+    pin_config: pinConfig,
   })
 
   useEffect(() => {
@@ -217,6 +220,7 @@ export function useMarketStore(
       templates,
       product_refs: productRefs,
       monthly_purchases: monthlyPurchases,
+      pin_config: pinConfig,
     }
   }, [
     stores,
@@ -226,6 +230,7 @@ export function useMarketStore(
     templates,
     productRefs,
     monthlyPurchases,
+    pinConfig,
   ])
 
   const getPayload = useCallback((key: CollectionKey) => {
@@ -234,6 +239,33 @@ export function useMarketStore(
 
   const applyRemotePayload = useCallback(
     (key: CollectionKey, payload: unknown) => {
+      if (key === 'pin_config') {
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+          return
+        }
+        const remotePin = payload as Partial<PinConfig>
+        if (typeof remotePin.hasCompletedOnboarding !== 'boolean') return
+
+        const normalized: PinConfig = {
+          hasCompletedOnboarding: remotePin.hasCompletedOnboarding,
+          pinEnabled: Boolean(remotePin.pinEnabled && remotePin.pinHash),
+          pinHash: remotePin.pinHash ?? null,
+        }
+        const prevPin = latestDataRef.current.pin_config
+        skipPushRef.current.pin_config = true
+        setPinConfig(normalized)
+
+        if (normalized.pinEnabled && normalized.pinHash) {
+          // Lock this device if PIN was newly enabled, changed, or this is a fresh device
+          if (!prevPin.pinEnabled || prevPin.pinHash !== normalized.pinHash) {
+            setIsLocked(true)
+          }
+        } else if (normalized.hasCompletedOnboarding) {
+          setIsLocked(false)
+        }
+        return
+      }
+
       if (!Array.isArray(payload)) return
       skipPushRef.current[key] = true
       switch (key) {
@@ -363,7 +395,16 @@ export function useMarketStore(
 
   useEffect(() => {
     adapter.savePinConfig(pinConfig)
-  }, [adapter, pinConfig])
+    if (!hasMountedRef.current.pin_config) {
+      hasMountedRef.current.pin_config = true
+      return
+    }
+    if (skipPushRef.current.pin_config) {
+      skipPushRef.current.pin_config = false
+      return
+    }
+    schedulePush('pin_config')
+  }, [adapter, pinConfig, schedulePush])
 
   const defaultStoreId = stores[0]?.id ?? 'hypermart'
   const fallbackCategoryId =

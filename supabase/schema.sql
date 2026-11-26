@@ -1,9 +1,22 @@
 -- BelanjaSayang Real-Time Household Sync Schema
--- Run this once in your Supabase Dashboard -> SQL Editor
+-- Run this in your Supabase Dashboard -> SQL Editor (safe to re-run to upgrade!)
 
 create table if not exists public.household_collections (
   household_code text not null,
-  collection_key text not null check (
+  collection_key text not null,
+  payload jsonb not null default '[]'::jsonb,
+  updated_at timestamptz not null default now(),
+  updated_by text not null default '',
+  primary key (household_code, collection_key)
+);
+
+-- Upgrade/ensure allowed collection keys (including shared pin_config)
+alter table public.household_collections
+  drop constraint if exists household_collections_collection_key_check;
+
+alter table public.household_collections
+  add constraint household_collections_collection_key_check
+  check (
     collection_key in (
       'items',
       'product_refs',
@@ -11,14 +24,10 @@ create table if not exists public.household_collections (
       'stores',
       'categories',
       'templates',
-      'frequent'
+      'frequent',
+      'pin_config'
     )
-  ),
-  payload jsonb not null default '[]'::jsonb,
-  updated_at timestamptz not null default now(),
-  updated_by text not null default '',
-  primary key (household_code, collection_key)
-);
+  );
 
 -- Ensure full row payloads are broadcast over Supabase Realtime
 alter table public.household_collections replica identity full;
@@ -27,7 +36,7 @@ alter table public.household_collections replica identity full;
 create index if not exists idx_household_collections_code
   on public.household_collections (household_code);
 
--- Row Level Security (uses a private high-entropy Household Code shared only between your phones)
+-- Row Level Security (uses a private Household Code shared only between your phones)
 alter table public.household_collections enable row level security;
 
 drop policy if exists "Allow household sync by code" on public.household_collections;

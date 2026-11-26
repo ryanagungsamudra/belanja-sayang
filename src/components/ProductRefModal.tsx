@@ -97,9 +97,9 @@ export function ProductRefModal({
           editingRef ? 'Edit Produk & Referensi Harga' : 'Tambah Produk Baru'
         }
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md max-h-[88dvh] bg-[#FAF9F6] rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-slide-up"
+        className="glass-sheet w-full max-w-md max-h-[88dvh] rounded-t-3xl flex flex-col overflow-hidden animate-slide-up"
       >
-        <div className="px-5 pt-4 pb-3 bg-white border-b border-stone-200/80 flex items-center justify-between shrink-0">
+        <div className="px-5 pt-4 pb-3 bg-white/60 backdrop-blur-md border-b border-white/70 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <Store className="w-5 h-5" />

@@ -45,9 +45,9 @@ export function PinSettingsModal({
         aria-modal="true"
         aria-label="Pengaturan Privasi & PIN"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md bg-[#FAF9F6] rounded-t-3xl shadow-2xl overflow-hidden animate-slide-up"
+        className="glass-sheet w-full max-w-md rounded-t-3xl overflow-hidden animate-slide-up"
       >
-        <div className="px-5 pt-4 pb-3 bg-white border-b border-stone-200/80 flex items-center justify-between">
+        <div className="px-5 pt-4 pb-3 bg-white/60 backdrop-blur-md border-b border-white/70 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <ShieldCheck className="w-5 h-5" />
@@ -57,7 +57,7 @@ export function PinSettingsModal({
                 Privasi & Kunci PIN
               </h2>
               <p className="text-xs text-stone-500">
-                Data 100% disimpan lokal di perangkat ini
+                PIN yang sama berlaku di semua HP & browser yang terhubung
               </p>
             </div>
           </div>
@@ -76,11 +76,10 @@ export function PinSettingsModal({
           <div className="bg-white rounded-2xl border border-stone-200/90 p-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  pinEnabled
+                className={`w-10 h-10 rounded-xl flex items-center justify-center ${pinEnabled
                     ? 'bg-emerald-100 text-emerald-700'
                     : 'bg-stone-100 text-stone-500'
-                }`}
+                  }`}
               >
                 {pinEnabled ? (
                   <Lock className="w-5 h-5" />

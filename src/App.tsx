@@ -147,13 +147,33 @@ export function App() {
     return counts
   }, [store.activeItems, store.stores])
 
+  // On a brand-new browser/device with auto-live sync, wait briefly for cloud shared PIN check
+  if (
+    !store.pinConfig.hasCompletedOnboarding &&
+    !store.sync.hasCompletedInitialCheck
+  ) {
+    return (
+      <div className="w-full max-w-md mx-auto min-h-dvh bg-[#FAF9F6] shadow-xl shadow-stone-900/10 flex flex-col items-center justify-center gap-3 px-6 text-center">
+        <div className="w-14 h-14 rounded-3xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/25 animate-pulse">
+          <ShoppingBasket className="w-7 h-7" />
+        </div>
+        <p className="text-sm font-bold text-slate-800">
+          Menghubungkan BelanjaSayang...
+        </p>
+        <p className="text-xs text-stone-500">
+          Memeriksa data & kunci PIN keluarga
+        </p>
+      </div>
+    )
+  }
+
   if (store.isLocked) {
     return (
       <PinLockScreen
         mode={store.pinConfig.hasCompletedOnboarding ? 'unlock' : 'onboarding'}
         onSetPin={(pin) => {
           store.setPin(pin)
-          showToast('PIN privasi aktif')
+          showToast('PIN privasi aktif di semua perangkat')
         }}
         onSkipPin={() => {
           store.disablePin()
@@ -197,8 +217,7 @@ export function App() {
     setStoreFilter('all')
     if (addedCount > 0) {
       showToast(
-        `${addedCount} bahan ${tpl?.name ?? 'paket'} masuk keranjang${
-          skippedCount > 0 ? ` (${skippedCount} sudah ada)` : ''
+        `${addedCount} bahan ${tpl?.name ?? 'paket'} masuk keranjang${skippedCount > 0 ? ` (${skippedCount} sudah ada)` : ''
         }`,
       )
     } else {
@@ -236,14 +255,20 @@ export function App() {
   const hasBoughtItems = store.boughtItems.length > 0
 
   return (
-    <div className="w-full max-w-md mx-auto min-h-dvh overflow-x-clip bg-[#FAF9F6] shadow-xl shadow-stone-900/10 flex flex-col relative">
-      {/* Compact Header */}
+    <div className="liquid-shell w-full max-w-md mx-auto min-h-dvh overflow-x-clip shadow-2xl shadow-slate-900/12 flex flex-col relative">
+      {/* Ambient Morphing Liquid Orbs behind the glass */}
+      <div className="liquid-blob liquid-blob-1 w-64 h-64 -top-14 -left-16" />
+      <div className="liquid-blob liquid-blob-2 w-72 h-72 top-44 -right-24" />
+      <div className="liquid-blob liquid-blob-3 w-64 h-64 bottom-20 -left-16" />
+
+      {/* Compact Frosted Header */}
       <Header
         activeTab={activeTab}
         boughtCount={store.boughtCount}
         totalCount={store.totalCount}
         totalEstimatedSpend={store.totalEstimatedSpend}
         syncStatus={store.sync.syncStatus}
+        onlineDevices={store.sync.onlineDevices}
         pinEnabled={store.pinConfig.pinEnabled}
         wakeLockSupported={wakeLock.isSupported}
         wakeLockActive={wakeLock.isActive}
@@ -256,9 +281,24 @@ export function App() {
       />
 
       {/* Main Scrollable Content */}
-      <main className="flex-1 w-full min-w-0 px-3.5 pt-3 pb-5 space-y-3.5">
+      <main
+        key={activeTab}
+        className="relative z-10 flex-1 w-full min-w-0 px-3.5 pt-3 pb-6 space-y-3.5 animate-liquid-enter"
+      >
         {activeTab === 'keranjang' && (
           <>
+            {/* Live Partner Collaboration Banner when 2+ devices are online */}
+            {store.sync.syncStatus === 'connected' &&
+              store.sync.onlineDevices > 1 && (
+                <div className="glass-pill px-3.5 py-2 rounded-2xl text-emerald-800 text-[11px] font-bold flex items-center justify-between gap-2 animate-fade-in">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    Belanja bareng aktif ({store.sync.onlineDevices} HP terhubung)
+                  </span>
+                  <span className="text-emerald-600">Real-time</span>
+                </div>
+              )}
+
             {/* Dynamic Store Filter & A-Z / Z-A Toggle on Weekly Keranjang */}
             <div className="w-full min-w-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
               <button
@@ -272,11 +312,10 @@ export function App() {
                 onClick={() =>
                   setCartSortOrder((prev) => (prev === 'az' ? 'za' : 'az'))
                 }
-                className={`min-h-9 px-2.5 rounded-xl border text-[11px] font-extrabold shrink-0 inline-flex items-center gap-1 transition-all active:scale-95 cursor-pointer ${
-                  cartSortOrder === 'za'
+                className={`min-h-9 px-2.5 rounded-xl border text-[11px] font-extrabold shrink-0 inline-flex items-center gap-1 transition-all active:scale-95 cursor-pointer ${cartSortOrder === 'za'
                     ? 'bg-emerald-600 border-emerald-600 text-white'
                     : 'bg-white border-stone-300 text-slate-700 hover:border-emerald-400'
-                }`}
+                  }`}
               >
                 {cartSortOrder === 'az' ? (
                   <>
@@ -295,11 +334,10 @@ export function App() {
                 type="button"
                 data-testid="cart-filter-all"
                 onClick={() => setStoreFilter('all')}
-                className={`min-h-9 px-3 rounded-xl text-xs font-bold border shrink-0 transition-all cursor-pointer ${
-                  storeFilter === 'all'
+                className={`min-h-9 px-3 rounded-xl text-xs font-bold border shrink-0 transition-all cursor-pointer ${storeFilter === 'all'
                     ? 'bg-slate-900 border-slate-900 text-white'
                     : 'bg-white border-stone-200 text-stone-600'
-                }`}
+                  }`}
               >
                 Semua ({store.activeItems.length})
               </button>
@@ -309,11 +347,10 @@ export function App() {
                   type="button"
                   data-testid="cart-filter-unassigned"
                   onClick={() => setStoreFilter('unassigned')}
-                  className={`min-h-9 px-3 rounded-xl text-xs font-bold border shrink-0 transition-all cursor-pointer ${
-                    storeFilter === 'unassigned'
+                  className={`min-h-9 px-3 rounded-xl text-xs font-bold border shrink-0 transition-all cursor-pointer ${storeFilter === 'unassigned'
                       ? 'bg-amber-500 border-amber-500 text-white'
                       : 'bg-amber-50 border-amber-200 text-amber-800'
-                  }`}
+                    }`}
                 >
                   Belum pilih ({storeCounts.unassigned})
                 </button>

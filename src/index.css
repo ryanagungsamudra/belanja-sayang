@@ -4,6 +4,45 @@
   :root {
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-top: env(safe-area-inset-top, 0px);
+
+    /* Botanical Liquid Glass tokens */
+    --g-surface: rgba(255, 255, 255, 0.56);
+    --g-surface-strong: rgba(255, 255, 255, 0.78);
+    --g-surface-nav: rgba(255, 255, 255, 0.62);
+    --g-surface-sheet: rgba(248, 250, 249, 0.84);
+    --g-pill: rgba(255, 255, 255, 0.62);
+    --g-capsule: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.92),
+      rgba(255, 255, 255, 0.48)
+    );
+    --g-border: rgba(255, 255, 255, 0.86);
+    --g-border-subtle: rgba(15, 23, 42, 0.07);
+    --g-shadow:
+      0 12px 32px -10px rgba(15, 23, 42, 0.11),
+      0 2px 8px -2px rgba(15, 23, 42, 0.04),
+      inset 0 1.5px 1px rgba(255, 255, 255, 0.96),
+      inset 0 -1px 1px rgba(15, 23, 42, 0.04);
+    --g-shadow-sm:
+      0 4px 14px -4px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.92);
+    --g-divider: rgba(15, 23, 42, 0.065);
+    --g-track: rgba(15, 23, 42, 0.065);
+    --orb-1: radial-gradient(
+      circle at 35% 35%,
+      rgba(16, 185, 129, 0.42),
+      rgba(52, 211, 153, 0.14)
+    );
+    --orb-2: radial-gradient(
+      circle at 50% 50%,
+      rgba(99, 102, 241, 0.36),
+      rgba(165, 180, 252, 0.12)
+    );
+    --orb-3: radial-gradient(
+      circle at 50% 50%,
+      rgba(251, 191, 36, 0.34),
+      rgba(253, 230, 138, 0.1)
+    );
   }
 
   html,
@@ -14,10 +53,11 @@
       "Helvetica Neue", Arial, sans-serif;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior-y: contain;
+    background: linear-gradient(155deg, #dcece4 0%, #e7e5df 52%, #dce4f4 100%);
   }
 }
 
-/* Hide scrollbars on horizontal chip strips */
+/* Hide scrollbars on horizontal strips */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -26,10 +66,361 @@
   scrollbar-width: none;
 }
 
+/* Liquid Glass App Shell & Ambient Morphing Blobs */
+.liquid-shell {
+  background: linear-gradient(155deg, #e8f5ee 0%, #f4f2ec 52%, #e8effc 100%);
+}
+
+.liquid-blob {
+  position: fixed;
+  filter: blur(52px);
+  pointer-events: none;
+  will-change: transform, border-radius;
+  z-index: 0;
+}
+
+.liquid-blob-1 {
+  background: var(--orb-1);
+  animation: liquidBlob1 13s ease-in-out infinite alternate;
+}
+
+.liquid-blob-2 {
+  background: var(--orb-2);
+  animation: liquidBlob2 16s ease-in-out infinite alternate;
+}
+
+.liquid-blob-3 {
+  background: var(--orb-3);
+  animation: liquidBlob3 19s ease-in-out infinite alternate;
+}
+
+@keyframes liquidBlob1 {
+  0% {
+    transform: translate(0px, 0px) rotate(0deg) scale(1);
+    border-radius: 44% 56% 65% 35% / 48% 42% 58% 52%;
+  }
+  50% {
+    transform: translate(26px, 22px) rotate(32deg) scale(1.1);
+    border-radius: 62% 38% 44% 56% / 36% 62% 38% 64%;
+  }
+  100% {
+    transform: translate(-10px, 32px) rotate(68deg) scale(0.96);
+    border-radius: 38% 62% 54% 46% / 58% 35% 65% 42%;
+  }
+}
+
+@keyframes liquidBlob2 {
+  0% {
+    transform: translate(0px, 0px) rotate(0deg) scale(1);
+    border-radius: 58% 42% 38% 62% / 52% 60% 40% 48%;
+  }
+  50% {
+    transform: translate(-26px, -18px) rotate(-36deg) scale(1.12);
+    border-radius: 40% 60% 62% 38% / 64% 38% 62% 36%;
+  }
+  100% {
+    transform: translate(14px, -32px) rotate(-70deg) scale(1.02);
+    border-radius: 64% 36% 48% 52% / 42% 56% 44% 58%;
+  }
+}
+
+@keyframes liquidBlob3 {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+    border-radius: 50% 50% 42% 58% / 45% 55% 45% 55%;
+  }
+  100% {
+    transform: translate(32px, -24px) scale(1.16);
+    border-radius: 36% 64% 60% 40% / 62% 40% 60% 38%;
+  }
+}
+
+/* Frosted Liquid Glass Surfaces */
+.glass-card {
+  position: relative;
+  background: var(--g-surface);
+  backdrop-filter: blur(22px) saturate(185%);
+  -webkit-backdrop-filter: blur(22px) saturate(185%);
+  border: 1px solid var(--g-border);
+  box-shadow: var(--g-shadow);
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.42) 0%,
+    rgba(255, 255, 255, 0) 40%
+  );
+  pointer-events: none;
+}
+
+.glass-pill {
+  background: var(--g-pill);
+  backdrop-filter: blur(16px) saturate(175%);
+  -webkit-backdrop-filter: blur(16px) saturate(175%);
+  border: 1px solid var(--g-border);
+  box-shadow: var(--g-shadow-sm);
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease;
+}
+
+.glass-pill:active {
+  transform: scale(0.95);
+}
+
+.glass-header {
+  background: rgba(255, 255, 255, 0.54);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 4px 20px -10px rgba(15, 23, 42, 0.08);
+}
+
+.glass-sheet {
+  background: var(--g-surface-sheet);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border-top: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 -14px 40px -10px rgba(15, 23, 42, 0.18);
+}
+
+.glass-divide > * + * {
+  border-top: 1px solid var(--g-divider);
+}
+
+/* Floating iOS 26/27 Clear Liquid Glass Pill Dock & Overhanging Droplet */
+.glass-dock {
+  position: relative;
+  overflow: visible;
+  background: rgba(255, 255, 255, 0.36);
+  backdrop-filter: blur(18px) saturate(215%) brightness(1.04);
+  -webkit-backdrop-filter: blur(18px) saturate(215%) brightness(1.04);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow:
+    0 14px 36px -8px rgba(15, 23, 42, 0.16),
+    0 0 0 0.5px rgba(15, 23, 42, 0.08),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.92),
+    inset 0 -1px 2px rgba(15, 23, 42, 0.04);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Overhanging crystal-clear transparent water droplet sitting ABOVE the icons */
+.liquid-droplet {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 6px;
+  width: calc((100% - 12px) / 3);
+  border-radius: 9999px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 20;
+  will-change: transform, top, bottom;
+  transform-origin: center center;
+  background: radial-gradient(
+    ellipse 86% 74% at 50% 46%,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.22) 66%,
+    rgba(255, 255, 255, 0.62) 100%
+  );
+  backdrop-filter: blur(3px) saturate(230%) brightness(1.07);
+  -webkit-backdrop-filter: blur(3px) saturate(230%) brightness(1.07);
+  border: 1.25px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 8px 22px -5px rgba(15, 23, 42, 0.16),
+    0 0 0 0.5px rgba(15, 23, 42, 0.09),
+    inset 0 2px 2.5px rgba(255, 255, 255, 0.98),
+    inset 0 -2px 5px rgba(15, 23, 42, 0.07),
+    inset 2px 0 6px rgba(56, 189, 248, 0.16),
+    inset -2px 0 6px rgba(249, 115, 22, 0.14);
+  transition:
+    top 0.3s cubic-bezier(0.34, 1.62, 0.64, 1),
+    bottom 0.3s cubic-bezier(0.34, 1.62, 0.64, 1),
+    box-shadow 0.24s ease,
+    border-color 0.24s ease;
+}
+
+/* Swells & bulges taller than the pill bar with luminous prismatic rim while sliding */
+.liquid-droplet-active {
+  top: -8px;
+  bottom: -8px;
+  border-color: rgba(255, 255, 255, 0.98);
+  background: radial-gradient(
+    ellipse 84% 72% at 50% 46%,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.18) 64%,
+    rgba(255, 255, 255, 0.66) 100%
+  );
+  box-shadow:
+    0 16px 34px -6px rgba(15, 23, 42, 0.24),
+    0 0 0 0.75px rgba(15, 23, 42, 0.12),
+    inset 0 3px 3px rgba(255, 255, 255, 1),
+    inset 0 -3px 7px rgba(15, 23, 42, 0.1),
+    inset 3.5px 0 9px rgba(56, 189, 248, 0.42),
+    inset -3.5px 0 9px rgba(249, 115, 22, 0.38);
+}
+
+/* Top curved glass dome specular meniscus & bottom caustic glow */
+.liquid-droplet-specular {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 30;
+  background:
+    radial-gradient(
+      ellipse 76% 34% at 50% 7%,
+      rgba(255, 255, 255, 0.92) 0%,
+      rgba(255, 255, 255, 0.22) 56%,
+      rgba(255, 255, 255, 0) 100%
+    ),
+    radial-gradient(
+      ellipse 68% 22% at 50% 96%,
+      rgba(255, 255, 255, 0.62) 0%,
+      rgba(255, 255, 255, 0) 100%
+    );
+}
+
+/* Rim-only Fresnel RGB chromatic dispersion mask */
+.liquid-rim-dispersion {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mask-image: radial-gradient(
+    ellipse 64% 56% at 50% 50%,
+    transparent 54%,
+    black 96%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 64% 56% at 50% 50%,
+    transparent 54%,
+    black 96%
+  );
+}
+
+/* Compact Liquid Glass Segmented Tab Switcher (same optical DNA!) */
+.liquid-seg-track {
+  position: relative;
+  overflow: visible;
+  background: rgba(255, 255, 255, 0.36);
+  backdrop-filter: blur(16px) saturate(200%);
+  -webkit-backdrop-filter: blur(16px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow:
+    0 4px 14px -4px rgba(15, 23, 42, 0.09),
+    0 0 0 0.5px rgba(15, 23, 42, 0.06),
+    inset 0 1px 1px rgba(255, 255, 255, 0.88);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.liquid-seg-droplet {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 3px;
+  border-radius: 9999px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 20;
+  will-change: transform, top, bottom;
+  transform-origin: center center;
+  background: radial-gradient(
+    ellipse 86% 74% at 50% 46%,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.36) 66%,
+    rgba(255, 255, 255, 0.78) 100%
+  );
+  backdrop-filter: blur(3px) saturate(225%) brightness(1.06);
+  -webkit-backdrop-filter: blur(3px) saturate(225%) brightness(1.06);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 5px 14px -3px rgba(15, 23, 42, 0.14),
+    0 0 0 0.5px rgba(15, 23, 42, 0.08),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 1),
+    inset 0 -1.5px 3px rgba(15, 23, 42, 0.06);
+  transition:
+    top 0.26s cubic-bezier(0.34, 1.62, 0.64, 1),
+    bottom 0.26s cubic-bezier(0.34, 1.62, 0.64, 1),
+    box-shadow 0.22s ease;
+}
+
+.liquid-seg-droplet-active {
+  top: -4px;
+  bottom: -4px;
+  box-shadow:
+    0 10px 22px -4px rgba(15, 23, 42, 0.2),
+    0 0 0 0.6px rgba(15, 23, 42, 0.1),
+    inset 0 2px 2px rgba(255, 255, 255, 1),
+    inset 2.5px 0 6px rgba(56, 189, 248, 0.36),
+    inset -2.5px 0 6px rgba(249, 115, 22, 0.32);
+}
+
+/* Sliding Liquid Segmented Toggle (Toko | Kategori) */
+.seg-track {
+  position: relative;
+  background: var(--g-track);
+  padding: 3px;
+  border-radius: 13px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.seg-lens {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  border-radius: 10px;
+  background: var(--g-capsule);
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  box-shadow: var(--g-shadow-sm);
+  transition: transform 0.38s cubic-bezier(0.34, 1.48, 0.64, 1);
+  pointer-events: none;
+}
+
+/* Liquid Shimmer Progress Bar */
+.liquid-progress {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(90deg, #059669, #10b981, #34d399);
+  transition: width 0.5s cubic-bezier(0.34, 1.35, 0.64, 1);
+}
+
+.liquid-progress::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.52) 50%,
+    transparent 80%
+  );
+  animation: liquidShimmer 2.5s linear infinite;
+}
+
+@keyframes liquidShimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Animations */
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(18px);
   }
   to {
     opacity: 1;
@@ -46,6 +437,17 @@
   }
 }
 
+@keyframes liquidEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @keyframes shake {
   0%, 100% {
     transform: translateX(0);
@@ -59,13 +461,26 @@
 }
 
 .animate-slide-up {
-  animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.16s ease-out;
+  animation: fadeIn 0.18s ease-out;
+}
+
+.animate-liquid-enter {
+  animation: liquidEnter 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .animate-shake {
   animation: shake 0.32s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-blob-1,
+  .liquid-blob-2,
+  .liquid-blob-3,
+  .liquid-progress::after {
+    animation: none;
+  }
 }

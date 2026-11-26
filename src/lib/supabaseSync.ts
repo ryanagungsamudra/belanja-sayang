@@ -13,6 +13,7 @@ export type CollectionKey =
   | 'categories'
   | 'templates'
   | 'frequent'
+  | 'pin_config'
 
 export const ALL_COLLECTION_KEYS: CollectionKey[] = [
   'stores',
@@ -22,6 +23,7 @@ export const ALL_COLLECTION_KEYS: CollectionKey[] = [
   'items',
   'templates',
   'frequent',
+  'pin_config',
 ]
 
 export type SyncStatus =
@@ -34,6 +36,7 @@ export type SyncStatus =
 
 export interface SyncConfig {
   enabled: boolean
+  manuallyDisconnected?: boolean
   supabaseUrl: string
   supabaseAnonKey: string
   householdCode: string
@@ -82,6 +85,10 @@ export function getOrCreateClientId(): string {
 
 export function loadSyncConfig(): SyncConfig {
   const env = getEnvSyncDefaults()
+  const envReady = Boolean(
+    env.hasEnvCredentials && env.householdCode.trim().length >= 6,
+  )
+
   try {
     const raw = window.localStorage.getItem(SYNC_CONFIG_KEY)
     if (raw) {
@@ -89,8 +96,16 @@ export function loadSyncConfig(): SyncConfig {
       const url = parsed.supabaseUrl?.trim() || env.supabaseUrl
       const anonKey = parsed.supabaseAnonKey?.trim() || env.supabaseAnonKey
       const code = parsed.householdCode?.trim() || env.householdCode
+
+      // Auto-enable when env credentials are provided unless user explicitly disconnected
+      const autoEnable =
+        parsed.manuallyDisconnected === true
+          ? false
+          : parsed.enabled || envReady
+
       return {
-        enabled: parsed.enabled ?? Boolean(url && anonKey && code.length >= 6),
+        enabled: autoEnable && Boolean(url && anonKey && code.length >= 6),
+        manuallyDisconnected: parsed.manuallyDisconnected,
         supabaseUrl: url,
         supabaseAnonKey: anonKey,
         householdCode: code,
@@ -99,10 +114,9 @@ export function loadSyncConfig(): SyncConfig {
   } catch {
     // Ignore parse error
   }
+
   return {
-    enabled: Boolean(
-      env.hasEnvCredentials && env.householdCode.trim().length >= 6,
-    ),
+    enabled: envReady,
     supabaseUrl: env.supabaseUrl,
     supabaseAnonKey: env.supabaseAnonKey,
     householdCode: env.householdCode,
@@ -160,7 +174,7 @@ export function createSyncClient(config: SyncConfig): SupabaseClient {
     },
     realtime: {
       params: {
-        eventsPerSecond: 10,
+        eventsPerSecond: 15,
       },
     },
   })
@@ -211,9 +225,16 @@ export function subscribeHouseholdRealtime(
   clientId: string,
   onRemoteRow: (row: HouseholdCollectionRow) => void,
   onChannelState: (state: 'SUBSCRIBED' | 'CLOSED' | 'CHANNEL_ERROR') => void,
+  onPresenceCount: (onlineCount: number) => void,
 ): RealtimeChannel {
   const channel = client
-    .channel(`household:${householdCode}`)
+    .channel(`household:${householdCode}`, {
+      config: {
+        presence: {
+          key: clientId,
+        },
+      },
+    })
     .on(
       'postgres_changes',
       {
@@ -230,9 +251,22 @@ export function subscribeHouseholdRealtime(
         onRemoteRow(nextRow)
       },
     )
-    .subscribe((status) => {
+    .on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState()
+      const uniqueDevices = Object.keys(state).length
+      onPresenceCount(Math.max(1, uniqueDevices))
+    })
+    .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
         onChannelState('SUBSCRIBED')
+        try {
+          await channel.track({
+            clientId,
+            onlineAt: new Date().toISOString(),
+          })
+        } catch {
+          // Presence tracking is best-effort
+        }
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         onChannelState('CHANNEL_ERROR')
       } else if (status === 'CLOSED') {

@@ -34,7 +34,7 @@ export function BasketDrawer({
   return (
     <section
       aria-label="Sudah Dibeli"
-      className="mt-4 bg-white rounded-2xl border border-stone-200/90 shadow-xs overflow-hidden"
+      className="glass-card mt-4 rounded-3xl overflow-hidden"
     >
       <button
         type="button"

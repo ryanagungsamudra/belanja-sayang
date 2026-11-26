@@ -56,8 +56,8 @@ export function CategoryGroup({
         </span>
       </div>
 
-      {/* Compact Grouped Card List with Inline Store Picker */}
-      <div className="bg-white rounded-2xl border border-stone-200/80 divide-y divide-stone-100 shadow-2xs overflow-hidden">
+      {/* Compact Liquid Glass Grouped Card List */}
+      <div className="glass-card rounded-3xl glass-divide overflow-hidden">
         {items.map((item) => {
           const storeCfg = findStore(stores, item.store)
           const isPickingStore = pickingItemId === item.id

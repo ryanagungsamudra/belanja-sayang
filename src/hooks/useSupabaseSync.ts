@@ -33,6 +33,7 @@ const COLLECTION_LABEL: Record<CollectionKey, string> = {
   categories: 'Kategori',
   templates: 'Paket Masak',
   frequent: 'Item Sering',
+  pin_config: 'Kunci PIN',
 }
 
 export function useSupabaseSync({
@@ -52,6 +53,13 @@ export function useSupabaseSync({
   })
   const [syncError, setSyncError] = useState<string | null>(null)
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null)
+  const [onlineDevices, setOnlineDevices] = useState<number>(1)
+  const [hasCompletedInitialCheck, setHasCompletedInitialCheck] =
+    useState<boolean>(() => {
+      const cfg = loadSyncConfig()
+      if (!isValidSyncConfig(cfg)) return true
+      return typeof navigator !== 'undefined' && !navigator.onLine
+    })
   const [pendingKeys, setPendingKeys] = useState<CollectionKey[]>(() =>
     loadPendingKeys(),
   )
@@ -59,9 +67,9 @@ export function useSupabaseSync({
   const clientIdRef = useRef<string>(getOrCreateClientId())
   const clientRef = useRef<SupabaseClient | null>(null)
   const channelRef = useRef<RealtimeChannel | null>(null)
+  const isHydratedRef = useRef<boolean>(false)
   const debounceTimersRef = useRef<Partial<Record<CollectionKey, number>>>({})
 
-  // Always point to latest callbacks without tearing down Realtime channel
   const getPayloadRef = useRef(getPayload)
   const applyRemoteRef = useRef(applyRemotePayload)
   const onRemoteNoticeRef = useRef(onRemoteNotice)
@@ -141,12 +149,17 @@ export function useSupabaseSync({
 
   /**
    * Called by useMarketStore whenever a local collection changes.
-   * Debounces network writes so rapid typing/taps only send one clean upsert.
+   * Never pushes before initial cloud hydration completes (protects cloud data
+   * when opening a brand-new phone/browser).
+   * Uses a fast 90ms debounce for Weekly Cart (`items`) for snappy live collaboration.
    */
   const schedulePush = useCallback(
     (key: CollectionKey) => {
       const cfg = configRef.current
       if (!isValidSyncConfig(cfg)) return
+
+      // Guard: never overwrite cloud during initial mount/StrictMode before hydration
+      if (!isHydratedRef.current) return
 
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
         addPendingKey(key)
@@ -157,10 +170,11 @@ export function useSupabaseSync({
       const prevTimer = debounceTimersRef.current[key]
       if (prevTimer) window.clearTimeout(prevTimer)
 
+      const delayMs = key === 'items' ? 90 : 280
       debounceTimersRef.current[key] = window.setTimeout(() => {
         delete debounceTimersRef.current[key]
         void pushKeyNow(key)
-      }, 320)
+      }, delayMs)
     },
     [addPendingKey, pushKeyNow],
   )
@@ -197,7 +211,6 @@ export function useSupabaseSync({
       return false
     }
 
-    setSyncStatus('syncing')
     const code = normalizeHouseholdCode(cfg.householdCode)
     const { data, error } = await fetchHouseholdCollections(client, code)
     if (error) {
@@ -217,20 +230,21 @@ export function useSupabaseSync({
 
   const syncNow = useCallback(async () => {
     if (!isValidSyncConfig(configRef.current)) return
+    setSyncStatus('syncing')
     if (pendingRef.current.length > 0) {
       await flushPending()
     }
     await pullAllFromCloud()
   }, [flushPending, pullAllFromCloud])
 
-  // Manage Supabase client lifecycle, initial hydration & Realtime subscription
+  // Manage Supabase client lifecycle, auto-live hydration, Realtime & mobile wake resync
   useEffect(() => {
-    // Cleanup previous channel
     if (channelRef.current && clientRef.current) {
       void clientRef.current.removeChannel(channelRef.current)
       channelRef.current = null
     }
     clientRef.current = null
+    isHydratedRef.current = false
 
     if (!isValidSyncConfig(syncConfig)) {
       return
@@ -258,13 +272,14 @@ export function useSupabaseSync({
         }
       }
 
-      // 2. Fetch existing room state from Supabase
+      // 2. Pull latest cloud state BEFORE enabling local pushes
       const { data, error } = await fetchHouseholdCollections(client, code)
       if (cancelled) return
 
       if (error) {
         setSyncError(error)
         setSyncStatus('error')
+        setHasCompletedInitialCheck(true)
         return
       }
 
@@ -288,9 +303,14 @@ export function useSupabaseSync({
       }
 
       if (cancelled) return
+      isHydratedRef.current = true
+      setHasCompletedInitialCheck(true)
       setLastSyncedAt(Date.now())
 
-      // 3. Subscribe to Supabase Realtime updates from partner's phone
+      // 3. Subscribe to Supabase Realtime + Presence (collaborator count)
+      if (channelRef.current) {
+        void client.removeChannel(channelRef.current)
+      }
       const channel = subscribeHouseholdRealtime(
         client,
         code,
@@ -299,7 +319,7 @@ export function useSupabaseSync({
           applyRemoteRef.current(row.collection_key, row.payload)
           setLastSyncedAt(Date.now())
           onRemoteNoticeRef.current?.(
-            `${COLLECTION_LABEL[row.collection_key] ?? 'Data'} diperbarui real-time`,
+            `${COLLECTION_LABEL[row.collection_key] ?? 'Data'} diperbarui pasangan`,
           )
         },
         (state) => {
@@ -315,6 +335,9 @@ export function useSupabaseSync({
             )
           }
         },
+        (count) => {
+          if (!cancelled) setOnlineDevices(count)
+        },
       )
       channelRef.current = channel
     }
@@ -329,14 +352,26 @@ export function useSupabaseSync({
       if (cancelled) return
       setSyncStatus('offline')
     }
+    // Mobile PWA wake-up: re-pull latest cart when user unlocks phone or returns to tab
+    const handleVisibilityOrFocus = () => {
+      if (cancelled) return
+      if (document.visibilityState === 'visible' && navigator.onLine) {
+        void syncNow()
+      }
+    }
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
+    window.addEventListener('focus', handleVisibilityOrFocus)
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus)
 
     return () => {
       cancelled = true
+      isHydratedRef.current = false
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
+      window.removeEventListener('focus', handleVisibilityOrFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus)
       for (const timer of Object.values(debounceTimersRef.current)) {
         if (timer) window.clearTimeout(timer)
       }
@@ -346,11 +381,12 @@ export function useSupabaseSync({
         channelRef.current = null
       }
     }
-  }, [pushKeyNow, syncConfig])
+  }, [pushKeyNow, syncConfig, syncNow])
 
   const updateSyncConfig = useCallback((next: SyncConfig) => {
     const normalized: SyncConfig = {
       enabled: next.enabled,
+      manuallyDisconnected: false,
       supabaseUrl: next.supabaseUrl.trim(),
       supabaseAnonKey: next.supabaseAnonKey.trim(),
       householdCode: normalizeHouseholdCode(next.householdCode),
@@ -363,12 +399,13 @@ export function useSupabaseSync({
     const disabled: SyncConfig = {
       ...configRef.current,
       enabled: false,
+      manuallyDisconnected: true,
     }
     saveSyncConfig(disabled)
     setSyncConfig(disabled)
     setPendingKeys([])
     setSyncError(null)
-    setSyncStatus('unconfigured')
+    setOnlineDevices(1)
   }, [])
 
   const effectiveSyncStatus: SyncStatus = isValidSyncConfig(syncConfig)
@@ -380,6 +417,9 @@ export function useSupabaseSync({
     syncStatus: effectiveSyncStatus,
     syncError: isValidSyncConfig(syncConfig) ? syncError : null,
     lastSyncedAt,
+    onlineDevices: effectiveSyncStatus === 'connected' ? onlineDevices : 1,
+    hasCompletedInitialCheck:
+      !isValidSyncConfig(syncConfig) || hasCompletedInitialCheck,
     pendingCount: pendingKeys.length,
     schedulePush,
     updateSyncConfig,

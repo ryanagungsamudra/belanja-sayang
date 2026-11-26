@@ -76,7 +76,7 @@ export function TemplatesView({
             <article
               key={tpl.id}
               data-testid={`template-card-${tpl.id}`}
-              className="bg-white rounded-2xl border border-stone-200/90 p-3.5 shadow-2xs space-y-2.5"
+              className="glass-card rounded-3xl p-4 space-y-2.5"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2.5 min-w-0">

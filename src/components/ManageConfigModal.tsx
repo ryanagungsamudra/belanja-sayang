@@ -2,6 +2,7 @@ import { Pencil, Plus, SlidersHorizontal, Store, Tag, Trash2, X } from 'lucide-r
 import { useState, type FormEvent } from 'react'
 import { COLOR_PALETTE, getTintedPillStyle } from '../lib/stores'
 import type { CategoryConfig, StoreConfig } from '../types/market'
+import { LiquidSegmentedTabs } from './LiquidSegmentedTabs'
 
 interface ManageConfigModalProps {
   isOpen: boolean
@@ -106,10 +107,10 @@ export function ManageConfigModal({
         aria-modal="true"
         aria-label="Kelola Toko dan Kategori"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md max-h-[88dvh] bg-[#FAF9F6] rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-slide-up"
+        className="glass-sheet w-full max-w-md max-h-[88dvh] rounded-t-3xl flex flex-col overflow-hidden animate-slide-up"
       >
         {/* Header */}
-        <div className="px-5 pt-4 pb-3 bg-white border-b border-stone-200/80 flex items-center justify-between shrink-0">
+        <div className="px-5 pt-4 pb-3 bg-white/60 backdrop-blur-md border-b border-white/70 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <SlidersHorizontal className="w-5 h-5" />
@@ -133,36 +134,28 @@ export function ManageConfigModal({
           </button>
         </div>
 
-        {/* Segmented Tab Switcher */}
+        {/* Liquid Glass Segmented Tab Switcher */}
         <div className="px-4 pt-3 shrink-0">
-          <div className="grid grid-cols-2 gap-1 bg-stone-200/70 p-1 rounded-2xl">
-            <button
-              type="button"
-              data-testid="manage-tab-stores"
-              onClick={() => setTab('stores')}
-              className={`min-h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                tab === 'stores'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-stone-600'
-              }`}
-            >
-              <Store className="w-4 h-4" />
-              <span>Tempat Belanja ({stores.length})</span>
-            </button>
-            <button
-              type="button"
-              data-testid="manage-tab-categories"
-              onClick={() => setTab('categories')}
-              className={`min-h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                tab === 'categories'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-stone-600'
-              }`}
-            >
-              <Tag className="w-4 h-4" />
-              <span>Kategori ({categories.length})</span>
-            </button>
-          </div>
+          <LiquidSegmentedTabs
+            ariaLabel="Pilih Pengaturan"
+            size="md"
+            value={tab}
+            onChange={setTab}
+            options={[
+              {
+                id: 'stores',
+                label: `Toko (${stores.length})`,
+                icon: <Store className="w-3.5 h-3.5 shrink-0" />,
+                testId: 'manage-tab-stores',
+              },
+              {
+                id: 'categories',
+                label: `Kategori (${categories.length})`,
+                icon: <Tag className="w-3.5 h-3.5 shrink-0" />,
+                testId: 'manage-tab-categories',
+              },
+            ]}
+          />
         </div>
 
         {/* Scrollable Body */}

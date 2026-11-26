@@ -237,6 +237,7 @@ interface BudgetEnvelopeModalProps {
     count?: number
     unitPrice?: number
     unitLabel?: string
+    isRecurring?: boolean
     note?: string
   }) => void
   onDelete?: (itemId: string) => void
@@ -272,6 +273,9 @@ export function BudgetEnvelopeModal({
   )
   const [countText, setCountText] = useState(String(editingItem?.count ?? 0))
   const [unitLabel, setUnitLabel] = useState(editingItem?.unitLabel ?? 'x')
+  const [isRecurring, setIsRecurring] = useState<boolean>(
+    editingItem?.isRecurring !== false,
+  )
   const [note, setNote] = useState(editingItem?.note ?? '')
   const [formError, setFormError] = useState('')
 
@@ -305,6 +309,7 @@ export function BudgetEnvelopeModal({
           : undefined,
       unitPrice: isCounter ? parseIdrInput(unitPriceText) : undefined,
       unitLabel: isCounter ? unitLabel.trim() || 'x' : undefined,
+      isRecurring,
       note: note.trim() || undefined,
     })
     onClose()
@@ -566,6 +571,36 @@ export function BudgetEnvelopeModal({
             )}
           </div>
         )}
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-stone-500 uppercase tracking-wide">
+            Frekuensi
+          </label>
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsRecurring(true)}
+              className={`min-h-10 px-3 rounded-xl text-xs font-extrabold border cursor-pointer ${
+                isRecurring
+                  ? 'bg-emerald-600 border-emerald-600 text-white'
+                  : 'bg-white border-stone-200 text-slate-700'
+              }`}
+            >
+              Rutin Tiap Bulan
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsRecurring(false)}
+              className={`min-h-10 px-3 rounded-xl text-xs font-extrabold border cursor-pointer ${
+                !isRecurring
+                  ? 'bg-amber-500 border-amber-500 text-white'
+                  : 'bg-white border-stone-200 text-slate-700'
+              }`}
+            >
+              Sekali Saja (Bln Ini)
+            </button>
+          </div>
+        </div>
 
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-stone-500 uppercase tracking-wide">
@@ -1505,6 +1540,135 @@ export function BudgetAnnualModal({
           })}
         </div>
       </div>
+    </GlassSheetModal>
+  )
+}
+
+export function BudgetDeleteMonthModal({
+  monthKey,
+  itemCount,
+  onClose,
+  onConfirm,
+}: {
+  monthKey: string
+  itemCount: number
+  onClose: () => void
+  onConfirm: () => void
+}) {
+  const [confirmInput, setConfirmInput] = useState('')
+  const confirmKeyword = 'HAPUS'
+  const isConfirmed = confirmInput.trim().toUpperCase() === confirmKeyword
+  const monthLabel = formatMonthLabel(monthKey)
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault()
+    if (!isConfirmed) return
+    onConfirm()
+    onClose()
+  }
+
+  return (
+    <GlassSheetModal
+      ariaLabel={`Hapus anggaran ${monthLabel}`}
+      onClose={onClose}
+    >
+      <div className="px-5 pt-2 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-9 h-9 rounded-2xl bg-rose-500/14 border border-rose-300/60 text-rose-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] flex items-center justify-center shrink-0">
+            <Trash2 className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-base font-extrabold text-slate-900 truncate">
+              Hapus Anggaran Bulan Ini?
+            </h2>
+            <p className="text-xs font-semibold text-stone-500 capitalize truncate">
+              {monthLabel} · {itemCount} pos pengeluaran
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          aria-label="Tutup"
+          onClick={onClose}
+          className="min-w-10 min-h-10 rounded-xl flex items-center justify-center text-stone-500 hover:bg-stone-100 shrink-0 cursor-pointer"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      <form
+        onSubmit={handleSubmit}
+        className="flex-1 overflow-y-auto p-5 space-y-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+      >
+        <div className="rounded-2xl p-3.5 bg-rose-50/75 border border-rose-200/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] text-xs text-slate-700 leading-relaxed">
+          Seluruh rencana anggaran dan{' '}
+          <strong className="text-slate-900">{itemCount} pos pengeluaran</strong>{' '}
+          untuk{' '}
+          <strong className="text-slate-900 capitalize">{monthLabel}</strong>{' '}
+          akan dihapus permanen. Catatan belanja di tab Catatan tidak ikut
+          terhapus.
+        </div>
+
+        <div className="space-y-2">
+          <label
+            htmlFor="confirm-delete-month-input"
+            className="block text-xs font-bold text-slate-700"
+          >
+            Untuk konfirmasi, ketik{' '}
+            <code className="px-1.5 py-0.5 rounded-md bg-rose-500/12 border border-rose-300/60 text-rose-700 font-extrabold tracking-wide select-all">
+              {confirmKeyword}
+            </code>{' '}
+            di bawah ini:
+          </label>
+          <div className="relative flex items-center">
+            <input
+              id="confirm-delete-month-input"
+              type="text"
+              data-testid="confirm-delete-month-input"
+              value={confirmInput}
+              onChange={(e) => setConfirmInput(e.target.value)}
+              placeholder={`Ketik ${confirmKeyword}`}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              className={`w-full min-h-12 px-3.5 pr-20 rounded-2xl bg-white/90 border text-sm font-extrabold tracking-wider uppercase text-slate-900 placeholder:font-medium placeholder:tracking-normal placeholder:normal-case placeholder:text-stone-400 outline-none shadow-[inset_0_1px_2px_rgba(15,23,42,0.04)] transition-colors ${
+                isConfirmed
+                  ? 'border-rose-500 ring-2 ring-rose-500/20'
+                  : 'border-stone-300/90 focus:border-rose-400 focus:ring-2 focus:ring-rose-400/15'
+              }`}
+            />
+            {isConfirmed && (
+              <span className="absolute right-2.5 px-2 py-0.5 rounded-lg bg-emerald-500/14 border border-emerald-300/60 text-[10.5px] font-extrabold text-emerald-700 inline-flex items-center gap-1">
+                <Check className="w-3 h-3" />
+                Siap
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5 pt-1">
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-12 px-4 rounded-2xl bg-white/70 hover:bg-white/90 backdrop-blur-md text-xs font-extrabold text-slate-700 border border-white/95 shadow-[0_6px_18px_-6px_rgba(15,23,42,0.14),0_0_0_0.5px_rgba(15,23,42,0.08),inset_0_1.5px_1px_rgba(255,255,255,0.98)] inline-flex items-center justify-center liquid-press cursor-pointer"
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            disabled={!isConfirmed}
+            data-testid="confirm-delete-budget-month"
+            className={`min-h-12 px-4 rounded-2xl text-xs font-extrabold inline-flex items-center justify-center gap-1.5 backdrop-blur-md transition-all liquid-press ${
+              isConfirmed
+                ? 'bg-gradient-to-b from-rose-500/88 to-rose-600/92 hover:from-rose-500 hover:to-rose-600 text-white border border-white/45 shadow-[0_10px_24px_-6px_rgba(225,29,72,0.42),inset_0_1.5px_1px_rgba(255,255,255,0.55),inset_0_-1.5px_3px_rgba(136,19,55,0.22)] cursor-pointer'
+                : 'bg-rose-500/14 text-rose-500/60 border border-rose-300/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] cursor-not-allowed'
+            }`}
+          >
+            <Trash2 className="w-3.5 h-3.5 shrink-0" />
+            <span>Hapus Permanen</span>
+          </button>
+        </div>
+      </form>
     </GlassSheetModal>
   )
 }

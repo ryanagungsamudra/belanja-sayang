@@ -1639,6 +1639,11 @@ export function useMarketStore(
     [],
   )
 
+  const deleteBudgetMonth = useCallback((monthKey: string) => {
+    setBudgetMonths((prev) => prev.filter((m) => m.monthKey !== monthKey))
+    triggerHaptic(12)
+  }, [])
+
   const toggleBudgetPayFirst = useCallback(
     (monthKey: string) => {
       mutateBudgetMonth(monthKey, (m) => ({
@@ -1822,6 +1827,7 @@ export function useMarketStore(
         count?: number
         unitPrice?: number
         unitLabel?: string
+        isRecurring?: boolean
         note?: string
       },
     ) => {
@@ -1865,6 +1871,10 @@ export function useMarketStore(
             unitLabel: isCounter
               ? input.unitLabel?.trim() || prevItem.unitLabel || 'x'
               : prevItem.unitLabel,
+            isRecurring:
+              input.isRecurring !== undefined
+                ? input.isRecurring
+                : prevItem.isRecurring,
             note: input.note?.trim() || undefined,
             updatedAt: now,
           }
@@ -1884,6 +1894,7 @@ export function useMarketStore(
           targetCount: isCounter ? targetCount : undefined,
           unitPrice: isCounter ? unitPrice : undefined,
           unitLabel: isCounter ? input.unitLabel?.trim() || 'x' : undefined,
+          isRecurring: input.isRecurring ?? true,
           note: input.note?.trim() || undefined,
           updatedAt: now,
         }
@@ -2177,6 +2188,7 @@ export function useMarketStore(
     restoreBackupSnapshot,
     seedBudgetMonthWithPreset,
     copyBudgetMonthFromPrevious,
+    deleteBudgetMonth,
     toggleBudgetPayFirst,
     toggleBudgetEfficiency,
     updateBudgetIncome,

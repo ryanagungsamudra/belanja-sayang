@@ -12,6 +12,7 @@ import {
   Plus,
   SlidersHorizontal,
   Sparkles,
+  Trash2,
   Wallet,
 } from 'lucide-react'
 import { lazy, memo, Suspense, useMemo, useState } from 'react'
@@ -49,6 +50,11 @@ const BudgetConfigModal = lazy(() =>
 const BudgetAnnualModal = lazy(() =>
   import('./BudgetModals').then((m) => ({ default: m.BudgetAnnualModal })),
 )
+const BudgetDeleteMonthModal = lazy(() =>
+  import('./BudgetModals').then((m) => ({
+    default: m.BudgetDeleteMonthModal,
+  })),
+)
 
 interface BudgetViewProps {
   selectedMonth: string
@@ -59,6 +65,7 @@ interface BudgetViewProps {
   onChangeMonth: (monthKey: string) => void
   onSeedPreset: (monthKey: string) => void
   onCopyFromPrevious: (sourceMonthKey: string, targetMonthKey: string) => void
+  onDeleteMonth: (monthKey: string) => void
   onTogglePayFirst: (monthKey: string) => void
   onToggleEfficiency: (
     monthKey: string,
@@ -98,6 +105,7 @@ interface BudgetViewProps {
       count?: number
       unitPrice?: number
       unitLabel?: string
+      isRecurring?: boolean
       note?: string
     },
   ) => void
@@ -125,6 +133,7 @@ export const BudgetView = memo(function BudgetView({
   onChangeMonth,
   onSeedPreset,
   onCopyFromPrevious,
+  onDeleteMonth,
   onTogglePayFirst,
   onToggleEfficiency,
   onUpdateIncome,
@@ -158,6 +167,7 @@ export const BudgetView = memo(function BudgetView({
     'pillars' | 'modes' | null
   >(null)
   const [annualModalOpen, setAnnualModalOpen] = useState(false)
+  const [deleteMonthModalOpen, setDeleteMonthModalOpen] = useState(false)
 
   const monthRecord = useMemo(
     () => budgetMonths.find((m) => m.monthKey === selectedMonth) ?? null,
@@ -352,38 +362,58 @@ export const BudgetView = memo(function BudgetView({
           {editPlanMode && (
             <div
               data-testid="budget-admin-bar"
-              className="grid grid-cols-3 gap-1.5 animate-liquid-panel"
+              className="glass-card rounded-2xl p-2 space-y-2 animate-liquid-panel"
             >
-              <button
-                type="button"
-                data-testid="budget-open-income-btn"
-                onClick={() => setIncomeModalOpen(true)}
-                className="glass-chip min-h-9 px-2 rounded-xl text-[11px] font-bold text-slate-700 hover:text-emerald-700 inline-flex items-center justify-center gap-1 cursor-pointer"
-              >
-                <Pencil className="w-3 h-3 text-emerald-600 shrink-0" />
-                <span className="truncate">Pemasukan</span>
-              </button>
-              <button
-                type="button"
-                data-testid="budget-open-config-btn"
-                onClick={() => setConfigModalTab('pillars')}
-                className="glass-chip min-h-9 px-2 rounded-xl text-[11px] font-bold text-slate-700 hover:text-emerald-700 inline-flex items-center justify-center gap-1 cursor-pointer"
-              >
-                <SlidersHorizontal className="w-3 h-3 text-emerald-600 shrink-0" />
-                <span className="truncate">Pilar &amp; Mode</span>
-              </button>
-              <button
-                type="button"
-                data-testid="budget-add-env-btn"
-                onClick={() => {
-                  setEditingEnvelope(null)
-                  setEnvelopeModalOpen(true)
-                }}
-                className="min-h-9 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold inline-flex items-center justify-center gap-1 shadow-xs liquid-press cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5 shrink-0" />
-                <span>Pos Baru</span>
-              </button>
+              <div className="flex items-center justify-between gap-2 px-1">
+                <span className="inline-flex items-center gap-1.5 text-[10.5px] font-extrabold uppercase tracking-wider text-slate-500 min-w-0 truncate">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  <span className="truncate">
+                    Atur · {formatMonthLabel(selectedMonth)}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  data-testid="delete-budget-month-btn"
+                  aria-label={`Hapus anggaran ${formatMonthLabel(selectedMonth)}`}
+                  onClick={() => setDeleteMonthModalOpen(true)}
+                  className="min-h-7 px-2.5 rounded-xl bg-rose-500/8 hover:bg-rose-500/15 border border-rose-300/60 text-rose-600 hover:text-rose-700 text-[10.5px] font-bold inline-flex items-center gap-1 shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] liquid-press cursor-pointer"
+                >
+                  <Trash2 className="w-3 h-3 shrink-0" />
+                  <span>Hapus Bulan</span>
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  data-testid="budget-open-income-btn"
+                  onClick={() => setIncomeModalOpen(true)}
+                  className="glass-chip min-h-9 px-2 rounded-xl text-[11px] font-bold text-slate-700 hover:text-emerald-700 inline-flex items-center justify-center gap-1 liquid-press cursor-pointer"
+                >
+                  <Pencil className="w-3 h-3 text-emerald-600 shrink-0" />
+                  <span className="truncate">Pemasukan</span>
+                </button>
+                <button
+                  type="button"
+                  data-testid="budget-open-config-btn"
+                  onClick={() => setConfigModalTab('pillars')}
+                  className="glass-chip min-h-9 px-2 rounded-xl text-[11px] font-bold text-slate-700 hover:text-emerald-700 inline-flex items-center justify-center gap-1 liquid-press cursor-pointer"
+                >
+                  <SlidersHorizontal className="w-3 h-3 text-emerald-600 shrink-0" />
+                  <span className="truncate">Pilar &amp; Mode</span>
+                </button>
+                <button
+                  type="button"
+                  data-testid="budget-add-env-btn"
+                  onClick={() => {
+                    setEditingEnvelope(null)
+                    setEnvelopeModalOpen(true)
+                  }}
+                  className="min-h-9 px-2 rounded-xl bg-gradient-to-b from-emerald-500/95 to-emerald-600/95 hover:from-emerald-600 hover:to-emerald-700 text-white text-[11px] font-extrabold inline-flex items-center justify-center gap-1 border border-white/35 shadow-[0_4px_12px_-3px_rgba(5,150,105,0.35),inset_0_1px_0_rgba(255,255,255,0.45)] liquid-press cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5 shrink-0" />
+                  <span>Pos Baru</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -614,8 +644,13 @@ export const BudgetView = memo(function BudgetView({
                             }}
                             className="flex-1 min-w-0 text-left cursor-pointer group"
                           >
-                            <p className="text-[13px] font-bold text-slate-900 group-hover:text-emerald-700 truncate">
-                              {item.name}
+                            <p className="text-[13px] font-bold text-slate-900 group-hover:text-emerald-700 truncate flex items-center gap-1.5">
+                              <span className="truncate">{item.name}</span>
+                              {item.isRecurring === false && (
+                                <span className="px-1.5 py-0.2 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-[9.5px] font-extrabold shrink-0">
+                                  Sekali
+                                </span>
+                              )}
                             </p>
                             <p className="text-[11px] text-stone-500 tabular-nums truncate">
                               <strong
@@ -860,6 +895,18 @@ export const BudgetView = memo(function BudgetView({
             privacyMasked={privacyMasked}
             onClose={() => setAnnualModalOpen(false)}
             onSelectMonth={onChangeMonth}
+          />
+        )}
+
+        {deleteMonthModalOpen && monthRecord && (
+          <BudgetDeleteMonthModal
+            monthKey={selectedMonth}
+            itemCount={monthRecord.items.length}
+            onClose={() => setDeleteMonthModalOpen(false)}
+            onConfirm={() => {
+              onDeleteMonth(selectedMonth)
+              setEditPlanMode(false)
+            }}
           />
         )}
       </Suspense>

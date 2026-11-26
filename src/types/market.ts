@@ -203,6 +203,8 @@ export interface BudgetEnvelopeItem {
   swept?: boolean
   /** Auto-bridges real-time spend from Catatan Bulanan */
   autoLink?: 'grocery'
+  /** True (or omitted) = copied when cloning to next month; false = one-off for this month only */
+  isRecurring?: boolean
   note?: string
   updatedAt?: number
 }

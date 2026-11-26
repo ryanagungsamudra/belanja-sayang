@@ -285,19 +285,21 @@ export function cloneBudgetMonthPlan(
     payFirstDone: false,
     effIcloudFamily: source.effIcloudFamily,
     effBrightGas: source.effBrightGas,
-    items: source.items.map((item) => {
-      const mode = modeMap.get(item.modeId)
-      const isBill = mode?.behavior === 'bill'
-      return {
-        ...item,
-        id: item.id || `b-${generateId().slice(0, 8)}`,
-        paid: false,
-        swept: false,
-        count: mode?.behavior === 'counter' ? 0 : item.count,
-        actual: isBill ? getBudgetItemAllocation(item, modes, source) : 0,
-        updatedAt: now,
-      }
-    }),
+    items: source.items
+      .filter((item) => item.isRecurring !== false)
+      .map((item) => {
+        const mode = modeMap.get(item.modeId)
+        const isBill = mode?.behavior === 'bill'
+        return {
+          ...item,
+          id: item.id || `b-${generateId().slice(0, 8)}`,
+          paid: false,
+          swept: false,
+          count: mode?.behavior === 'counter' ? 0 : item.count,
+          actual: isBill ? getBudgetItemAllocation(item, modes, source) : 0,
+          updatedAt: now,
+        }
+      }),
     updatedAt: now,
   }
 }

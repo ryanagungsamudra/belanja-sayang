@@ -73,15 +73,28 @@ describe('Household Monthly Budget ("Anggaran") Logic', () => {
     nov.effIcloudFamily = true // saves 59k
     nov.effBrightGas = true // saves 85k
     nov.items[0].paid = true
-    nov.items.push({
-      id: 'b-addon',
-      pillarId: 'p3',
-      modeId: 'mode-bill',
-      name: 'Servis Motor',
-      budget: 200000,
-      actual: 200000,
-      paid: true,
-    })
+    nov.items.push(
+      {
+        id: 'b-addon-recurring',
+        pillarId: 'p3',
+        modeId: 'mode-bill',
+        name: 'Cicilan Motor',
+        budget: 500000,
+        actual: 500000,
+        paid: true,
+        isRecurring: true,
+      },
+      {
+        id: 'b-addon-oneoff',
+        pillarId: 'p3',
+        modeId: 'mode-bill',
+        name: 'Servis Motor (Sekali)',
+        budget: 200000,
+        actual: 200000,
+        paid: true,
+        isRecurring: false,
+      },
+    )
 
     const icloudItem = nov.items.find((i) => i.id === 'b-icloud')!
     expect(getBudgetItemAllocation(icloudItem, DEFAULT_BUDGET_MODES, nov)).toBe(
@@ -92,7 +105,8 @@ describe('Household Monthly Budget ("Anggaran") Logic', () => {
     expect(dec.monthKey).toBe('2026-12')
     expect(dec.baseIncome).toBe(11000000)
     expect(dec.payFirstDone).toBe(false)
-    expect(dec.items.find((i) => i.id === 'b-addon')).toBeDefined()
+    expect(dec.items.find((i) => i.id === 'b-addon-recurring')).toBeDefined()
+    expect(dec.items.find((i) => i.id === 'b-addon-oneoff')).toBeUndefined()
     expect(dec.items.every((i) => !i.paid && !i.swept)).toBe(true)
   })
 })

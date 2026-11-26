@@ -664,6 +664,10 @@ export function App() {
                   showToast(`Rencana ${formatMonthLabel(src)} disalin ke ${formatMonthLabel(target)}`)
                 }
               }}
+              onDeleteMonth={(mKey) => {
+                store.deleteBudgetMonth(mKey)
+                showToast(`Anggaran ${formatMonthLabel(mKey)} dihapus`)
+              }}
               onTogglePayFirst={store.toggleBudgetPayFirst}
               onToggleEfficiency={store.toggleBudgetEfficiency}
               onUpdateIncome={(mKey, patch) => {

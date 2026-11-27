@@ -189,12 +189,12 @@ export const CartView = memo(function CartView({
                 data-testid="cart-store-filter-trigger"
                 aria-expanded={filterOpen}
                 onClick={() => setFilterOpen((prev) => !prev)}
-                className={`min-h-8 px-2.5 rounded-xl border text-[11.5px] font-extrabold inline-flex items-center gap-1.5 liquid-press cursor-pointer max-w-[195px] ${
+                className={`min-h-10 px-3 rounded-xl border text-xs font-extrabold inline-flex items-center gap-1.5 liquid-press cursor-pointer max-w-[205px] ${
                   effectiveFilter === 'unassigned'
                     ? 'bg-amber-50/95 border-amber-300 text-amber-800 shadow-xs'
                     : selectedStoreCfg
                       ? 'shadow-xs'
-                      : 'glass-chip text-slate-700 hover:border-emerald-400'
+                      : 'glass-chip text-slate-800 hover:border-emerald-400'
                 }`}
                 style={
                   selectedStoreCfg
@@ -220,9 +220,9 @@ export const CartView = memo(function CartView({
                     setStoreFilter('all')
                     setFilterOpen(false)
                   }}
-                  className="glass-chip w-7 h-7 rounded-xl text-slate-500 hover:text-slate-800 flex items-center justify-center shrink-0 cursor-pointer"
+                  className="glass-chip w-10 h-10 rounded-xl text-slate-600 hover:text-slate-900 flex items-center justify-center shrink-0 cursor-pointer"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-4 h-4" />
                 </button>
               )}
             </div>
@@ -239,10 +239,10 @@ export const CartView = memo(function CartView({
                 onClick={() =>
                   setCartSortOrder((prev) => (prev === 'az' ? 'za' : 'az'))
                 }
-                className={`min-h-8 px-2.5 rounded-xl border text-[11px] font-extrabold inline-flex items-center gap-1 liquid-press cursor-pointer ${
+                className={`min-h-10 px-2.5 rounded-xl border text-xs font-extrabold inline-flex items-center gap-1 liquid-press cursor-pointer ${
                   cartSortOrder === 'za'
                     ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
-                    : 'glass-chip text-slate-700 hover:border-emerald-400'
+                    : 'glass-chip text-slate-800 hover:border-emerald-400'
                 }`}
               >
                 {cartSortOrder === 'az' ? (
@@ -263,7 +263,7 @@ export const CartView = memo(function CartView({
                 data-testid="cart-share-btn"
                 aria-label="Bagikan daftar belanja ke WhatsApp"
                 onClick={onShareCart}
-                className="glass-chip min-h-8 px-2.5 rounded-xl text-[11px] font-bold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1 cursor-pointer"
+                className="glass-chip min-h-10 px-2.5 rounded-xl text-xs font-bold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1 cursor-pointer"
               >
                 <Share2 className="w-3.5 h-3.5" />
                 <span>Bagikan</span>
@@ -271,11 +271,11 @@ export const CartView = memo(function CartView({
             </div>
           </div>
 
-          {/* 2-Column Frosted Glass Store Picker Dropdown (matches Catatan's Toko picker) */}
+          {/* 2-Column Matte Store Picker Dropdown */}
           {filterOpen && (
             <div
               data-testid="cart-store-filter-panel"
-              className="glass-card rounded-2xl p-2.5 animate-liquid-panel"
+              className="surface-card rounded-2xl p-2.5 animate-liquid-panel"
             >
               <div className="grid grid-cols-2 gap-1.5">
                 <button
@@ -396,42 +396,42 @@ export const CartView = memo(function CartView({
           ))}
         </div>
       ) : hasAnyActiveItems && effectiveFilter !== 'all' ? (
-        <div className="glass-card rounded-3xl px-4 py-4 flex items-center justify-between gap-3 animate-liquid-enter">
+        <div className="surface-card rounded-2xl px-4 py-4 flex items-center justify-between gap-3 animate-liquid-enter">
           <div className="min-w-0">
             <p className="text-xs font-extrabold text-slate-800">
               Belum ada item di {selectedStoreCfg?.shortLabel ?? 'filter ini'}
             </p>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-slate-600">
               Atur toko langsung di tiap baris item keranjang.
             </p>
           </div>
           <button
             type="button"
             onClick={() => setStoreFilter('all')}
-            className="glass-chip min-h-9 px-3 rounded-xl text-emerald-700 text-xs font-bold shrink-0 cursor-pointer"
+            className="glass-chip min-h-10 px-3 rounded-xl text-emerald-700 text-xs font-bold shrink-0 cursor-pointer"
           >
             Semua
           </button>
         </div>
       ) : hasBoughtItems ? (
-        <div className="glass-card rounded-3xl px-4 py-3.5 flex items-center gap-3 animate-liquid-enter">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-50/90 text-emerald-600 flex items-center justify-center border border-emerald-200/70 shrink-0">
+        <div className="surface-card rounded-2xl px-4 py-3.5 flex items-center gap-3 animate-liquid-enter">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50/90 text-emerald-600 flex items-center justify-center border border-emerald-200/70 shrink-0">
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <div className="min-w-0">
             <h2 className="text-sm font-extrabold text-slate-900">
               Belanja minggu ini selesai
             </h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-600">
               Semua item sudah tercatat di Catatan Bulanan.
             </p>
           </div>
         </div>
       ) : (
-        /* Compact iOS Inset-Grouped Empty State */
+        /* Compact Inset-Grouped Empty State */
         <section
           aria-label="Keranjang kosong"
-          className="glass-card rounded-3xl overflow-hidden glass-divide animate-liquid-enter"
+          className="surface-card rounded-2xl overflow-hidden glass-divide animate-liquid-enter"
         >
           {/* Compact Left-Aligned Header Row */}
           <div className="px-4 py-3.5 flex items-center gap-3">

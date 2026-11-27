@@ -148,13 +148,13 @@ const ProductRefRow = memo(function ProductRefRow({
           <div className="shrink-0 text-right tabular-nums">
             {entries.length > 0 ? (
               <span className="text-xs font-extrabold text-slate-800">
-                <span className="text-[11px] font-semibold text-stone-400 mr-1">
+                <span className="text-[11px] font-semibold text-slate-500 mr-1">
                   {entries.length}x
                 </span>
                 {formatRupiah(itemMonthTotal)}
               </span>
             ) : (
-              <span className="text-[11px] text-stone-400">
+              <span className="text-[11px] text-slate-600">
                 {getStoreCode(refFallback.store, stores)}
                 {refFallback.price > 0
                   ? ` · ${formatRupiah(refFallback.price)}`
@@ -508,10 +508,10 @@ export const ProductCatalogView = memo(function ProductCatalogView({
 
   return (
     <div className="space-y-3">
-      {/* Compact Liquid Glass Dashboard Card with Circle Diagram */}
+      {/* Hero Liquid Glass Dashboard Card with Circle Diagram */}
       <section
         aria-label="Dashboard Pengeluaran Bulanan"
-        className="glass-card rounded-3xl p-3.5 space-y-3"
+        className="glass-card rounded-2xl p-3.5 space-y-3"
       >
         {/* Top Row: Compact Month Switcher + Spring-Sliding Liquid Segmented Toggle */}
         <div className="flex items-center justify-between gap-1.5">
@@ -520,7 +520,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
               type="button"
               aria-label="Bulan sebelumnya"
               onClick={() => onChangeMonth(shiftMonthKey(selectedMonth, -1))}
-              className="glass-chip w-7 h-7 rounded-xl text-slate-700 flex items-center justify-center shrink-0 cursor-pointer"
+              className="glass-chip w-9 h-9 rounded-xl text-slate-700 hover:text-slate-900 flex items-center justify-center shrink-0 cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -529,7 +529,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
               data-testid="selected-month-label"
               aria-label={`Buka kalender belanja (${formatMonthLabel(selectedMonth)})`}
               onClick={onOpenDatePicker}
-              className={`glass-chip min-h-7 px-2 rounded-xl inline-flex items-center gap-1 text-[12.5px] font-extrabold capitalize whitespace-nowrap truncate cursor-pointer ${
+              className={`glass-chip min-h-9 px-2.5 rounded-xl inline-flex items-center gap-1 text-[12.5px] font-extrabold capitalize whitespace-nowrap truncate cursor-pointer ${
                 activeDateFilter
                   ? 'text-emerald-700 ring-1 ring-emerald-500/35'
                   : 'text-slate-900 hover:text-emerald-700'
@@ -545,7 +545,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
               type="button"
               aria-label="Bulan berikutnya"
               onClick={() => onChangeMonth(shiftMonthKey(selectedMonth, 1))}
-              className="glass-chip w-7 h-7 rounded-xl text-slate-700 flex items-center justify-center shrink-0 cursor-pointer"
+              className="glass-chip w-9 h-9 rounded-xl text-slate-700 hover:text-slate-900 flex items-center justify-center shrink-0 cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -700,27 +700,29 @@ export const ProductCatalogView = memo(function ProductCatalogView({
             </div>
             <div className="h-1.5 w-full rounded-full bg-slate-900/8 overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-300 ${
+                className={`h-full w-full rounded-full origin-left will-change-transform transition-[transform,background-color] duration-300 ${
                   isOverBudget
                     ? 'bg-rose-500'
                     : isNearBudget
                       ? 'bg-amber-500'
                       : 'bg-emerald-500'
                 }`}
-                style={{ width: `${Math.min(100, budgetPct ?? 0)}%` }}
+                style={{
+                  transform: `scaleX(${Math.min(1, Math.max(0, (budgetPct ?? 0) / 100))})`,
+                }}
               />
             </div>
           </button>
         ) : null}
 
-        {/* Exact Total Footer + MoM Delta + Budget / Share / Manage Actions */}
-        <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-2 text-xs">
-          <div className="text-stone-500 flex items-center gap-1.5 flex-wrap min-w-0">
+        {/* Exact Total Footer + MoM Delta + Uniform Action Cluster */}
+        <div className="pt-2.5 border-t border-slate-900/8 flex items-center justify-between gap-2 text-xs">
+          <div className="text-slate-600 flex items-center gap-1.5 flex-wrap min-w-0">
             <span>
               Total:{' '}
               <span
                 data-testid="monthly-exact-total"
-                className="font-extrabold text-slate-900 tabular-nums"
+                className="font-extrabold text-slate-900 tabular-nums tracking-tight"
               >
                 <AnimatedRupiah
                   amount={scopedTotalSpend}
@@ -735,7 +737,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                 className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums ${
                   monthlyTotalSpend <= previousMonthTotalSpend
                     ? 'bg-emerald-50 text-emerald-700'
-                    : 'bg-amber-50 text-amber-700'
+                    : 'bg-amber-50 text-amber-800'
                 }`}
               >
                 {monthlyTotalSpend <= previousMonthTotalSpend ? '▼' : '▲'}{' '}
@@ -755,9 +757,9 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                   setBudgetDraft('')
                   setEditingBudget(true)
                 }}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50/90 hover:bg-emerald-100 text-emerald-700 text-[11px] font-bold cursor-pointer"
+                className="inline-flex items-center gap-1 min-h-9 px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-bold cursor-pointer"
               >
-                <Wallet className="w-3 h-3" />
+                <Wallet className="w-3.5 h-3.5" />
                 <span>Budget</span>
               </button>
             )}
@@ -768,7 +770,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                 aria-label="Bagikan rekap bulanan ke WhatsApp"
                 title="Bagikan rekap ke WhatsApp"
                 onClick={onShareMonthly}
-                className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-stone-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 cursor-pointer"
+                className="inline-flex items-center justify-center min-w-9 min-h-9 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 cursor-pointer"
               >
                 <Share2 className="w-3.5 h-3.5" />
               </button>
@@ -782,9 +784,9 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                   setSearch('')
                   setOpenFilterMenu(null)
                 }}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 text-[11px] font-bold cursor-pointer"
+                className="inline-flex items-center gap-1 min-h-9 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold cursor-pointer"
               >
-                <X className="w-3 h-3" />
+                <X className="w-3.5 h-3.5" />
                 <span>Reset</span>
               </button>
             ) : (
@@ -796,9 +798,9 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                     chartMode === 'store' ? 'stores' : 'categories',
                   )
                 }
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 cursor-pointer"
+                className="inline-flex items-center gap-1 min-h-9 px-2.5 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-[11px] font-bold cursor-pointer"
               >
-                <SlidersHorizontal className="w-3 h-3" />
+                <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-700" />
                 <span>
                   Atur {chartMode === 'store' ? 'Toko' : 'Kategori'}
                 </span>
@@ -844,7 +846,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
           data-testid="open-import-note-btn"
           aria-label="Impor atau salin catatan teks"
           onClick={onOpenImportModal}
-          className="glass-pill min-h-11 px-3 rounded-2xl text-slate-700 text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer"
+          className="glass-pill min-h-11 px-3 rounded-xl text-slate-700 text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer"
         >
           <FileText className="w-4 h-4 text-emerald-600" />
           <span>Teks</span>
@@ -855,7 +857,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
           data-testid="add-product-ref-btn"
           aria-label="Tambah produk baru"
           onClick={onAddNewRef}
-          className="min-h-11 min-w-11 px-3 rounded-2xl bg-emerald-600/95 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold flex items-center justify-center gap-1 shadow-md shadow-emerald-600/25 border border-white/30 shrink-0 cursor-pointer transition-transform"
+          className="min-h-11 min-w-11 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold flex items-center justify-center gap-1 shadow-sm shrink-0 cursor-pointer transition-transform"
         >
           <Plus className="w-4 h-4" strokeWidth={2.6} />
           <span>Baru</span>
@@ -1044,7 +1046,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
         {openFilterMenu === 'store' && (
           <div
             data-testid="store-filter-panel"
-            className="glass-card rounded-3xl p-3 space-y-2.5 animate-liquid-panel"
+            className="surface-card rounded-2xl p-3 space-y-2.5 animate-liquid-panel"
           >
             <div className="flex items-center justify-between px-0.5">
               <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
@@ -1149,7 +1151,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
         {openFilterMenu === 'category' && (
           <div
             data-testid="category-filter-panel"
-            className="glass-card rounded-3xl p-3 space-y-2.5 animate-liquid-panel"
+            className="surface-card rounded-2xl p-3 space-y-2.5 animate-liquid-panel"
           >
             <div className="flex items-center justify-between px-0.5">
               <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
@@ -1255,11 +1257,11 @@ export const ProductCatalogView = memo(function ProductCatalogView({
         )}
       </div>
 
-      {/* Compact Liquid Glass Monthly Note List (Sorted A-Z or Z-A) */}
+      {/* Crisp Matte Monthly Note List (Sorted A-Z or Z-A) */}
       {filteredRefs.length > 0 ? (
         <div
           data-testid="product-ref-list"
-          className="glass-card rounded-3xl glass-divide overflow-hidden"
+          className="surface-card rounded-2xl glass-divide overflow-hidden"
         >
           {filteredRefs.map((ref) => (
             <ProductRefRow
@@ -1282,8 +1284,8 @@ export const ProductCatalogView = memo(function ProductCatalogView({
           ))}
         </div>
       ) : (
-        <div className="glass-card rounded-3xl p-6 text-center space-y-3 animate-liquid-enter">
-          <div className="w-11 h-11 rounded-2xl bg-white/70 text-slate-400 mx-auto flex items-center justify-center">
+        <div className="surface-card rounded-2xl p-6 text-center space-y-3 animate-liquid-enter">
+          <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-500 mx-auto flex items-center justify-center">
             <Tag className="w-5 h-5" />
           </div>
           <p className="text-sm font-semibold text-slate-700">

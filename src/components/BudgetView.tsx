@@ -314,7 +314,7 @@ export const BudgetView = memo(function BudgetView({
       {!monthRecord || !summary ? (
         <section
           aria-label="Inisialisasi Anggaran Bulanan"
-          className="glass-card rounded-3xl p-5 space-y-3.5 animate-liquid-enter"
+          className="glass-card rounded-2xl p-5 space-y-3.5 animate-liquid-enter"
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50/95 text-emerald-600 flex items-center justify-center border border-emerald-200/70 shrink-0">
@@ -467,7 +467,7 @@ export const BudgetView = memo(function BudgetView({
             return (
               <section
                 key={pillar.id}
-                className="glass-card rounded-2xl glass-divide overflow-hidden"
+                className="surface-card rounded-2xl glass-divide overflow-hidden"
               >
                 <button
                   type="button"
@@ -563,7 +563,7 @@ export const BudgetView = memo(function BudgetView({
                                 </span>
                               )}
                             </p>
-                            <p className="text-[11px] text-stone-500 tabular-nums truncate">
+                            <p className="text-[11px] text-slate-600 tabular-nums truncate">
                               <strong
                                 className={
                                   isOver
@@ -695,7 +695,7 @@ export const BudgetView = memo(function BudgetView({
           })}
 
           {/* Monthly Efficiency Opportunities */}
-          <section className="glass-card rounded-2xl glass-divide overflow-hidden">
+          <section className="surface-card rounded-2xl glass-divide overflow-hidden">
             <div className="px-3.5 py-2.5 flex items-center justify-between gap-2">
               <span className="text-xs font-extrabold text-slate-800 inline-flex items-center gap-1.5">
                 <Lightbulb

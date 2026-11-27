@@ -9,9 +9,19 @@ import {
   SunMedium,
 } from 'lucide-react'
 import { memo } from 'react'
+import { useCountUp } from '../hooks/useCountUp'
 import { formatRupiah } from '../lib/format'
 import type { SyncStatus } from '../lib/supabaseSync'
 import type { AppTab } from './BottomNav'
+
+const AnimatedCartEstimate = memo(function AnimatedCartEstimate({
+  amount,
+}: {
+  amount: number
+}) {
+  const animated = useCountUp(amount, 420)
+  return <>{formatRupiah(animated)}</>
+})
 
 interface HeaderProps {
   activeTab: AppTab
@@ -197,7 +207,7 @@ export const Header = memo(function Header({
 
       {/* Slim Liquid Progress Strip (only on Keranjang tab when items exist) */}
       {showCartBar && (
-        <div className="relative z-10 glass-chip mt-2 rounded-2xl px-3 py-1.5 animate-liquid-panel">
+        <div className="relative z-10 glass-chip mt-2 rounded-xl px-3 py-1.5 animate-liquid-panel">
           <div className="flex items-center justify-between gap-2 text-xs">
             <span className="text-slate-600 font-medium">
               Keranjang{' '}
@@ -210,18 +220,18 @@ export const Header = memo(function Header({
             </span>
             <span
               data-testid="total-budget"
-              className="font-extrabold text-emerald-700 tabular-nums"
+              className="font-extrabold text-emerald-700 tabular-nums tracking-tight"
             >
-              {formatRupiah(totalEstimatedSpend)}
+              <AnimatedCartEstimate amount={totalEstimatedSpend} />
             </span>
           </div>
           <div className="mt-1.5 h-1.5 w-full rounded-full bg-slate-900/8 overflow-hidden">
-            {progressPct > 0 && (
-              <div
-                className="liquid-progress h-full rounded-full"
-                style={{ width: `${progressPct}%` }}
-              />
-            )}
+            <div
+              className="liquid-progress h-full w-full rounded-full origin-left will-change-transform"
+              style={{
+                transform: `scaleX(${Math.min(1, Math.max(0, progressPct / 100))})`,
+              }}
+            />
           </div>
         </div>
       )}

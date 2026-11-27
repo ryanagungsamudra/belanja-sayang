@@ -51,13 +51,13 @@ export function CategoryGroup({
           />
           {categoryConfig.name}
         </span>
-        <span className="text-[11px] font-semibold text-stone-400 tabular-nums">
+        <span className="text-[11px] font-semibold text-slate-600 tabular-nums">
           {items.length} item
         </span>
       </div>
 
-      {/* Compact Liquid Glass Grouped Card List */}
-      <div className="glass-card rounded-3xl glass-divide overflow-hidden">
+      {/* Crisp Matte Grouped Card List */}
+      <div className="surface-card rounded-2xl glass-divide overflow-hidden">
         {items.map((item) => {
           const storeCfg = findStore(stores, item.store)
           const isPickingStore = pickingItemId === item.id

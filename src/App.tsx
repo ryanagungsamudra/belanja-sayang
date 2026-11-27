@@ -434,10 +434,7 @@ export function App() {
   ) {
     return (
       <div className="liquid-shell w-full max-w-md mx-auto min-h-dvh shadow-2xl shadow-slate-900/12 flex flex-col items-center justify-center gap-3 px-6 text-center relative overflow-hidden">
-        <div className="liquid-blob liquid-blob-1 w-64 h-64 -top-14 -left-16" />
-        <div className="liquid-blob liquid-blob-2 w-72 h-72 top-44 -right-24" />
-        <div className="liquid-blob liquid-blob-3 w-64 h-64 bottom-20 -left-16" />
-        <div className="relative z-10 glass-card rounded-3xl px-7 py-6 flex flex-col items-center gap-3 animate-liquid-pop">
+        <div className="relative z-10 glass-card rounded-2xl px-7 py-6 flex flex-col items-center gap-3 animate-liquid-pop">
           <div className="w-14 h-14 rounded-3xl bg-emerald-600/95 text-white flex items-center justify-center shadow-lg shadow-emerald-600/25 border border-white/40">
             <ShoppingBasket className="w-7 h-7" />
           </div>
@@ -575,11 +572,6 @@ export function App() {
 
   return (
     <div className="liquid-shell w-full max-w-md mx-auto min-h-dvh overflow-x-clip shadow-2xl shadow-slate-900/12 flex flex-col relative">
-      {/* Ambient Morphing Liquid Orbs behind the glass */}
-      <div className="liquid-blob liquid-blob-1 w-64 h-64 -top-14 -left-16" />
-      <div className="liquid-blob liquid-blob-2 w-72 h-72 top-44 -right-24" />
-      <div className="liquid-blob liquid-blob-3 w-64 h-64 bottom-20 -left-16" />
-
       {/* Compact Frosted Header */}
       <Header
         activeTab={activeTab}
@@ -602,7 +594,7 @@ export function App() {
       {/* Main Scrollable Content */}
       <main
         key={activeTab}
-        className="relative z-10 flex-1 w-full min-w-0 px-3.5 pt-3 pb-6 space-y-3.5 animate-liquid-enter"
+        className="relative z-10 flex-1 w-full min-w-0 px-3.5 pt-3 pb-6 space-y-3.5 animate-tab-fade"
       >
         {activeTab === 'keranjang' && (
           <Suspense fallback={null}>

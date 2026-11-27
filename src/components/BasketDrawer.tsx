@@ -51,7 +51,7 @@ export function BasketDrawer({
   return (
     <section
       aria-label="Sudah Dibeli"
-      className="glass-card mt-4 rounded-3xl overflow-hidden"
+      className="surface-card mt-4 rounded-2xl overflow-hidden"
     >
       <button
         type="button"
@@ -68,7 +68,7 @@ export function BasketDrawer({
             <p className="text-sm font-bold text-slate-800 truncate">
               Sudah Dibeli (Tercatat Bulanan)
             </p>
-            <p className="text-xs text-stone-500 tabular-nums">
+            <p className="text-xs text-slate-600 tabular-nums">
               {items.length} item selesai
               {boughtEstimatedSpend > 0
                 ? ` · ${formatRupiah(boughtEstimatedSpend)}`
@@ -77,7 +77,7 @@ export function BasketDrawer({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 text-stone-500">
+        <div className="flex items-center gap-2 shrink-0 text-slate-600">
           <span className="inline-flex items-center justify-center min-w-7 h-7 px-2 rounded-full bg-emerald-600 text-white text-xs font-bold tabular-nums">
             {items.length}
           </span>

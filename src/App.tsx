@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 import { BottomNav, type AppTab } from './components/BottomNav'
@@ -13,6 +14,7 @@ import { ProductCatalogView } from './components/ProductCatalogView'
 import { PwaUpdateBanner } from './components/PwaUpdateBanner'
 import { ToastHost } from './components/ToastHost'
 import { useMarketStore } from './hooks/useMarketStore'
+import { useVisualViewport } from './hooks/useVisualViewport'
 import { useWakeLock } from './hooks/useWakeLock'
 import { formatRupiah } from './lib/format'
 import {
@@ -139,6 +141,18 @@ export function App() {
   const [activeTab, setActiveTab] = useState<AppTab>(() =>
     resolveInitialTab(store.activeItems.length > 0),
   )
+  const vp = useVisualViewport(!store.isLocked && activeTab === 'keranjang')
+  const [quickAddFocused, setQuickAddFocused] = useState(false)
+  const quickAddContainerRef = useRef<HTMLDivElement | null>(null)
+  const quickAddBlurTimerRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (quickAddBlurTimerRef.current) {
+        window.clearTimeout(quickAddBlurTimerRef.current)
+      }
+    }
+  }, [])
 
   // Remember the user's last active tab across reloads
   useEffect(() => {
@@ -520,6 +534,9 @@ export function App() {
     }
   }
 
+  const showQuickAddFloatingAboveKeyboard =
+    activeTab === 'keranjang' && quickAddFocused && vp.keyboardOpen
+
   return (
     <div className="liquid-shell w-full max-w-md mx-auto min-h-dvh overflow-x-clip shadow-2xl shadow-slate-900/12 flex flex-col relative">
       {/* Ambient Morphing Liquid Orbs behind the glass */}
@@ -716,7 +733,39 @@ export function App() {
       <ToastHost />
 
       {/* Unified Sticky Bottom Area */}
-      <div className="sticky bottom-0 z-30 w-full min-w-0 max-w-full">
+      <div
+        ref={quickAddContainerRef}
+        onFocusCapture={(e) => {
+          if (
+            e.target instanceof HTMLInputElement ||
+            e.target instanceof HTMLTextAreaElement
+          ) {
+            if (quickAddBlurTimerRef.current) {
+              window.clearTimeout(quickAddBlurTimerRef.current)
+            }
+            setQuickAddFocused(true)
+          }
+        }}
+        onBlurCapture={() => {
+          if (quickAddBlurTimerRef.current) {
+            window.clearTimeout(quickAddBlurTimerRef.current)
+          }
+          quickAddBlurTimerRef.current = window.setTimeout(() => {
+            const activeEl = document.activeElement
+            if (!quickAddContainerRef.current?.contains(activeEl)) {
+              setQuickAddFocused(false)
+            }
+          }, 120)
+        }}
+        style={
+          showQuickAddFloatingAboveKeyboard && vp.keyboardBottomOffset > 0
+            ? {
+                transform: `translateY(-${vp.keyboardBottomOffset}px)`,
+              }
+            : undefined
+        }
+        className="sticky bottom-0 z-30 w-full min-w-0 max-w-full"
+      >
         {activeTab === 'keranjang' && (
           <Suspense fallback={null}>
             <BottomQuickAdd
@@ -730,13 +779,15 @@ export function App() {
             />
           </Suspense>
         )}
-        <BottomNav
-          activeTab={activeTab}
-          activeItemCount={store.activeItems.length}
-          refCount={store.productRefs.length}
-          templateCount={store.templates.length}
-          onChangeTab={setActiveTab}
-        />
+        {!showQuickAddFloatingAboveKeyboard && (
+          <BottomNav
+            activeTab={activeTab}
+            activeItemCount={store.activeItems.length}
+            refCount={store.productRefs.length}
+            templateCount={store.templates.length}
+            onChangeTab={setActiveTab}
+          />
+        )}
       </div>
 
       {/* Lazily Mounted Modals (0 KB parsed until opened, still 100% precached offline!) */}

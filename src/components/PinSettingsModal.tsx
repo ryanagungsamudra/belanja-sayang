@@ -38,7 +38,7 @@ export function PinSettingsModal({
 
   return (
     <GlassSheetModal ariaLabel="Pengaturan Privasi & PIN" onClose={onClose}>
-      <div className="px-5 pt-2 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between">
+      <div className="px-5 pt-2 pb-3 bg-white/55 border-b border-white/75 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <ShieldCheck className="w-5 h-5" />
@@ -62,7 +62,7 @@ export function PinSettingsModal({
           </button>
         </div>
 
-        <div className="p-5 space-y-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           {/* Current Status Card */}
           <div className="bg-white rounded-2xl border border-stone-200/90 p-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">

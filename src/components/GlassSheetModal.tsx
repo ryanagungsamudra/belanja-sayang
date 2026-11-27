@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useVisualViewport } from '../hooks/useVisualViewport'
 
 interface GlassSheetModalProps {
   ariaLabel: string
@@ -10,9 +11,18 @@ interface GlassSheetModalProps {
 
 let openModalCount = 0
 
+function isFormControl(el: Element | null): el is HTMLElement {
+  return (
+    el instanceof HTMLInputElement ||
+    el instanceof HTMLTextAreaElement ||
+    el instanceof HTMLSelectElement
+  )
+}
+
 /**
  * Shared Liquid Glass bottom sheet modal with:
  * - Portal to document.body so ancestor transforms/animations never trap `fixed` positioning
+ * - Real-time `visualViewport` tracking so sheets lift cleanly above the iOS & Android keyboard
  * - Background scroll locking while open
  * - Escape key dismissal
  * - Top drag-handle swipe-down-to-dismiss physics
@@ -28,10 +38,23 @@ export function GlassSheetModal({
   const [isDragging, setIsDragging] = useState(false)
   const startYRef = useRef<number | null>(null)
   const onCloseRef = useRef(onClose)
+  const sheetRef = useRef<HTMLDivElement | null>(null)
+  const focusTimerRef = useRef<number | null>(null)
+  const vp = useVisualViewport()
 
   useEffect(() => {
     onCloseRef.current = onClose
   }, [onClose])
+
+  const scheduleFocusScroll = useCallback((target: Element | null) => {
+    if (!isFormControl(target)) return
+    if (focusTimerRef.current) window.clearTimeout(focusTimerRef.current)
+    focusTimerRef.current = window.setTimeout(() => {
+      if (document.body.contains(target)) {
+        target.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      }
+    }, 180)
+  }, [])
 
   useEffect(() => {
     openModalCount += 1
@@ -39,6 +62,11 @@ export function GlassSheetModal({
     const prevHtmlOverflow = document.documentElement.style.overflow
     document.body.style.overflow = 'hidden'
     document.documentElement.style.overflow = 'hidden'
+
+    // If an input used autoFocus on open, ensure it scrolls cleanly once the keyboard settles
+    if (sheetRef.current?.contains(document.activeElement)) {
+      scheduleFocusScroll(document.activeElement)
+    }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -48,6 +76,7 @@ export function GlassSheetModal({
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => {
+      if (focusTimerRef.current) window.clearTimeout(focusTimerRef.current)
       window.removeEventListener('keydown', handleKeyDown)
       openModalCount = Math.max(0, openModalCount - 1)
       if (openModalCount === 0) {
@@ -55,7 +84,7 @@ export function GlassSheetModal({
         document.documentElement.style.overflow = prevHtmlOverflow
       }
     }
-  }, [])
+  }, [scheduleFocusScroll])
 
   const handleDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId)
@@ -80,27 +109,56 @@ export function GlassSheetModal({
     }
   }
 
-  const modalNode = (
-    <div
-      className="fixed inset-0 h-dvh z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-[5px] animate-fade-in overscroll-contain"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={ariaLabel}
-        onClick={(e) => e.stopPropagation()}
-        style={
-          dragY > 0
+  const pctMatch = maxHeightClass.match(/max-h-\[(\d+)dvh\]/)
+  const maxPct = pctMatch ? Number(pctMatch[1]) : 88
+  const dynamicMaxHeight =
+    vp.height !== null
+      ? `${
+          vp.keyboardOpen
+            ? Math.max(220, Math.floor(vp.height - 12))
+            : Math.floor((vp.height * maxPct) / 100)
+        }px`
+      : undefined
+
+  const sheetStyle: React.CSSProperties | undefined =
+    dragY > 0 || dynamicMaxHeight
+      ? {
+          ...(dynamicMaxHeight ? { maxHeight: dynamicMaxHeight } : {}),
+          ...(dragY > 0
             ? {
                 transform: `translateY(${dragY}px)`,
                 transition: isDragging
                   ? 'none'
                   : 'transform 0.28s cubic-bezier(0.34, 1.4, 0.64, 1)',
               }
-            : undefined
+            : {}),
         }
-        className={`glass-sheet w-full max-w-md ${maxHeightClass} rounded-t-3xl flex flex-col overflow-hidden animate-slide-up overscroll-contain`}
+      : undefined
+
+  const modalNode = (
+    <div
+      className={
+        vp.height !== null
+          ? 'fixed inset-x-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-[5px] animate-fade-in overscroll-contain'
+          : 'fixed inset-0 h-dvh z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-[5px] animate-fade-in overscroll-contain'
+      }
+      style={
+        vp.height !== null
+          ? { top: `${vp.top}px`, height: `${vp.height}px` }
+          : undefined
+      }
+      onClick={onClose}
+    >
+      <div
+        ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={ariaLabel}
+        data-keyboard-open={vp.keyboardOpen ? 'true' : undefined}
+        onClick={(e) => e.stopPropagation()}
+        onFocusCapture={(e) => scheduleFocusScroll(e.target as Element)}
+        style={sheetStyle}
+        className={`glass-sheet w-full max-w-md ${vp.height === null ? maxHeightClass : ''} rounded-t-3xl flex flex-col overflow-hidden animate-slide-up overscroll-contain`}
       >
         {/* Swipe-down liquid grabber pill */}
         <div

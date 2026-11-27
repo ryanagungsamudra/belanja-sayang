@@ -266,6 +266,18 @@ a.glass-chip:active {
   box-shadow: 0 -14px 40px -10px rgba(15, 23, 42, 0.18);
 }
 
+/* Guarantee scrollable modal bodies can shrink cleanly when keyboard opens */
+.glass-sheet > form,
+.glass-sheet > .overflow-y-auto {
+  min-height: 0;
+}
+
+/* Trim redundant safe-area bottom gap when virtual keyboard sits right under the sheet */
+.glass-sheet[data-keyboard-open='true'] > form,
+.glass-sheet[data-keyboard-open='true'] > .overflow-y-auto {
+  padding-bottom: 0.875rem;
+}
+
 .glass-divide > * + * {
   border-top: 1px solid var(--g-divider);
 }

@@ -54,10 +54,12 @@ export default defineConfig(({ mode }) => {
           'pwa-512x512.png',
         ],
         manifest: {
+          id: '/',
           name: 'BelanjaSayang — Daftar Belanja Pasar',
           short_name: 'BelanjaSayang',
           description:
             'Daftar belanja pasar pribadi yang cepat, 100% offline, dan nyaman dipakai satu tangan.',
+          categories: ['shopping', 'finance', 'utilities'],
           theme_color: '#e8f5ee',
           background_color: '#e8f5ee',
           display: 'standalone',
@@ -83,6 +85,60 @@ export default defineConfig(({ mode }) => {
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable',
+            },
+          ],
+          shortcuts: [
+            {
+              name: 'Keranjang Belanja',
+              short_name: 'Keranjang',
+              description: 'Catat & cek daftar belanja minggu ini',
+              url: '/?tab=keranjang',
+              icons: [
+                {
+                  src: 'pwa-192x192.png',
+                  sizes: '192x192',
+                  type: 'image/png',
+                },
+              ],
+            },
+            {
+              name: 'Catatan Bulanan',
+              short_name: 'Catatan',
+              description: 'Lihat riwayat belanja & harga referensi',
+              url: '/?tab=referensi',
+              icons: [
+                {
+                  src: 'pwa-192x192.png',
+                  sizes: '192x192',
+                  type: 'image/png',
+                },
+              ],
+            },
+            {
+              name: 'Anggaran Rumah Tangga',
+              short_name: 'Anggaran',
+              description: 'Pantau realisasi & alokasi anggaran bulanan',
+              url: '/?tab=anggaran',
+              icons: [
+                {
+                  src: 'pwa-192x192.png',
+                  sizes: '192x192',
+                  type: 'image/png',
+                },
+              ],
+            },
+            {
+              name: 'Paket Masak',
+              short_name: 'Paket',
+              description: 'Tambahkan bahan paket ke keranjang cepat',
+              url: '/?tab=paket',
+              icons: [
+                {
+                  src: 'pwa-192x192.png',
+                  sizes: '192x192',
+                  type: 'image/png',
+                },
+              ],
             },
           ],
         },

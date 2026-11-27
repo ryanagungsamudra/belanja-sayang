@@ -261,6 +261,13 @@ export const BottomNav = memo(function BottomNav({
     if (finalTab !== activeTabRef.current) {
       triggerHaptic(10)
       onChangeTab(finalTab)
+    } else if (
+      !wasDrag &&
+      typeof window !== 'undefined' &&
+      window.scrollY > 24
+    ) {
+      triggerHaptic(6)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
@@ -381,7 +388,14 @@ export const BottomNav = memo(function BottomNav({
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault()
-                  onChangeTab(tab.id)
+                  if (tab.id !== activeTabRef.current) {
+                    onChangeTab(tab.id)
+                  } else if (
+                    typeof window !== 'undefined' &&
+                    window.scrollY > 24
+                  ) {
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }
                 }
               }}
               className="relative z-10 h-full rounded-full flex items-center justify-center cursor-pointer"

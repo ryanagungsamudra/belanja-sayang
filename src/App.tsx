@@ -4,6 +4,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -109,16 +110,28 @@ const LiquidDatePickerModal = lazy(() =>
 
 const LAST_TAB_STORAGE_KEY = 'belanjasayang:last-tab:v1'
 
+function isValidAppTab(value: string | null): value is AppTab {
+  return (
+    value === 'keranjang' ||
+    value === 'referensi' ||
+    value === 'paket' ||
+    value === 'anggaran'
+  )
+}
+
 function resolveInitialTab(hasActiveCartItems: boolean): AppTab {
+  try {
+    const tabParam = new URLSearchParams(window.location.search).get('tab')
+    if (isValidAppTab(tabParam)) {
+      return tabParam
+    }
+  } catch {
+    // Ignore URL parse errors
+  }
   if (hasActiveCartItems) return 'keranjang'
   try {
     const saved = window.localStorage.getItem(LAST_TAB_STORAGE_KEY)
-    if (
-      saved === 'keranjang' ||
-      saved === 'referensi' ||
-      saved === 'paket' ||
-      saved === 'anggaran'
-    ) {
+    if (isValidAppTab(saved)) {
       return saved
     }
   } catch {
@@ -141,6 +154,25 @@ export function App() {
   const [activeTab, setActiveTab] = useState<AppTab>(() =>
     resolveInitialTab(store.activeItems.length > 0),
   )
+  const tabScrollYRef = useRef<Partial<Record<AppTab, number>>>({})
+
+  const selectTab = useCallback(
+    (nextTab: AppTab) => {
+      if (nextTab === activeTab) return
+      if (typeof window !== 'undefined') {
+        tabScrollYRef.current[activeTab] = window.scrollY
+      }
+      setActiveTab(nextTab)
+    },
+    [activeTab],
+  )
+
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return
+    const targetY = tabScrollYRef.current[activeTab] ?? 0
+    window.scrollTo(0, targetY)
+  }, [activeTab])
+
   const vp = useVisualViewport(!store.isLocked && activeTab === 'keranjang')
   const [quickAddFocused, setQuickAddFocused] = useState(false)
   const quickAddContainerRef = useRef<HTMLDivElement | null>(null)
@@ -335,8 +367,11 @@ export function App() {
     )
   }, [editingRef, store.monthlyPurchases])
 
-  const handleGoToCatatan = useCallback(() => setActiveTab('referensi'), [])
-  const handleGoToPaket = useCallback(() => setActiveTab('paket'), [])
+  const handleGoToCatatan = useCallback(
+    () => selectTab('referensi'),
+    [selectTab],
+  )
+  const handleGoToPaket = useCallback(() => selectTab('paket'), [selectTab])
 
   // Precompute live monthly grocery spend per YYYY-MM for the Catatan -> Anggaran bridge
   const grocerySpendByMonth = useMemo(() => {
@@ -379,18 +414,18 @@ export function App() {
     (dateKey: string) => {
       setSelectedMonth(dateKey.slice(0, 7))
       setActiveDateFilter(dateKey)
-      setActiveTab('referensi')
+      selectTab('referensi')
       setDatePickerOpen(true)
     },
-    [setSelectedMonth],
+    [selectTab, setSelectedMonth],
   )
 
   const handleOpenCalendarForToday = useCallback(() => {
     setSelectedMonth(getCurrentMonthKey())
     setActiveDateFilter(getTodayDateKey())
-    setActiveTab('referensi')
+    selectTab('referensi')
     setDatePickerOpen(true)
-  }, [setSelectedMonth])
+  }, [selectTab, setSelectedMonth])
 
   // On a brand-new browser/device with auto-live sync, wait briefly for cloud shared PIN check
   if (
@@ -476,7 +511,8 @@ export function App() {
   const handleApplyTemplate = (templateId: string) => {
     const tpl = store.templates.find((t) => t.id === templateId)
     const { addedCount, skippedCount } = store.applyTemplate(templateId)
-    setActiveTab('keranjang')
+    tabScrollYRef.current.keranjang = 0
+    selectTab('keranjang')
     if (addedCount > 0) {
       showToast(
         `${addedCount} bahan ${tpl?.name ?? 'paket'} masuk keranjang${
@@ -785,7 +821,7 @@ export function App() {
             activeItemCount={store.activeItems.length}
             refCount={store.productRefs.length}
             templateCount={store.templates.length}
-            onChangeTab={setActiveTab}
+            onChangeTab={selectTab}
           />
         )}
       </div>

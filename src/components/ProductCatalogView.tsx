@@ -627,6 +627,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                 <input
                   type="text"
                   inputMode="numeric"
+                  enterKeyHint="done"
                   autoFocus
                   data-testid="monthly-budget-input"
                   value={budgetDraft}
@@ -797,10 +798,17 @@ export const ProductCatalogView = memo(function ProductCatalogView({
         <div className="glass-pill flex-1 min-w-0 min-h-11 rounded-2xl focus-within:ring-2 focus-within:ring-emerald-500/30 px-3 flex items-center gap-2">
           <Search className="w-4 h-4 text-slate-400 shrink-0" />
           <input
-            type="text"
+            type="search"
+            enterKeyHint="search"
+            autoComplete="off"
             data-testid="ref-search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.currentTarget.blur()
+              }
+            }}
             placeholder="Cari bahan..."
             className="flex-1 min-w-0 bg-transparent text-sm font-medium text-slate-900 placeholder:text-slate-400 outline-none"
           />

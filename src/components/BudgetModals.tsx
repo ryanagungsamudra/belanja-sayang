@@ -197,6 +197,7 @@ export function BudgetRealisasiModal({
           </label>
           <input
             type="text"
+            enterKeyHint="done"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="mis. Bayar tgl 2 via transfer"
@@ -608,6 +609,7 @@ export function BudgetEnvelopeModal({
           </label>
           <input
             type="text"
+            enterKeyHint="done"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="mis. Rutin tanggal 1 / servis bulanan"
@@ -1624,6 +1626,7 @@ export function BudgetDeleteMonthModal({
             <input
               id="confirm-delete-month-input"
               type="text"
+              enterKeyHint="done"
               data-testid="confirm-delete-month-input"
               value={confirmInput}
               onChange={(e) => setConfirmInput(e.target.value)}

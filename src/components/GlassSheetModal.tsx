@@ -10,6 +10,8 @@ interface GlassSheetModalProps {
 }
 
 let openModalCount = 0
+let modalHistorySeq = 0
+const modalHistoryStack: string[] = []
 
 function isFormControl(el: Element | null): el is HTMLElement {
   return (
@@ -68,16 +70,70 @@ export function GlassSheetModal({
       scheduleFocusScroll(document.activeElement)
     }
 
+    // Push a lightweight history entry so mobile Back button / edge-swipe closes the modal instead of exiting the PWA
+    const modalHistoryId = `bs-modal-${++modalHistorySeq}`
+    let closedByPopstate = false
+    modalHistoryStack.push(modalHistoryId)
+
+    const hasHistory =
+      typeof window !== 'undefined' &&
+      typeof window.history?.pushState === 'function'
+    if (hasHistory) {
+      const prevState =
+        window.history.state && typeof window.history.state === 'object'
+          ? (window.history.state as Record<string, unknown>)
+          : {}
+      window.history.pushState(
+        { ...prevState, __bsModalId: modalHistoryId },
+        '',
+      )
+    }
+
+    const handlePopState = () => {
+      const isTop =
+        modalHistoryStack[modalHistoryStack.length - 1] === modalHistoryId
+      const currentId = (
+        window.history.state as { __bsModalId?: string } | null
+      )?.__bsModalId
+      if (isTop && currentId !== modalHistoryId) {
+        closedByPopstate = true
+        modalHistoryStack.pop()
+        onCloseRef.current()
+      }
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault()
         onCloseRef.current()
       }
     }
+    window.addEventListener('popstate', handlePopState)
     window.addEventListener('keydown', handleKeyDown)
     return () => {
       if (focusTimerRef.current) window.clearTimeout(focusTimerRef.current)
+      window.removeEventListener('popstate', handlePopState)
       window.removeEventListener('keydown', handleKeyDown)
+
+      const stackIdx = modalHistoryStack.lastIndexOf(modalHistoryId)
+      if (stackIdx >= 0) {
+        modalHistoryStack.splice(stackIdx, 1)
+      }
+      if (hasHistory && !closedByPopstate) {
+        // Defer one tick so React StrictMode's simulated unmount doesn't pop the remounted entry
+        window.setTimeout(() => {
+          const currentId = (
+            window.history.state as { __bsModalId?: string } | null
+          )?.__bsModalId
+          if (
+            !modalHistoryStack.includes(modalHistoryId) &&
+            currentId === modalHistoryId
+          ) {
+            window.history.back()
+          }
+        }, 0)
+      }
+
       openModalCount = Math.max(0, openModalCount - 1)
       if (openModalCount === 0) {
         document.body.style.overflow = prevBodyOverflow

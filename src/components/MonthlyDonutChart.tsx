@@ -1,4 +1,5 @@
-import { memo } from 'react'
+import { memo, useEffect, useState } from 'react'
+import { useCountUp } from '../hooks/useCountUp'
 import { formatRupiah } from '../lib/format'
 
 export interface DonutSegment {
@@ -44,13 +45,64 @@ export const MonthlyDonutChart = memo(function MonthlyDonutChart({
 
   const nonZeroSegments = segments.filter((s) => s.value > 0)
   const gapPx = nonZeroSegments.length > 1 ? 3.5 : 0
+  const chartSignature = nonZeroSegments
+    .map((s) => `${s.id}:${s.value}`)
+    .join('|')
+
+  const [sweep, setSweep] = useState<{ sig: string; progress: number }>(() => ({
+    sig: chartSignature,
+    progress:
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ? 1
+        : 0,
+  }))
+
+  useEffect(() => {
+    const reduced =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    if (
+      reduced ||
+      typeof requestAnimationFrame === 'undefined' ||
+      nonZeroSegments.length === 0
+    ) {
+      const id = window.setTimeout(() => {
+        setSweep({ sig: chartSignature, progress: 1 })
+      }, 0)
+      return () => window.clearTimeout(id)
+    }
+
+    let rafId = 0
+    let startTime: number | null = null
+    const durationMs = 660
+
+    const tick = (now: number) => {
+      if (startTime === null) startTime = now
+      const rawT = Math.min(1, (now - startTime) / durationMs)
+      const eased = 1 - Math.pow(1 - rawT, 4)
+      setSweep({ sig: chartSignature, progress: eased })
+      if (rawT < 1) {
+        rafId = requestAnimationFrame(tick)
+      }
+    }
+
+    rafId = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafId)
+  }, [chartSignature, nonZeroSegments.length])
+
+  const sweepProgress = sweep.sig === chartSignature ? sweep.progress : 0
+  const drawnCircumference = sweepProgress * circumference
 
   const arcs = nonZeroSegments.reduce<
     Array<
       DonutSegment & {
         pct: number
-        dashArray: string
-        dashOffset: number
+        visibleLen: number
+        startOffset: number
         endOffset: number
       }
     >
@@ -59,12 +111,11 @@ export const MonthlyDonutChart = memo(function MonthlyDonutChart({
     const pct = total > 0 ? seg.value / total : 0
     const rawLen = pct * circumference
     const visibleLen = Math.max(0, rawLen - gapPx)
-    const dashArray = `${visibleLen} ${circumference - visibleLen}`
     acc.push({
       ...seg,
       pct,
-      dashArray,
-      dashOffset: -startOffset,
+      visibleLen,
+      startOffset,
       endOffset: startOffset + rawLen,
     })
     return acc
@@ -73,6 +124,13 @@ export const MonthlyDonutChart = memo(function MonthlyDonutChart({
   const activeSegment = activeSegmentId
     ? segments.find((s) => s.id === activeSegmentId)
     : null
+  const centerTarget = activeSegment ? activeSegment.value : total
+  const animatedCenterValue = useCountUp(centerTarget, 580, chartSignature)
+  const centerTargetPct =
+    activeSegment && total > 0
+      ? Math.round((activeSegment.value / total) * 100)
+      : 0
+  const animatedCenterPct = useCountUp(centerTargetPct, 480, activeSegment?.id ?? '')
 
   return (
     <div
@@ -97,11 +155,19 @@ export const MonthlyDonutChart = memo(function MonthlyDonutChart({
             strokeWidth={strokeWidth}
           />
 
-          {/* Data arcs */}
+          {/* Data arcs — sweep smoothly clockwise from 12 o'clock */}
           {arcs.map((arc) => {
             const isDimmed =
               activeSegmentId !== null && activeSegmentId !== arc.id
             const isSelected = activeSegmentId === arc.id
+            const drawnLen = Math.max(
+              0,
+              Math.min(arc.visibleLen, drawnCircumference - arc.startOffset),
+            )
+            const hasVisibleArc = drawnLen > 0.4
+            const dashArray = hasVisibleArc
+              ? `${drawnLen} ${circumference - drawnLen}`
+              : `0 ${circumference}`
             return (
               <circle
                 key={arc.id}
@@ -111,12 +177,12 @@ export const MonthlyDonutChart = memo(function MonthlyDonutChart({
                 fill="none"
                 stroke={arc.color}
                 strokeWidth={isSelected ? strokeWidth + 2.5 : strokeWidth}
-                strokeDasharray={arc.dashArray}
-                strokeDashoffset={arc.dashOffset}
+                strokeDasharray={dashArray}
+                strokeDashoffset={-arc.startOffset}
                 strokeLinecap="round"
-                opacity={isDimmed ? 0.25 : 1}
+                opacity={!hasVisibleArc ? 0 : isDimmed ? 0.25 : 1}
                 onClick={() => onSelectSegment(arc.id)}
-                className="transition-all duration-500 ease-[cubic-bezier(0.34,1.35,0.64,1)] cursor-pointer"
+                className="transition-[stroke-width,opacity,filter] duration-300 ease-[cubic-bezier(0.34,1.35,0.64,1)] cursor-pointer"
                 style={
                   isSelected
                     ? { filter: `drop-shadow(0 0 6px ${arc.color}66)` }
@@ -136,11 +202,11 @@ export const MonthlyDonutChart = memo(function MonthlyDonutChart({
             data-testid="monthly-total-spend"
             className="text-[15px] font-extrabold text-slate-900 tabular-nums leading-tight mt-0.5"
           >
-            {formatCompactTotal(activeSegment ? activeSegment.value : total)}
+            {formatCompactTotal(animatedCenterValue)}
           </span>
           <span className="text-[10px] font-semibold text-stone-400 tabular-nums leading-none mt-0.5">
             {activeSegment && total > 0
-              ? `${Math.round((activeSegment.value / total) * 100)}%`
+              ? `${animatedCenterPct}%`
               : `${purchaseCount}x beli`}
           </span>
         </div>
@@ -150,6 +216,10 @@ export const MonthlyDonutChart = memo(function MonthlyDonutChart({
       <div className="flex-1 min-w-0 space-y-1">
         {segments.map((seg) => {
           const pct = total > 0 ? Math.round((seg.value / total) * 100) : 0
+          const animatedSegValue =
+            seg.value > 0 ? Math.round(seg.value * sweepProgress) : 0
+          const animatedSegPct =
+            pct > 0 ? Math.round(pct * sweepProgress) : 0
           const isSelected = activeSegmentId === seg.id
           const isDimmed =
             activeSegmentId !== null && activeSegmentId !== seg.id
@@ -174,11 +244,11 @@ export const MonthlyDonutChart = memo(function MonthlyDonutChart({
                   {seg.shortLabel}
                 </span>
                 <span className="text-[10px] font-semibold text-stone-400 tabular-nums shrink-0">
-                  {pct}%
+                  {animatedSegPct}%
                 </span>
               </div>
               <span className="text-[12px] font-extrabold text-slate-900 tabular-nums shrink-0">
-                {formatRupiah(seg.value)}
+                {formatRupiah(animatedSegValue)}
               </span>
             </button>
           )

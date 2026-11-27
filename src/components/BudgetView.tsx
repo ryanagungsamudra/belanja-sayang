@@ -16,6 +16,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import { lazy, memo, Suspense, useMemo, useState } from 'react'
+import { useCountUp } from '../hooks/useCountUp'
 import {
   computeBudgetMonthSummary,
   getBudgetItemAllocation,
@@ -222,6 +223,32 @@ export const BudgetView = memo(function BudgetView({
   const fmtShort = (amount: number) =>
     privacyMasked ? '•••' : formatCompactRupiahShort(amount) || '0'
 
+  const animKey = monthRecord ? `${selectedMonth}:ready` : `${selectedMonth}:empty`
+  const animatedRemainingAbs = useCountUp(
+    Math.abs(summary?.remainingBudget ?? 0),
+    620,
+    animKey,
+  )
+  const animatedSpent = useCountUp(summary?.totalSpent ?? 0, 620, animKey)
+  const animatedBurnPct = useCountUp(summary?.burnPct ?? 0, 620, animKey)
+  const animatedBarTenths = useCountUp(
+    Math.min(100, summary?.burnPct ?? 0) * 10,
+    640,
+    animKey,
+  )
+  const animatedUnallocatedAbs = useCountUp(
+    Math.abs(summary?.unallocatedCash ?? 0),
+    560,
+    animKey,
+  )
+  const animatedIncome = useCountUp(summary?.totalIncome ?? 0, 560, animKey)
+  const animatedSavings = useCountUp(
+    summary?.monthlySavingsTotal ?? 0,
+    560,
+    animKey,
+  )
+  const animatedYearSavings = useCountUp(cumulativeYearSavings, 560, animKey)
+
   const togglePillarCollapse = (pid: string) => {
     setCollapsedPillars((prev) => ({ ...prev, [pid]: !prev[pid] }))
   }
@@ -235,31 +262,37 @@ export const BudgetView = memo(function BudgetView({
             type="button"
             aria-label="Bulan sebelumnya"
             onClick={() => onChangeMonth(shiftMonthKey(selectedMonth, -1))}
-            className="glass-chip w-7 h-7 rounded-xl text-slate-700 flex items-center justify-center shrink-0 cursor-pointer"
+            className="glass-chip w-10 h-10 rounded-xl text-slate-700 hover:text-slate-900 flex items-center justify-center shrink-0 cursor-pointer"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-4 h-4" aria-hidden="true" />
           </button>
           <button
             type="button"
             data-testid="budget-month-pill"
             onClick={() => setAnnualModalOpen(true)}
-            className="glass-chip min-h-7 px-2 rounded-xl inline-flex items-center gap-1 text-[12.5px] font-extrabold text-slate-900 hover:text-emerald-700 capitalize whitespace-nowrap truncate cursor-pointer"
+            className="glass-chip min-h-10 px-2.5 rounded-xl inline-flex items-center gap-1.5 text-[13px] font-extrabold text-slate-900 hover:text-emerald-700 capitalize whitespace-nowrap truncate cursor-pointer"
           >
-            <CalendarDays className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <CalendarDays
+              className="w-3.5 h-3.5 text-emerald-700 shrink-0"
+              aria-hidden="true"
+            />
             <span className="truncate">{formatMonthLabel(selectedMonth)}</span>
-            <ChevronDown className="w-3 h-3 text-emerald-600 shrink-0 opacity-80" />
+            <ChevronDown
+              className="w-3.5 h-3.5 text-slate-500 shrink-0"
+              aria-hidden="true"
+            />
           </button>
           <button
             type="button"
             aria-label="Bulan berikutnya"
             onClick={() => onChangeMonth(shiftMonthKey(selectedMonth, 1))}
-            className="glass-chip w-7 h-7 rounded-xl text-slate-700 flex items-center justify-center shrink-0 cursor-pointer"
+            className="glass-chip w-10 h-10 rounded-xl text-slate-700 hover:text-slate-900 flex items-center justify-center shrink-0 cursor-pointer"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
             aria-label={
@@ -267,12 +300,12 @@ export const BudgetView = memo(function BudgetView({
             }
             title={privacyMasked ? 'Tampilkan nominal' : 'Sembunyikan nominal'}
             onClick={() => setPrivacyMasked((p) => !p)}
-            className="glass-chip w-8 h-8 rounded-xl text-slate-600 hover:text-slate-900 flex items-center justify-center cursor-pointer"
+            className="glass-chip w-10 h-10 rounded-xl text-slate-700 hover:text-slate-900 flex items-center justify-center cursor-pointer"
           >
             {privacyMasked ? (
-              <EyeOff className="w-3.5 h-3.5" />
+              <EyeOff className="w-4 h-4" aria-hidden="true" />
             ) : (
-              <Eye className="w-3.5 h-3.5" />
+              <Eye className="w-4 h-4" aria-hidden="true" />
             )}
           </button>
 
@@ -281,20 +314,20 @@ export const BudgetView = memo(function BudgetView({
               type="button"
               data-testid="budget-edit-mode-toggle"
               onClick={() => setEditPlanMode((p) => !p)}
-              className={`min-h-8 px-2.5 rounded-xl text-[11px] font-extrabold inline-flex items-center gap-1 liquid-press cursor-pointer border ${
+              className={`min-h-10 px-3 rounded-xl text-xs font-extrabold inline-flex items-center gap-1.5 liquid-press cursor-pointer border ${
                 editPlanMode
                   ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
-                  : 'glass-chip text-slate-700 hover:border-emerald-400'
+                  : 'glass-chip text-slate-800 hover:border-emerald-500'
               }`}
             >
               {editPlanMode ? (
                 <>
-                  <Check className="w-3.5 h-3.5" />
+                  <Check className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>Selesai</span>
                 </>
               ) : (
                 <>
-                  <Pencil className="w-3 h-3" />
+                  <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>Atur</span>
                 </>
               )}
@@ -358,180 +391,212 @@ export const BudgetView = memo(function BudgetView({
         </section>
       ) : (
         <>
-          {/* Admin Action Bar (Visible ONLY in Explicit Atur Plan Mode) */}
+          {/* Compact Single-Row Atur Strip (Replaces bloated multi-row admin card) */}
           {editPlanMode && (
             <div
               data-testid="budget-admin-bar"
-              className="glass-card rounded-2xl p-2 space-y-2 animate-liquid-panel"
+              className="flex items-center gap-1.5 animate-liquid-panel"
             >
-              <div className="flex items-center justify-between gap-2 px-1">
-                <span className="inline-flex items-center gap-1.5 text-[10.5px] font-extrabold uppercase tracking-wider text-slate-500 min-w-0 truncate">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                  <span className="truncate">
-                    Atur · {formatMonthLabel(selectedMonth)}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  data-testid="delete-budget-month-btn"
-                  aria-label={`Hapus anggaran ${formatMonthLabel(selectedMonth)}`}
-                  onClick={() => setDeleteMonthModalOpen(true)}
-                  className="min-h-7 px-2.5 rounded-xl bg-rose-500/8 hover:bg-rose-500/15 border border-rose-300/60 text-rose-600 hover:text-rose-700 text-[10.5px] font-bold inline-flex items-center gap-1 shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] liquid-press cursor-pointer"
-                >
-                  <Trash2 className="w-3 h-3 shrink-0" />
-                  <span>Hapus Bulan</span>
-                </button>
-              </div>
-              <div className="grid grid-cols-3 gap-1.5">
-                <button
-                  type="button"
-                  data-testid="budget-open-income-btn"
-                  onClick={() => setIncomeModalOpen(true)}
-                  className="glass-chip min-h-9 px-2 rounded-xl text-[11px] font-bold text-slate-700 hover:text-emerald-700 inline-flex items-center justify-center gap-1 liquid-press cursor-pointer"
-                >
-                  <Pencil className="w-3 h-3 text-emerald-600 shrink-0" />
-                  <span className="truncate">Pemasukan</span>
-                </button>
-                <button
-                  type="button"
-                  data-testid="budget-open-config-btn"
-                  onClick={() => setConfigModalTab('pillars')}
-                  className="glass-chip min-h-9 px-2 rounded-xl text-[11px] font-bold text-slate-700 hover:text-emerald-700 inline-flex items-center justify-center gap-1 liquid-press cursor-pointer"
-                >
-                  <SlidersHorizontal className="w-3 h-3 text-emerald-600 shrink-0" />
-                  <span className="truncate">Pilar &amp; Mode</span>
-                </button>
-                <button
-                  type="button"
-                  data-testid="budget-add-env-btn"
-                  onClick={() => {
-                    setEditingEnvelope(null)
-                    setEnvelopeModalOpen(true)
-                  }}
-                  className="min-h-9 px-2 rounded-xl bg-gradient-to-b from-emerald-500/95 to-emerald-600/95 hover:from-emerald-600 hover:to-emerald-700 text-white text-[11px] font-extrabold inline-flex items-center justify-center gap-1 border border-white/35 shadow-[0_4px_12px_-3px_rgba(5,150,105,0.35),inset_0_1px_0_rgba(255,255,255,0.45)] liquid-press cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5 shrink-0" />
-                  <span>Pos Baru</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                data-testid="budget-open-income-btn"
+                onClick={() => setIncomeModalOpen(true)}
+                className="glass-chip flex-1 min-w-0 min-h-11 px-2.5 rounded-xl text-xs font-bold text-slate-800 hover:text-emerald-700 inline-flex items-center justify-center gap-1.5 liquid-press cursor-pointer"
+              >
+                <Pencil
+                  className="w-3.5 h-3.5 text-emerald-700 shrink-0"
+                  aria-hidden="true"
+                />
+                <span className="truncate">Pemasukan</span>
+              </button>
+              <button
+                type="button"
+                data-testid="budget-open-config-btn"
+                onClick={() => setConfigModalTab('pillars')}
+                className="glass-chip flex-1 min-w-0 min-h-11 px-2.5 rounded-xl text-xs font-bold text-slate-800 hover:text-emerald-700 inline-flex items-center justify-center gap-1.5 liquid-press cursor-pointer"
+              >
+                <SlidersHorizontal
+                  className="w-3.5 h-3.5 text-emerald-700 shrink-0"
+                  aria-hidden="true"
+                />
+                <span className="truncate">Pilar &amp; Mode</span>
+              </button>
+              <button
+                type="button"
+                data-testid="budget-add-env-btn"
+                onClick={() => {
+                  setEditingEnvelope(null)
+                  setEnvelopeModalOpen(true)
+                }}
+                className="min-h-11 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold inline-flex items-center justify-center gap-1 shrink-0 shadow-xs liquid-press cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                <span>Pos</span>
+              </button>
+              <button
+                type="button"
+                data-testid="delete-budget-month-btn"
+                aria-label={`Hapus anggaran ${formatMonthLabel(selectedMonth)}`}
+                title={`Hapus anggaran ${formatMonthLabel(selectedMonth)}`}
+                onClick={() => setDeleteMonthModalOpen(true)}
+                className="min-h-11 min-w-11 rounded-xl bg-rose-50/90 hover:bg-rose-100 border border-rose-200 text-rose-700 flex items-center justify-center shrink-0 liquid-press cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" aria-hidden="true" />
+              </button>
             </div>
           )}
 
-          {/* Macro Cashflow Card + Pay Yourself First */}
+          {/* Hero Cashflow Card (Single frosted surface, open typography, no nested boxes) */}
           <section
             aria-label="Ringkasan Arus Kas Bulanan"
-            className="glass-card rounded-3xl p-3.5 space-y-2.5"
+            className="glass-card rounded-2xl p-4 space-y-3.5"
           >
-            <div className="flex items-start justify-between gap-2">
-              <button
-                type="button"
-                disabled={!editPlanMode}
-                onClick={() => editPlanMode && setIncomeModalOpen(true)}
-                className={`text-left min-w-0 ${editPlanMode ? 'cursor-pointer' : 'cursor-default'}`}
-              >
-                <p className="text-[10px] font-bold uppercase tracking-wide text-stone-400">
-                  Pemasukan Bersih
-                  {monthRecord.extraIncome > 0
-                    ? ` + ${monthRecord.extraIncomeLabel || 'Bonus'}`
-                    : ''}
-                  {editPlanMode && (
-                    <span className="text-emerald-600 ml-1">✎</span>
-                  )}
+            {/* Primary Focal Point: Remaining Spendable Budget + Savings Margin */}
+            <div className="flex items-start justify-between gap-2.5">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-slate-600">
+                  {summary.remainingBudget < 0
+                    ? 'Pengeluaran melebihi alokasi'
+                    : 'Sisa anggaran bulan ini'}
                 </p>
-                <p className="text-base font-extrabold text-slate-900 tabular-nums">
-                  {fmtVal(summary.totalIncome)}
+                <p
+                  className={`text-[26px] font-black tracking-tight tabular-nums leading-tight mt-0.5 ${
+                    summary.remainingBudget < 0
+                      ? 'text-rose-700'
+                      : 'text-slate-900'
+                  }`}
+                >
+                  {summary.remainingBudget < 0
+                    ? `-${fmtVal(animatedRemainingAbs)}`
+                    : fmtVal(animatedRemainingAbs)}
                 </p>
-              </button>
-
-              <div className="text-right shrink-0">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700">
-                  Tabungan
-                  {summary.savingsRuleType === 'percent'
-                    ? ` (${summary.savingsRuleValue}%)`
-                    : ''}
+                <p className="text-xs text-slate-600 tabular-nums mt-0.5">
+                  Terpakai{' '}
+                  <strong className="font-bold text-slate-800">
+                    {fmtVal(animatedSpent)}
+                  </strong>{' '}
+                  dari {fmtShort(summary.totalAllocation)} ({animatedBurnPct}%)
                 </p>
-                <p className="text-sm font-extrabold text-emerald-700 tabular-nums">
-                  {fmtVal(summary.monthlySavingsTotal)}
-                </p>
-                {summary.sweepSavingsBonus > 0 && (
-                  <p className="text-[9.5px] font-bold text-emerald-600 tabular-nums">
-                    +{fmtShort(summary.sweepSavingsBonus)} Sweep
-                  </p>
-                )}
               </div>
+
+              {summary.unallocatedCash !== 0 && (
+                <div
+                  className={`rounded-lg px-2.5 py-1.5 text-right shrink-0 border ${
+                    summary.isSavingsBreached
+                      ? 'bg-amber-50/90 border-amber-300/80 text-amber-900'
+                      : 'bg-emerald-50/85 border-emerald-200/80 text-emerald-900'
+                  }`}
+                >
+                  <p className="text-xs font-extrabold tabular-nums leading-tight">
+                    {summary.isSavingsBreached
+                      ? `-${fmtShort(animatedUnallocatedAbs)}`
+                      : `+${fmtShort(animatedUnallocatedAbs)}`}
+                  </p>
+                  <p className="text-[10.5px] font-semibold leading-tight mt-0.5">
+                    {summary.isSavingsBreached
+                      ? 'sentuh tabungan'
+                      : 'sisa bebas'}
+                  </p>
+                </div>
+              )}
             </div>
 
-            {/* Unallocated Cash Headroom OR Savings Breach Warning */}
-            {summary.unallocatedCash !== 0 && (
-              <div
-                className={`rounded-xl px-2.5 py-1.5 text-[11px] font-bold flex items-center justify-between gap-2 ${
-                  summary.isSavingsBreached
-                    ? 'bg-amber-50 border border-amber-200 text-amber-800'
-                    : 'bg-emerald-50/75 border border-emerald-200/70 text-emerald-800'
-                }`}
-              >
-                <span>
-                  {summary.isSavingsBreached
-                    ? 'Alokasi melebihi batas tabungan'
-                    : 'Sisa Bebas (Belum Dialokasikan)'}
-                </span>
-                <span className="font-extrabold tabular-nums">
-                  {summary.isSavingsBreached
-                    ? `-${fmtVal(Math.abs(summary.unallocatedCash))}`
-                    : fmtVal(summary.unallocatedCash)}
-                </span>
-              </div>
-            )}
-
-            {/* Realisasi vs Target Bar */}
-            <div className="glass-chip rounded-2xl p-2.5 space-y-1.5">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="font-bold text-slate-600">
-                  Terpakai{' '}
-                  <strong className="text-slate-900 tabular-nums">
-                    {fmtVal(summary.totalSpent)}
-                  </strong>
-                </span>
-                <span className="font-bold text-stone-400 tabular-nums">
-                  Maks {fmtShort(summary.totalAllocation)} ({summary.burnPct}%)
-                </span>
-              </div>
-              <div className="h-1.5 rounded-full bg-slate-900/8 overflow-hidden">
+            {/* Unified Allocation Progress & Safe-Ceiling Marker */}
+            <div className="space-y-1.5">
+              <div className="relative h-2 rounded-full bg-slate-900/10 overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-300 ${
+                  className={`h-full rounded-full transition-colors duration-300 ${
                     summary.totalSpent > summary.totalAllocation
-                      ? 'bg-rose-500'
+                      ? 'bg-rose-600'
                       : summary.burnPct >= 85
                         ? 'bg-amber-500'
                         : 'bg-emerald-600'
                   }`}
-                  style={{ width: `${Math.min(100, summary.burnPct)}%` }}
+                  style={{ width: `${Math.min(100, animatedBarTenths / 10)}%` }}
                 />
+                {summary.isSavingsBreached &&
+                  summary.totalAllocation > 0 &&
+                  summary.totalIncome > summary.requiredSavings && (
+                    <div
+                      aria-hidden="true"
+                      title="Batas aman belanja sebelum menyentuh tabungan"
+                      className="absolute top-0 bottom-0 w-0.5 bg-slate-900/55"
+                      style={{
+                        left: `${Math.min(
+                          98,
+                          Math.max(
+                            2,
+                            Math.round(
+                              ((summary.totalIncome - summary.requiredSavings) /
+                                summary.totalAllocation) *
+                                100,
+                            ),
+                          ),
+                        )}%`,
+                      }}
+                    />
+                  )}
               </div>
+              {summary.isSavingsBreached && (
+                <p className="text-[11px] font-medium text-amber-900 tabular-nums">
+                  Alokasi {fmtShort(summary.totalAllocation)} melewati batas
+                  aman belanja{' '}
+                  {fmtShort(
+                    Math.max(0, summary.totalIncome - summary.requiredSavings),
+                  )}
+                </p>
+              )}
             </div>
 
-            {/* Rule #4 Pay Yourself First Toggle + Year-1 Goal Progress */}
-            <div className="flex items-center justify-between gap-2 text-[11px] pt-0.5">
-              <span className="text-stone-500 tabular-nums truncate">
-                Dana 1 Thn:{' '}
-                <strong className="text-slate-800">
-                  {fmtShort(cumulativeYearSavings)}
-                </strong>{' '}
-                / {fmtShort(monthRecord.savingsTargetYear)}
-              </span>
+            {/* Hairline Footer: Income, Savings Target & Pay First Action */}
+            <div className="pt-3 border-t border-slate-900/8 flex items-center justify-between gap-2">
+              <div className="min-w-0 flex items-center gap-3.5">
+                <button
+                  type="button"
+                  disabled={!editPlanMode}
+                  onClick={() => editPlanMode && setIncomeModalOpen(true)}
+                  className={`text-left min-w-0 ${editPlanMode ? 'cursor-pointer hover:text-emerald-700' : 'cursor-default'}`}
+                >
+                  <p className="text-[11px] font-semibold text-slate-600">
+                    Pemasukan
+                    {monthRecord.extraIncome > 0
+                      ? ` + ${monthRecord.extraIncomeLabel || 'Bonus'}`
+                      : ''}
+                  </p>
+                  <p className="text-xs font-extrabold text-slate-900 tabular-nums">
+                    {fmtShort(animatedIncome)}
+                  </p>
+                </button>
+
+                <div className="pl-3.5 border-l border-slate-900/10 min-w-0">
+                  <p className="text-[11px] font-semibold text-slate-600">
+                    Tabungan
+                    {summary.savingsRuleType === 'percent'
+                      ? ` ${summary.savingsRuleValue}%`
+                      : ''}
+                  </p>
+                  <p className="text-xs font-extrabold text-emerald-700 tabular-nums truncate">
+                    {fmtShort(animatedSavings)}
+                    <span className="text-slate-600 font-semibold">
+                      {' '}
+                      · 1 thn {fmtShort(animatedYearSavings)}/
+                      {fmtShort(monthRecord.savingsTargetYear)}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
               <button
                 type="button"
                 data-testid="budget-pay-first-btn"
                 onClick={() => onTogglePayFirst(selectedMonth)}
-                className={`px-2.5 py-1 rounded-xl text-[10.5px] font-extrabold shrink-0 liquid-press cursor-pointer border ${
+                className={`min-h-10 px-3 rounded-xl text-xs font-extrabold shrink-0 liquid-press cursor-pointer border ${
                   monthRecord.payFirstDone
                     ? 'bg-emerald-600 border-emerald-600 text-white'
-                    : 'bg-amber-50 border-amber-300 text-amber-800'
+                    : 'bg-amber-50 border-amber-300 text-amber-900'
                 }`}
               >
-                {monthRecord.payFirstDone
-                  ? 'Pay First ✓'
-                  : 'Sisihkan Tabungan'}
+                {monthRecord.payFirstDone ? 'Tersisihkan ✓' : 'Sisihkan'}
               </button>
             </div>
           </section>
@@ -558,29 +623,31 @@ export const BudgetView = memo(function BudgetView({
             return (
               <section
                 key={pillar.id}
-                className="glass-card rounded-3xl glass-divide overflow-hidden"
+                className="glass-card rounded-2xl glass-divide overflow-hidden"
               >
                 <button
                   type="button"
                   onClick={() => togglePillarCollapse(pillar.id)}
-                  className="w-full px-3.5 py-2.5 flex items-center justify-between gap-2 text-left hover:bg-white/40 cursor-pointer"
+                  className="w-full px-3.5 py-3 flex items-center justify-between gap-2 text-left hover:bg-white/40 cursor-pointer"
                 >
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       <span
                         className="w-2 h-2 rounded-full shrink-0"
                         style={{ backgroundColor: pillar.color }}
+                        aria-hidden="true"
                       />
                       <span className="text-xs font-extrabold text-slate-900 truncate">
                         {pillar.name}
                       </span>
                     </div>
-                    <p className="text-[11px] text-stone-500 tabular-nums mt-0.5">
+                    <p className="text-xs text-slate-600 tabular-nums mt-0.5">
                       {fmtVal(pSpent)} / {fmtVal(pAlloc)}
                     </p>
                   </div>
                   <ChevronDown
-                    className={`w-4 h-4 text-stone-400 shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+                    aria-hidden="true"
+                    className={`w-4 h-4 text-slate-500 shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
                       isOpen ? 'rotate-180' : ''
                     }`}
                   />
@@ -687,9 +754,9 @@ export const BudgetView = memo(function BudgetView({
                                 setEditingEnvelope(item)
                                 setEnvelopeModalOpen(true)
                               }}
-                              className="glass-chip min-h-8 px-2.5 rounded-xl text-[11px] font-bold text-slate-700 hover:text-emerald-700 inline-flex items-center gap-1 shrink-0 cursor-pointer"
+                              className="glass-chip min-h-10 px-3 rounded-xl text-xs font-bold text-slate-800 hover:text-emerald-700 inline-flex items-center gap-1.5 shrink-0 cursor-pointer"
                             >
-                              <Pencil className="w-3 h-3" />
+                              <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
                               <span>Edit</span>
                             </button>
                           ) : behavior === 'bill' ? (
@@ -699,10 +766,10 @@ export const BudgetView = memo(function BudgetView({
                               onClick={() =>
                                 onToggleBillPaid(selectedMonth, item.id)
                               }
-                              className={`min-h-8 px-2.5 rounded-xl text-[11px] font-extrabold border shrink-0 liquid-press cursor-pointer ${
+                              className={`min-h-10 px-3 rounded-xl text-xs font-extrabold border shrink-0 liquid-press cursor-pointer ${
                                 item.paid
                                   ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
-                                  : 'glass-chip text-slate-700 hover:border-emerald-400'
+                                  : 'glass-chip text-slate-800 hover:border-emerald-500'
                               }`}
                             >
                               {item.paid ? 'Lunas ✓' : 'Bayar'}
@@ -715,11 +782,11 @@ export const BudgetView = memo(function BudgetView({
                                 onClick={() =>
                                   onStepCounter(selectedMonth, item.id, -1)
                                 }
-                                className="w-7 h-7 rounded-xl bg-stone-100 hover:bg-stone-200 text-slate-700 font-extrabold text-sm cursor-pointer"
+                                className="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 text-slate-800 font-extrabold text-sm cursor-pointer"
                               >
                                 −
                               </button>
-                              <span className="min-w-[38px] text-center text-[11px] font-extrabold text-slate-800 tabular-nums">
+                              <span className="min-w-[38px] text-center text-xs font-extrabold text-slate-800 tabular-nums">
                                 {item.count || 0}/{item.targetCount || 1}
                               </span>
                               <button
@@ -728,7 +795,7 @@ export const BudgetView = memo(function BudgetView({
                                 onClick={() =>
                                   onStepCounter(selectedMonth, item.id, 1)
                                 }
-                                className="w-7 h-7 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm liquid-press cursor-pointer"
+                                className="w-9 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm liquid-press cursor-pointer"
                               >
                                 +
                               </button>
@@ -738,9 +805,9 @@ export const BudgetView = memo(function BudgetView({
                             <button
                               type="button"
                               onClick={onGoToCatatan}
-                              className="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10.5px] font-extrabold shrink-0 cursor-pointer"
+                              className="min-h-10 px-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-xs font-extrabold shrink-0 cursor-pointer"
                             >
-                              Catatan →
+                              Catatan
                             </button>
                           ) : behavior === 'sweep' ? (
                             <button
@@ -750,10 +817,10 @@ export const BudgetView = memo(function BudgetView({
                               onClick={() =>
                                 onToggleSweep(selectedMonth, item.id)
                               }
-                              className={`min-h-8 px-2.5 rounded-xl text-[10.5px] font-extrabold border shrink-0 liquid-press cursor-pointer disabled:opacity-50 ${
+                              className={`min-h-10 px-3 rounded-xl text-xs font-extrabold border shrink-0 liquid-press cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                                 item.swept && (item.actual || 0) === 0
                                   ? 'bg-emerald-600 border-emerald-600 text-white'
-                                  : 'bg-amber-50 border-amber-300 text-amber-800'
+                                  : 'bg-amber-50 border-amber-300 text-amber-900'
                               }`}
                             >
                               {item.swept && (item.actual || 0) === 0
@@ -770,7 +837,7 @@ export const BudgetView = memo(function BudgetView({
                                   mode?.stepAmount || 50000,
                                 )
                               }
-                              className="glass-chip min-h-8 px-2.5 rounded-xl text-[11px] font-extrabold text-slate-700 hover:text-emerald-700 shrink-0 cursor-pointer tabular-nums"
+                              className="glass-chip min-h-10 px-3 rounded-xl text-xs font-extrabold text-slate-800 hover:text-emerald-700 shrink-0 cursor-pointer tabular-nums"
                             >
                               +{fmtShort(mode?.stepAmount || 50000)}
                             </button>
@@ -783,15 +850,18 @@ export const BudgetView = memo(function BudgetView({
             )
           })}
 
-          {/* PDF Page-2 Efficiency Opportunities */}
-          <section className="glass-card rounded-3xl p-3.5 space-y-2">
-            <div className="flex items-center justify-between gap-2">
+          {/* Monthly Efficiency Opportunities */}
+          <section className="glass-card rounded-2xl glass-divide overflow-hidden">
+            <div className="px-3.5 py-2.5 flex items-center justify-between gap-2">
               <span className="text-xs font-extrabold text-slate-800 inline-flex items-center gap-1.5">
-                <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                <Lightbulb
+                  className="w-3.5 h-3.5 text-amber-600"
+                  aria-hidden="true"
+                />
                 <span>Opsi Efisiensi Bulanan</span>
               </span>
               {(monthRecord.effIcloudFamily || monthRecord.effBrightGas) && (
-                <span className="text-[11px] font-extrabold text-emerald-700 tabular-nums">
+                <span className="text-xs font-extrabold text-emerald-700 tabular-nums">
                   Hemat{' '}
                   {fmtVal(
                     (monthRecord.effIcloudFamily ? 59000 : 0) +
@@ -800,8 +870,8 @@ export const BudgetView = memo(function BudgetView({
                 </span>
               )}
             </div>
-            <label className="glass-chip rounded-2xl px-3 py-2 flex items-center justify-between gap-2 cursor-pointer">
-              <span className="text-xs font-bold text-slate-700">
+            <label className="min-h-11 px-3.5 py-2.5 flex items-center justify-between gap-2 hover:bg-white/40 cursor-pointer">
+              <span className="text-xs font-bold text-slate-800">
                 iCloud Family Sharing{' '}
                 <span className="text-emerald-700">(-59rb/bln)</span>
               </span>
@@ -811,11 +881,11 @@ export const BudgetView = memo(function BudgetView({
                 onChange={() =>
                   onToggleEfficiency(selectedMonth, 'effIcloudFamily')
                 }
-                className="accent-emerald-600 w-4 h-4 cursor-pointer"
+                className="accent-emerald-600 w-4.5 h-4.5 cursor-pointer"
               />
             </label>
-            <label className="glass-chip rounded-2xl px-3 py-2 flex items-center justify-between gap-2 cursor-pointer">
-              <span className="text-xs font-bold text-slate-700">
+            <label className="min-h-11 px-3.5 py-2.5 flex items-center justify-between gap-2 hover:bg-white/40 cursor-pointer">
+              <span className="text-xs font-bold text-slate-800">
                 Konversi Bright Gas 5,5kg{' '}
                 <span className="text-emerald-700">(-85rb/bln)</span>
               </span>
@@ -825,7 +895,7 @@ export const BudgetView = memo(function BudgetView({
                 onChange={() =>
                   onToggleEfficiency(selectedMonth, 'effBrightGas')
                 }
-                className="accent-emerald-600 w-4 h-4 cursor-pointer"
+                className="accent-emerald-600 w-4.5 h-4.5 cursor-pointer"
               />
             </label>
           </section>

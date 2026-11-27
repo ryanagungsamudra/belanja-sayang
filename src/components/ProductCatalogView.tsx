@@ -18,6 +18,7 @@ import {
   X,
 } from 'lucide-react'
 import { memo, useDeferredValue, useMemo, useState } from 'react'
+import { useCountUp } from '../hooks/useCountUp'
 import {
   formatIdrInput,
   formatRupiah,
@@ -322,6 +323,11 @@ export const ProductCatalogView = memo(function ProductCatalogView({
     if (!activeDateFilter) return monthlyTotalSpend
     return scopedEntries.reduce((sum, e) => sum + (e.price || 0), 0)
   }, [activeDateFilter, monthlyTotalSpend, scopedEntries])
+  const animatedFooterTotal = useCountUp(
+    scopedTotalSpend,
+    620,
+    `${selectedMonth}:${activeDateFilter ?? 'month'}:${chartMode}`,
+  )
 
   const scopedSpendByStore = useMemo(() => {
     if (!activeDateFilter) return monthlySpendByStore
@@ -710,7 +716,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                 data-testid="monthly-exact-total"
                 className="font-extrabold text-slate-900 tabular-nums"
               >
-                {formatRupiah(scopedTotalSpend)}
+                {formatRupiah(animatedFooterTotal)}
               </span>
             </span>
             {!activeDateFilter &&

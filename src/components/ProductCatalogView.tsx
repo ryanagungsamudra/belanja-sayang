@@ -51,6 +51,17 @@ import type {
 import { LiquidSegmentedTabs } from './LiquidSegmentedTabs'
 import { MonthlyDonutChart, type DonutSegment } from './MonthlyDonutChart'
 
+const AnimatedRupiah = memo(function AnimatedRupiah({
+  amount,
+  resetKey,
+}: {
+  amount: number
+  resetKey: string
+}) {
+  const animated = useCountUp(amount, 620, resetKey)
+  return <>{formatRupiah(animated)}</>
+})
+
 const EMPTY_ENTRIES: MonthlyPurchaseEntry[] = []
 
 interface ProductRefRowProps {
@@ -323,11 +334,6 @@ export const ProductCatalogView = memo(function ProductCatalogView({
     if (!activeDateFilter) return monthlyTotalSpend
     return scopedEntries.reduce((sum, e) => sum + (e.price || 0), 0)
   }, [activeDateFilter, monthlyTotalSpend, scopedEntries])
-  const animatedFooterTotal = useCountUp(
-    scopedTotalSpend,
-    620,
-    `${selectedMonth}:${activeDateFilter ?? 'month'}:${chartMode}`,
-  )
 
   const scopedSpendByStore = useMemo(() => {
     if (!activeDateFilter) return monthlySpendByStore
@@ -716,7 +722,10 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                 data-testid="monthly-exact-total"
                 className="font-extrabold text-slate-900 tabular-nums"
               >
-                {formatRupiah(animatedFooterTotal)}
+                <AnimatedRupiah
+                  amount={scopedTotalSpend}
+                  resetKey={`${selectedMonth}:${activeDateFilter ?? 'month'}:${chartMode}`}
+                />
               </span>
             </span>
             {!activeDateFilter &&

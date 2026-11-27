@@ -124,13 +124,19 @@ export const MonthlyDonutChart = memo(function MonthlyDonutChart({
   const activeSegment = activeSegmentId
     ? segments.find((s) => s.id === activeSegmentId)
     : null
-  const centerTarget = activeSegment ? activeSegment.value : total
-  const animatedCenterValue = useCountUp(centerTarget, 580, chartSignature)
-  const centerTargetPct =
+  const animatedSegmentValue = useCountUp(
+    activeSegment ? activeSegment.value : total,
+    460,
+    chartSignature,
+  )
+  const displayCenterValue = activeSegment
+    ? animatedSegmentValue
+    : Math.round(total * sweepProgress)
+  const targetSegmentPct =
     activeSegment && total > 0
       ? Math.round((activeSegment.value / total) * 100)
       : 0
-  const animatedCenterPct = useCountUp(centerTargetPct, 480, activeSegment?.id ?? '')
+  const displayCenterPct = Math.round(targetSegmentPct * sweepProgress)
 
   return (
     <div
@@ -202,11 +208,11 @@ export const MonthlyDonutChart = memo(function MonthlyDonutChart({
             data-testid="monthly-total-spend"
             className="text-[15px] font-extrabold text-slate-900 tabular-nums leading-tight mt-0.5"
           >
-            {formatCompactTotal(animatedCenterValue)}
+            {formatCompactTotal(displayCenterValue)}
           </span>
           <span className="text-[10px] font-semibold text-stone-400 tabular-nums leading-none mt-0.5">
             {activeSegment && total > 0
-              ? `${animatedCenterPct}%`
+              ? `${displayCenterPct}%`
               : `${purchaseCount}x beli`}
           </span>
         </div>

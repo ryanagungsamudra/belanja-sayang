@@ -16,7 +16,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import { lazy, memo, Suspense, useMemo, useState } from 'react'
-import { useCountUp } from '../hooks/useCountUp'
+import { BudgetHeroCard } from './BudgetHeroCard'
 import {
   computeBudgetMonthSummary,
   getBudgetItemAllocation,
@@ -223,32 +223,6 @@ export const BudgetView = memo(function BudgetView({
   const fmtShort = (amount: number) =>
     privacyMasked ? '•••' : formatCompactRupiahShort(amount) || '0'
 
-  const animKey = monthRecord ? `${selectedMonth}:ready` : `${selectedMonth}:empty`
-  const animatedRemainingAbs = useCountUp(
-    Math.abs(summary?.remainingBudget ?? 0),
-    620,
-    animKey,
-  )
-  const animatedSpent = useCountUp(summary?.totalSpent ?? 0, 620, animKey)
-  const animatedBurnPct = useCountUp(summary?.burnPct ?? 0, 620, animKey)
-  const animatedBarTenths = useCountUp(
-    Math.min(100, summary?.burnPct ?? 0) * 10,
-    640,
-    animKey,
-  )
-  const animatedUnallocatedAbs = useCountUp(
-    Math.abs(summary?.unallocatedCash ?? 0),
-    560,
-    animKey,
-  )
-  const animatedIncome = useCountUp(summary?.totalIncome ?? 0, 560, animKey)
-  const animatedSavings = useCountUp(
-    summary?.monthlySavingsTotal ?? 0,
-    560,
-    animKey,
-  )
-  const animatedYearSavings = useCountUp(cumulativeYearSavings, 560, animKey)
-
   const togglePillarCollapse = (pid: string) => {
     setCollapsedPillars((prev) => ({ ...prev, [pid]: !prev[pid] }))
   }
@@ -446,160 +420,30 @@ export const BudgetView = memo(function BudgetView({
             </div>
           )}
 
-          {/* Hero Cashflow Card (Single frosted surface, open typography, no nested boxes) */}
-          <section
-            aria-label="Ringkasan Arus Kas Bulanan"
-            className="glass-card rounded-2xl p-4 space-y-3.5"
-          >
-            {/* Primary Focal Point: Remaining Spendable Budget + Savings Margin */}
-            <div className="flex items-start justify-between gap-2.5">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-slate-600">
-                  {summary.remainingBudget < 0
-                    ? 'Pengeluaran melebihi alokasi'
-                    : 'Sisa anggaran bulan ini'}
-                </p>
-                <p
-                  className={`text-[26px] font-black tracking-tight tabular-nums leading-tight mt-0.5 ${
-                    summary.remainingBudget < 0
-                      ? 'text-rose-700'
-                      : 'text-slate-900'
-                  }`}
-                >
-                  {summary.remainingBudget < 0
-                    ? `-${fmtVal(animatedRemainingAbs)}`
-                    : fmtVal(animatedRemainingAbs)}
-                </p>
-                <p className="text-xs text-slate-600 tabular-nums mt-0.5">
-                  Terpakai{' '}
-                  <strong className="font-bold text-slate-800">
-                    {fmtVal(animatedSpent)}
-                  </strong>{' '}
-                  dari {fmtShort(summary.totalAllocation)} ({animatedBurnPct}%)
-                </p>
-              </div>
-
-              {summary.unallocatedCash !== 0 && (
-                <div
-                  className={`rounded-lg px-2.5 py-1.5 text-right shrink-0 border ${
-                    summary.isSavingsBreached
-                      ? 'bg-amber-50/90 border-amber-300/80 text-amber-900'
-                      : 'bg-emerald-50/85 border-emerald-200/80 text-emerald-900'
-                  }`}
-                >
-                  <p className="text-xs font-extrabold tabular-nums leading-tight">
-                    {summary.isSavingsBreached
-                      ? `-${fmtShort(animatedUnallocatedAbs)}`
-                      : `+${fmtShort(animatedUnallocatedAbs)}`}
-                  </p>
-                  <p className="text-[10.5px] font-semibold leading-tight mt-0.5">
-                    {summary.isSavingsBreached
-                      ? 'sentuh tabungan'
-                      : 'sisa bebas'}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Unified Allocation Progress & Safe-Ceiling Marker */}
-            <div className="space-y-1.5">
-              <div className="relative h-2 rounded-full bg-slate-900/10 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-colors duration-300 ${
-                    summary.totalSpent > summary.totalAllocation
-                      ? 'bg-rose-600'
-                      : summary.burnPct >= 85
-                        ? 'bg-amber-500'
-                        : 'bg-emerald-600'
-                  }`}
-                  style={{ width: `${Math.min(100, animatedBarTenths / 10)}%` }}
-                />
-                {summary.isSavingsBreached &&
-                  summary.totalAllocation > 0 &&
-                  summary.totalIncome > summary.requiredSavings && (
-                    <div
-                      aria-hidden="true"
-                      title="Batas aman belanja sebelum menyentuh tabungan"
-                      className="absolute top-0 bottom-0 w-0.5 bg-slate-900/55"
-                      style={{
-                        left: `${Math.min(
-                          98,
-                          Math.max(
-                            2,
-                            Math.round(
-                              ((summary.totalIncome - summary.requiredSavings) /
-                                summary.totalAllocation) *
-                                100,
-                            ),
-                          ),
-                        )}%`,
-                      }}
-                    />
-                  )}
-              </div>
-              {summary.isSavingsBreached && (
-                <p className="text-[11px] font-medium text-amber-900 tabular-nums">
-                  Alokasi {fmtShort(summary.totalAllocation)} melewati batas
-                  aman belanja{' '}
-                  {fmtShort(
-                    Math.max(0, summary.totalIncome - summary.requiredSavings),
-                  )}
-                </p>
-              )}
-            </div>
-
-            {/* Hairline Footer: Income, Savings Target & Pay First Action */}
-            <div className="pt-3 border-t border-slate-900/8 flex items-center justify-between gap-2">
-              <div className="min-w-0 flex items-center gap-3.5">
-                <button
-                  type="button"
-                  disabled={!editPlanMode}
-                  onClick={() => editPlanMode && setIncomeModalOpen(true)}
-                  className={`text-left min-w-0 ${editPlanMode ? 'cursor-pointer hover:text-emerald-700' : 'cursor-default'}`}
-                >
-                  <p className="text-[11px] font-semibold text-slate-600">
-                    Pemasukan
-                    {monthRecord.extraIncome > 0
-                      ? ` + ${monthRecord.extraIncomeLabel || 'Bonus'}`
-                      : ''}
-                  </p>
-                  <p className="text-xs font-extrabold text-slate-900 tabular-nums">
-                    {fmtShort(animatedIncome)}
-                  </p>
-                </button>
-
-                <div className="pl-3.5 border-l border-slate-900/10 min-w-0">
-                  <p className="text-[11px] font-semibold text-slate-600">
-                    Tabungan
-                    {summary.savingsRuleType === 'percent'
-                      ? ` ${summary.savingsRuleValue}%`
-                      : ''}
-                  </p>
-                  <p className="text-xs font-extrabold text-emerald-700 tabular-nums truncate">
-                    {fmtShort(animatedSavings)}
-                    <span className="text-slate-600 font-semibold">
-                      {' '}
-                      · 1 thn {fmtShort(animatedYearSavings)}/
-                      {fmtShort(monthRecord.savingsTargetYear)}
-                    </span>
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                data-testid="budget-pay-first-btn"
-                onClick={() => onTogglePayFirst(selectedMonth)}
-                className={`min-h-10 px-3 rounded-xl text-xs font-extrabold shrink-0 liquid-press cursor-pointer border ${
-                  monthRecord.payFirstDone
-                    ? 'bg-emerald-600 border-emerald-600 text-white'
-                    : 'bg-amber-50 border-amber-300 text-amber-900'
-                }`}
-              >
-                {monthRecord.payFirstDone ? 'Tersisihkan ✓' : 'Sisihkan'}
-              </button>
-            </div>
-          </section>
+          {/* Isolated Hero Cashflow Card (0 parent/pillar re-renders during animations) */}
+          <BudgetHeroCard
+            animKey={`${selectedMonth}:ready`}
+            remainingBudget={summary.remainingBudget}
+            totalSpent={summary.totalSpent}
+            totalAllocation={summary.totalAllocation}
+            burnPct={summary.burnPct}
+            unallocatedCash={summary.unallocatedCash}
+            isSavingsBreached={summary.isSavingsBreached}
+            totalIncome={summary.totalIncome}
+            extraIncome={monthRecord.extraIncome}
+            extraIncomeLabel={monthRecord.extraIncomeLabel}
+            savingsRuleType={summary.savingsRuleType}
+            savingsRuleValue={summary.savingsRuleValue}
+            requiredSavings={summary.requiredSavings}
+            monthlySavingsTotal={summary.monthlySavingsTotal}
+            cumulativeYearSavings={cumulativeYearSavings}
+            savingsTargetYear={monthRecord.savingsTargetYear}
+            payFirstDone={Boolean(monthRecord.payFirstDone)}
+            privacyMasked={privacyMasked}
+            editPlanMode={editPlanMode}
+            onOpenIncome={() => setIncomeModalOpen(true)}
+            onTogglePayFirst={() => onTogglePayFirst(selectedMonth)}
+          />
 
           {/* Dynamic Pillar Cards (Strictly Separated Track vs. Atur Mode!) */}
           {pillars.map((pillar) => {

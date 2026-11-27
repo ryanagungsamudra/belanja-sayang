@@ -57,10 +57,16 @@
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
-    touch-action: manipulation;
+    touch-action: pan-x pan-y;
     overscroll-behavior-y: contain;
     background: linear-gradient(155deg, #dcece4 0%, #e7e5df 52%, #dce4f4 100%);
   }
+}
+
+button,
+a,
+[role='button'] {
+  touch-action: manipulation;
 }
 
 /* Prevent iOS Safari / standalone PWA auto-zoom when focusing inputs, textareas, or selects (< 16px triggers zoom).

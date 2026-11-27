@@ -202,13 +202,13 @@ export const BudgetHeroCard = memo(function BudgetHeroCard({
       {/* Primary Focal Point: Remaining Spendable Budget + Savings Margin */}
       <div className="flex items-start justify-between gap-2.5">
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-slate-600">
+          <p className="text-xs font-medium text-slate-600">
             {remainingBudget < 0
               ? 'Pengeluaran melebihi alokasi'
               : 'Sisa anggaran bulan ini'}
           </p>
           <p
-            className={`text-[26px] font-black tracking-tight tabular-nums leading-tight mt-0.5 ${
+            className={`text-[28px] font-extrabold tracking-[-0.025em] tabular-nums leading-[1.15] mt-0.5 ${
               remainingBudget < 0 ? 'text-rose-700' : 'text-slate-900'
             }`}
           >
@@ -216,9 +216,9 @@ export const BudgetHeroCard = memo(function BudgetHeroCard({
               ? `-${fmtVal(display.remainingAbs)}`
               : fmtVal(display.remainingAbs)}
           </p>
-          <p className="text-xs text-slate-600 tabular-nums mt-0.5">
+          <p className="text-xs font-medium text-slate-600 tabular-nums mt-0.5">
             Terpakai{' '}
-            <strong className="font-bold text-slate-800">
+            <strong className="font-semibold text-slate-800">
               {fmtVal(display.spent)}
             </strong>{' '}
             dari {fmtShort(totalAllocation)} ({display.burnPct}%)
@@ -233,12 +233,12 @@ export const BudgetHeroCard = memo(function BudgetHeroCard({
                 : 'bg-emerald-50/85 border-emerald-200/80 text-emerald-900'
             }`}
           >
-            <p className="text-xs font-extrabold tabular-nums leading-tight">
+            <p className="text-[13px] font-bold tabular-nums leading-tight">
               {isSavingsBreached
                 ? `-${fmtShort(display.unallocatedAbs)}`
                 : `+${fmtShort(display.unallocatedAbs)}`}
             </p>
-            <p className="text-[10.5px] font-semibold leading-tight mt-0.5">
+            <p className="text-[11px] font-medium leading-tight mt-0.5">
               {isSavingsBreached ? 'sentuh tabungan' : 'sisa bebas'}
             </p>
           </div>
@@ -299,23 +299,23 @@ export const BudgetHeroCard = memo(function BudgetHeroCard({
             onClick={() => editPlanMode && onOpenIncome()}
             className={`text-left min-w-0 ${editPlanMode ? 'cursor-pointer hover:text-emerald-700' : 'cursor-default'}`}
           >
-            <p className="text-[11px] font-semibold text-slate-600">
+            <p className="text-[11px] font-medium text-slate-600">
               Pemasukan
               {extraIncome > 0 ? ` + ${extraIncomeLabel || 'Bonus'}` : ''}
             </p>
-            <p className="text-xs font-extrabold text-slate-900 tabular-nums">
+            <p className="text-sm font-bold text-slate-900 tabular-nums leading-snug">
               {fmtShort(display.income)}
             </p>
           </button>
 
           <div className="pl-3.5 border-l border-slate-900/10 min-w-0">
-            <p className="text-[11px] font-semibold text-slate-600">
+            <p className="text-[11px] font-medium text-slate-600">
               Tabungan
               {savingsRuleType === 'percent' ? ` ${savingsRuleValue}%` : ''}
             </p>
-            <p className="text-xs font-extrabold text-emerald-700 tabular-nums truncate">
+            <p className="text-sm font-bold text-emerald-700 tabular-nums truncate leading-snug">
               {fmtShort(display.savings)}
-              <span className="text-slate-600 font-semibold">
+              <span className="text-xs text-slate-600 font-medium">
                 {' '}
                 · 1 thn {fmtShort(display.yearSavings)}/
                 {fmtShort(savingsTargetYear)}
@@ -328,7 +328,7 @@ export const BudgetHeroCard = memo(function BudgetHeroCard({
           type="button"
           data-testid="budget-pay-first-btn"
           onClick={onTogglePayFirst}
-          className={`min-h-10 px-3 rounded-xl text-xs font-extrabold shrink-0 liquid-press cursor-pointer border ${
+          className={`min-h-10 px-3 rounded-xl text-xs font-bold shrink-0 liquid-press cursor-pointer border ${
             payFirstDone
               ? 'bg-emerald-600 border-emerald-600 text-white'
               : 'bg-amber-50 border-amber-300 text-amber-900'

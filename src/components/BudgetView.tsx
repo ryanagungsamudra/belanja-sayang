@@ -244,7 +244,7 @@ export const BudgetView = memo(function BudgetView({
             type="button"
             data-testid="budget-month-pill"
             onClick={() => setAnnualModalOpen(true)}
-            className="glass-chip min-h-10 px-2.5 rounded-xl inline-flex items-center gap-1.5 text-[13px] font-extrabold text-slate-900 hover:text-emerald-700 capitalize whitespace-nowrap truncate cursor-pointer"
+            className="glass-chip min-h-10 px-2.5 rounded-xl inline-flex items-center gap-1.5 text-[13px] font-bold text-slate-900 hover:text-emerald-700 capitalize whitespace-nowrap truncate cursor-pointer"
           >
             <CalendarDays
               className="w-3.5 h-3.5 text-emerald-700 shrink-0"
@@ -288,7 +288,7 @@ export const BudgetView = memo(function BudgetView({
               type="button"
               data-testid="budget-edit-mode-toggle"
               onClick={() => setEditPlanMode((p) => !p)}
-              className={`min-h-10 px-3 rounded-xl text-xs font-extrabold inline-flex items-center gap-1.5 liquid-press cursor-pointer border ${
+              className={`min-h-10 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 liquid-press cursor-pointer border ${
                 editPlanMode
                   ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
                   : 'glass-chip text-slate-800 hover:border-emerald-500'
@@ -321,10 +321,10 @@ export const BudgetView = memo(function BudgetView({
               <Wallet className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-extrabold text-slate-900 capitalize">
+              <h2 className="text-[15px] font-bold tracking-[-0.015em] text-slate-900 capitalize">
                 Anggaran {formatMonthLabel(selectedMonth)}
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs font-medium text-slate-600 mt-0.5">
                 Mulai dari pedoman rumah tangga atau salin rencana bulan lalu
               </p>
             </div>
@@ -338,7 +338,7 @@ export const BudgetView = memo(function BudgetView({
                 onClick={() =>
                   onCopyFromPrevious(nearestPreviousMonth.monthKey, selectedMonth)
                 }
-                className="w-full min-h-11 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold flex items-center justify-center gap-2 shadow-sm liquid-press cursor-pointer"
+                className="w-full min-h-11 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm liquid-press cursor-pointer"
               >
                 <Copy className="w-4 h-4" />
                 <span>
@@ -352,7 +352,7 @@ export const BudgetView = memo(function BudgetView({
               type="button"
               data-testid="budget-seed-preset-btn"
               onClick={() => onSeedPreset(selectedMonth)}
-              className={`w-full min-h-11 px-4 rounded-2xl text-xs font-extrabold flex items-center justify-center gap-2 liquid-press cursor-pointer ${
+              className={`w-full min-h-11 px-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 liquid-press cursor-pointer ${
                 nearestPreviousMonth
                   ? 'glass-chip text-emerald-700'
                   : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
@@ -375,7 +375,7 @@ export const BudgetView = memo(function BudgetView({
                 type="button"
                 data-testid="budget-open-income-btn"
                 onClick={() => setIncomeModalOpen(true)}
-                className="glass-chip flex-1 min-w-0 min-h-11 px-2.5 rounded-xl text-xs font-bold text-slate-800 hover:text-emerald-700 inline-flex items-center justify-center gap-1.5 liquid-press cursor-pointer"
+                className="glass-chip flex-1 min-w-0 min-h-11 px-2.5 rounded-xl text-xs font-semibold text-slate-800 hover:text-emerald-700 inline-flex items-center justify-center gap-1.5 liquid-press cursor-pointer"
               >
                 <Pencil
                   className="w-3.5 h-3.5 text-emerald-700 shrink-0"
@@ -387,7 +387,7 @@ export const BudgetView = memo(function BudgetView({
                 type="button"
                 data-testid="budget-open-config-btn"
                 onClick={() => setConfigModalTab('pillars')}
-                className="glass-chip flex-1 min-w-0 min-h-11 px-2.5 rounded-xl text-xs font-bold text-slate-800 hover:text-emerald-700 inline-flex items-center justify-center gap-1.5 liquid-press cursor-pointer"
+                className="glass-chip flex-1 min-w-0 min-h-11 px-2.5 rounded-xl text-xs font-semibold text-slate-800 hover:text-emerald-700 inline-flex items-center justify-center gap-1.5 liquid-press cursor-pointer"
               >
                 <SlidersHorizontal
                   className="w-3.5 h-3.5 text-emerald-700 shrink-0"
@@ -402,7 +402,7 @@ export const BudgetView = memo(function BudgetView({
                   setEditingEnvelope(null)
                   setEnvelopeModalOpen(true)
                 }}
-                className="min-h-11 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold inline-flex items-center justify-center gap-1 shrink-0 shadow-xs liquid-press cursor-pointer"
+                className="min-h-11 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center justify-center gap-1 shrink-0 shadow-xs liquid-press cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                 <span>Pos</span>
@@ -481,11 +481,11 @@ export const BudgetView = memo(function BudgetView({
                         style={{ backgroundColor: pillar.color }}
                         aria-hidden="true"
                       />
-                      <span className="text-xs font-extrabold text-slate-900 truncate">
+                      <span className="text-sm font-bold tracking-[-0.01em] text-slate-900 truncate">
                         {pillar.name}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-600 tabular-nums mt-0.5">
+                    <p className="text-xs font-medium text-slate-600 tabular-nums mt-0.5">
                       {fmtVal(pSpent)} / {fmtVal(pAlloc)}
                     </p>
                   </div>
@@ -506,7 +506,7 @@ export const BudgetView = memo(function BudgetView({
                           setEditingEnvelope(null)
                           setEnvelopeModalOpen(true)
                         }}
-                        className="text-xs font-bold text-emerald-700 cursor-pointer"
+                        className="text-xs font-semibold text-emerald-700 cursor-pointer"
                       >
                         + Tambah Pos di Pilar Ini
                       </button>
@@ -555,33 +555,33 @@ export const BudgetView = memo(function BudgetView({
                             }}
                             className="flex-1 min-w-0 text-left cursor-pointer group"
                           >
-                            <p className="text-[13px] font-bold text-slate-900 group-hover:text-emerald-700 truncate flex items-center gap-1.5">
+                            <p className="text-sm font-semibold text-slate-900 group-hover:text-emerald-700 truncate flex items-center gap-1.5 leading-snug">
                               <span className="truncate">{item.name}</span>
                               {item.isRecurring === false && (
-                                <span className="px-1.5 py-0.2 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-[9.5px] font-extrabold shrink-0">
+                                <span className="px-1.5 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-semibold shrink-0 leading-none">
                                   Sekali
                                 </span>
                               )}
                             </p>
-                            <p className="text-[11px] text-slate-600 tabular-nums truncate">
+                            <p className="text-xs font-medium text-slate-600 tabular-nums truncate mt-0.5">
                               <strong
                                 className={
                                   isOver
-                                    ? 'text-rose-600'
-                                    : 'text-slate-700'
+                                    ? 'font-semibold text-rose-600'
+                                    : 'font-semibold text-slate-700'
                                 }
                               >
                                 {fmtVal(actual)}
                               </strong>{' '}
                               / {fmtShort(alloc)}
                               {billSavings > 0 && (
-                                <span className="text-emerald-700 font-bold">
+                                <span className="text-emerald-700 font-semibold">
                                   {' '}
                                   · hemat {fmtShort(billSavings)}
                                 </span>
                               )}
                               {behavior === 'auto' && !editPlanMode && (
-                                <span className="text-emerald-700 font-bold">
+                                <span className="text-emerald-700 font-semibold">
                                   {' '}
                                   · dari Catatan
                                 </span>
@@ -598,7 +598,7 @@ export const BudgetView = memo(function BudgetView({
                                 setEditingEnvelope(item)
                                 setEnvelopeModalOpen(true)
                               }}
-                              className="glass-chip min-h-10 px-3 rounded-xl text-xs font-bold text-slate-800 hover:text-emerald-700 inline-flex items-center gap-1.5 shrink-0 cursor-pointer"
+                              className="glass-chip min-h-10 px-3 rounded-xl text-xs font-semibold text-slate-800 hover:text-emerald-700 inline-flex items-center gap-1.5 shrink-0 cursor-pointer"
                             >
                               <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
                               <span>Edit</span>
@@ -610,7 +610,7 @@ export const BudgetView = memo(function BudgetView({
                               onClick={() =>
                                 onToggleBillPaid(selectedMonth, item.id)
                               }
-                              className={`min-h-10 px-3 rounded-xl text-xs font-extrabold border shrink-0 liquid-press cursor-pointer ${
+                              className={`min-h-10 px-3 rounded-xl text-xs font-semibold border shrink-0 liquid-press cursor-pointer ${
                                 item.paid
                                   ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
                                   : 'glass-chip text-slate-800 hover:border-emerald-500'
@@ -626,11 +626,11 @@ export const BudgetView = memo(function BudgetView({
                                 onClick={() =>
                                   onStepCounter(selectedMonth, item.id, -1)
                                 }
-                                className="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 text-slate-800 font-extrabold text-sm cursor-pointer"
+                                className="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 text-slate-800 font-bold text-sm cursor-pointer"
                               >
                                 −
                               </button>
-                              <span className="min-w-[38px] text-center text-xs font-extrabold text-slate-800 tabular-nums">
+                              <span className="min-w-[38px] text-center text-xs font-bold text-slate-800 tabular-nums">
                                 {item.count || 0}/{item.targetCount || 1}
                               </span>
                               <button
@@ -639,7 +639,7 @@ export const BudgetView = memo(function BudgetView({
                                 onClick={() =>
                                   onStepCounter(selectedMonth, item.id, 1)
                                 }
-                                className="w-9 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm liquid-press cursor-pointer"
+                                className="w-9 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm liquid-press cursor-pointer"
                               >
                                 +
                               </button>
@@ -649,7 +649,7 @@ export const BudgetView = memo(function BudgetView({
                             <button
                               type="button"
                               onClick={onGoToCatatan}
-                              className="min-h-10 px-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-xs font-extrabold shrink-0 cursor-pointer"
+                              className="min-h-10 px-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-xs font-semibold shrink-0 cursor-pointer"
                             >
                               Catatan
                             </button>
@@ -661,7 +661,7 @@ export const BudgetView = memo(function BudgetView({
                               onClick={() =>
                                 onToggleSweep(selectedMonth, item.id)
                               }
-                              className={`min-h-10 px-3 rounded-xl text-xs font-extrabold border shrink-0 liquid-press cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                              className={`min-h-10 px-3 rounded-xl text-xs font-semibold border shrink-0 liquid-press cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                                 item.swept && (item.actual || 0) === 0
                                   ? 'bg-emerald-600 border-emerald-600 text-white'
                                   : 'bg-amber-50 border-amber-300 text-amber-900'
@@ -681,7 +681,7 @@ export const BudgetView = memo(function BudgetView({
                                   mode?.stepAmount || 50000,
                                 )
                               }
-                              className="glass-chip min-h-10 px-3 rounded-xl text-xs font-extrabold text-slate-800 hover:text-emerald-700 shrink-0 cursor-pointer tabular-nums"
+                              className="glass-chip min-h-10 px-3 rounded-xl text-xs font-semibold text-slate-800 hover:text-emerald-700 shrink-0 cursor-pointer tabular-nums"
                             >
                               +{fmtShort(mode?.stepAmount || 50000)}
                             </button>
@@ -697,7 +697,7 @@ export const BudgetView = memo(function BudgetView({
           {/* Monthly Efficiency Opportunities */}
           <section className="surface-card rounded-2xl glass-divide overflow-hidden">
             <div className="px-3.5 py-2.5 flex items-center justify-between gap-2">
-              <span className="text-xs font-extrabold text-slate-800 inline-flex items-center gap-1.5">
+              <span className="text-sm font-bold tracking-[-0.01em] text-slate-900 inline-flex items-center gap-1.5">
                 <Lightbulb
                   className="w-3.5 h-3.5 text-amber-600"
                   aria-hidden="true"
@@ -705,7 +705,7 @@ export const BudgetView = memo(function BudgetView({
                 <span>Opsi Efisiensi Bulanan</span>
               </span>
               {(monthRecord.effIcloudFamily || monthRecord.effBrightGas) && (
-                <span className="text-xs font-extrabold text-emerald-700 tabular-nums">
+                <span className="text-xs font-bold text-emerald-700 tabular-nums">
                   Hemat{' '}
                   {fmtVal(
                     (monthRecord.effIcloudFamily ? 59000 : 0) +
@@ -715,9 +715,9 @@ export const BudgetView = memo(function BudgetView({
               )}
             </div>
             <label className="min-h-11 px-3.5 py-2.5 flex items-center justify-between gap-2 hover:bg-white/40 cursor-pointer">
-              <span className="text-xs font-bold text-slate-800">
+              <span className="text-[13px] font-semibold text-slate-800">
                 iCloud Family Sharing{' '}
-                <span className="text-emerald-700">(-59rb/bln)</span>
+                <span className="text-emerald-700 font-semibold">(-59rb/bln)</span>
               </span>
               <input
                 type="checkbox"
@@ -729,9 +729,9 @@ export const BudgetView = memo(function BudgetView({
               />
             </label>
             <label className="min-h-11 px-3.5 py-2.5 flex items-center justify-between gap-2 hover:bg-white/40 cursor-pointer">
-              <span className="text-xs font-bold text-slate-800">
+              <span className="text-[13px] font-semibold text-slate-800">
                 Konversi Bright Gas 5,5kg{' '}
-                <span className="text-emerald-700">(-85rb/bln)</span>
+                <span className="text-emerald-700 font-semibold">(-85rb/bln)</span>
               </span>
               <input
                 type="checkbox"

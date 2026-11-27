@@ -36,7 +36,7 @@ export function TemplatesView({
       {/* Header Row */}
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h2 className="text-base font-bold text-slate-900">Paket Masak</h2>
+          <h2 className="text-base font-bold tracking-[-0.015em] text-slate-900">Paket Masak</h2>
           <p className="text-xs text-slate-600">
             Ubah bahan, harga &amp; toko, lalu masukkan ke keranjang
           </p>
@@ -57,7 +57,7 @@ export function TemplatesView({
           type="button"
           data-testid="save-active-as-template-btn"
           onClick={onSaveFromActive}
-          className="surface-card w-full min-h-12 px-3.5 py-2.5 rounded-2xl hover:border-emerald-300 text-slate-800 text-xs font-bold flex items-center justify-between gap-2.5 transition-colors liquid-press cursor-pointer"
+          className="surface-card w-full min-h-12 px-3.5 py-2.5 rounded-2xl hover:border-emerald-300 text-slate-800 text-[13px] font-semibold flex items-center justify-between gap-2.5 transition-colors liquid-press cursor-pointer"
         >
           <span className="flex items-center gap-2.5 min-w-0">
             <span className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/70 flex items-center justify-center shrink-0">
@@ -89,7 +89,7 @@ export function TemplatesView({
                     {tpl.emoji || <ChefHat className="w-5 h-5" />}
                   </span>
                   <div className="min-w-0">
-                    <h3 className="text-[15px] font-bold text-slate-900 truncate">
+                    <h3 className="text-[15px] font-bold tracking-[-0.015em] text-slate-900 truncate">
                       {tpl.name}
                     </h3>
                     <p className="text-xs text-slate-600 tabular-nums">
@@ -131,7 +131,7 @@ export function TemplatesView({
                       <span>{item.name}</span>
                       {sCfg && (
                         <span
-                          className="text-[10px] font-bold px-1 rounded border"
+                          className="text-[11px] font-semibold px-1.5 py-0.2 rounded border leading-tight"
                           style={getTintedPillStyle(sCfg.color)}
                         >
                           {sCfg.code}
@@ -146,7 +146,7 @@ export function TemplatesView({
                 <button
                   type="button"
                   onClick={() => onEditTemplate(tpl)}
-                  className="glass-chip min-h-11 px-3 rounded-xl text-slate-700 text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer"
+                  className="glass-chip min-h-11 px-3 rounded-xl text-slate-700 text-xs font-semibold flex items-center gap-1.5 shrink-0 cursor-pointer"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                   <span>Edit</span>

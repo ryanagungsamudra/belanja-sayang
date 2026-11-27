@@ -42,7 +42,7 @@ export function CategoryGroup({
     <section aria-label={categoryConfig.name} className="space-y-1.5">
       <div className="flex items-center justify-between px-1">
         <span
-          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border"
+          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border"
           style={getTintedPillStyle(categoryConfig.color)}
         >
           <span
@@ -51,7 +51,7 @@ export function CategoryGroup({
           />
           {categoryConfig.name}
         </span>
-        <span className="text-[11px] font-semibold text-slate-600 tabular-nums">
+        <span className="text-[11px] font-medium text-slate-600 tabular-nums">
           {items.length} item
         </span>
       </div>
@@ -86,11 +86,11 @@ export function CategoryGroup({
                 {/* Compact 2-line Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[14px] font-bold text-slate-900 truncate">
+                    <span className="text-sm font-semibold text-slate-900 truncate">
                       {item.name}
                     </span>
                     {item.quantity && item.quantity !== '1' && (
-                      <span className="px-1.5 py-0.5 rounded-md bg-stone-100 text-stone-600 text-[11px] font-semibold shrink-0">
+                      <span className="px-1.5 py-0.5 rounded-md bg-stone-100 text-stone-600 text-[11px] font-medium shrink-0">
                         {item.quantity}
                       </span>
                     )}
@@ -107,7 +107,7 @@ export function CategoryGroup({
                           prev === item.id ? null : item.id,
                         )
                       }}
-                      className={`min-h-7 px-2 py-0.5 rounded-lg text-[11px] font-extrabold border inline-flex items-center gap-1 liquid-press cursor-pointer touch-manipulation ${
+                      className={`min-h-7 px-2 py-0.5 rounded-lg text-[11px] font-semibold border inline-flex items-center gap-1 liquid-press cursor-pointer touch-manipulation ${
                         storeCfg
                           ? ''
                           : 'bg-amber-50 border-dashed border-amber-400 text-amber-800 hover:bg-amber-100'
@@ -132,7 +132,7 @@ export function CategoryGroup({
                     {item.estimatedPrice > 0 && (
                       <span
                         data-testid={`cart-item-price-${item.id}`}
-                        className="text-xs font-bold text-emerald-700 tabular-nums"
+                        className="text-xs font-semibold text-emerald-700 tabular-nums"
                       >
                         {formatRupiah(item.estimatedPrice)}
                       </span>
@@ -173,7 +173,7 @@ export function CategoryGroup({
                   data-testid="inline-store-picker"
                   className="px-3.5 pb-2.5 pt-1.5 bg-white/55 border-t border-white/70 flex flex-wrap items-center gap-1.5 animate-liquid-panel"
                 >
-                  <span className="text-[10px] font-bold uppercase text-stone-400 mr-0.5">
+                  <span className="text-[11px] font-semibold uppercase text-slate-500 mr-0.5">
                     Beli di:
                   </span>
                   {stores.map((s) => {
@@ -187,7 +187,7 @@ export function CategoryGroup({
                           onAssignStore(item.id, s.id)
                           setPickingItemId(null)
                         }}
-                        className="min-h-8 px-2.5 rounded-lg text-[11px] font-bold border transition-all active:scale-95 cursor-pointer"
+                        className="min-h-8 px-2.5 rounded-lg text-[11px] font-semibold border transition-all active:scale-95 cursor-pointer"
                         style={
                           isSelected
                             ? getSolidPillStyle(s.color)
@@ -204,7 +204,7 @@ export function CategoryGroup({
                       setPickingItemId(null)
                       onOpenManageStores()
                     }}
-                    className="min-h-8 px-2 rounded-lg border border-dashed border-stone-300 bg-white text-[11px] font-bold text-stone-500 hover:text-emerald-700 hover:border-emerald-400 inline-flex items-center gap-0.5 cursor-pointer"
+                    className="min-h-8 px-2 rounded-lg border border-dashed border-stone-300 bg-white text-[11px] font-semibold text-stone-500 hover:text-emerald-700 hover:border-emerald-400 inline-flex items-center gap-0.5 cursor-pointer"
                   >
                     <Plus className="w-3 h-3" />
                     <span>Toko</span>

@@ -201,16 +201,16 @@ export const MonthlyDonutChart = memo(function MonthlyDonutChart({
 
         {/* Center Summary Text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-2 pointer-events-none">
-          <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide leading-none">
+          <span className="text-[11px] font-medium text-slate-600 uppercase tracking-wide leading-none">
             {activeSegment ? activeSegment.shortLabel : 'Total'}
           </span>
           <span
             data-testid="monthly-total-spend"
-            className="text-[15px] font-extrabold text-slate-900 tabular-nums leading-tight mt-0.5"
+            className="text-base font-bold tracking-[-0.015em] text-slate-900 tabular-nums leading-tight mt-0.5"
           >
             {formatCompactTotal(displayCenterValue)}
           </span>
-          <span className="text-[10px] font-semibold text-slate-600 tabular-nums leading-none mt-0.5">
+          <span className="text-[11px] font-medium text-slate-600 tabular-nums leading-none mt-0.5">
             {activeSegment && total > 0
               ? `${displayCenterPct}%`
               : `${purchaseCount}x beli`}
@@ -246,14 +246,14 @@ export const MonthlyDonutChart = memo(function MonthlyDonutChart({
                   className="w-2.5 h-2.5 rounded-full shrink-0"
                   style={{ backgroundColor: seg.color }}
                 />
-                <span className="text-[12px] font-bold text-slate-800 whitespace-nowrap">
+                <span className="text-[13px] font-semibold text-slate-800 whitespace-nowrap">
                   {seg.shortLabel}
                 </span>
-                <span className="text-[11px] font-semibold text-slate-600 tabular-nums shrink-0">
+                <span className="text-[11px] font-medium text-slate-600 tabular-nums shrink-0">
                   {animatedSegPct}%
                 </span>
               </div>
-              <span className="text-[12px] font-extrabold text-slate-900 tabular-nums shrink-0">
+              <span className="text-[13px] font-bold text-slate-900 tabular-nums shrink-0">
                 {formatRupiah(animatedSegValue)}
               </span>
             </button>

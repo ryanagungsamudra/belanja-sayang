@@ -131,13 +131,13 @@ const ProductRefRow = memo(function ProductRefRow({
               className="w-2 h-2 rounded-full shrink-0"
               style={{ backgroundColor: catCfg.color }}
             />
-            <span className="text-[14px] font-bold text-slate-900 group-hover:text-emerald-700 truncate">
+            <span className="text-sm font-semibold text-slate-900 group-hover:text-emerald-700 truncate">
               {ref.name}
             </span>
             {cheapestCfg && (
               <span
                 title={`Termurah di ${cheapestCfg.name}`}
-                className="px-1.5 py-0.2 rounded-md text-[9.5px] font-extrabold border shrink-0"
+                className="px-1.5 py-0.5 rounded-md text-[11px] font-semibold border shrink-0 leading-none"
                 style={getTintedPillStyle(cheapestCfg.color)}
               >
                 ★ {cheapestCfg.code}
@@ -147,14 +147,14 @@ const ProductRefRow = memo(function ProductRefRow({
 
           <div className="shrink-0 text-right tabular-nums">
             {entries.length > 0 ? (
-              <span className="text-xs font-extrabold text-slate-800">
-                <span className="text-[11px] font-semibold text-slate-500 mr-1">
+              <span className="text-xs font-bold text-slate-800">
+                <span className="text-[11px] font-medium text-slate-600 mr-1">
                   {entries.length}x
                 </span>
                 {formatRupiah(itemMonthTotal)}
               </span>
             ) : (
-              <span className="text-[11px] text-slate-600">
+              <span className="text-[11px] font-medium text-slate-600">
                 {getStoreCode(refFallback.store, stores)}
                 {refFallback.price > 0
                   ? ` · ${formatRupiah(refFallback.price)}`
@@ -175,7 +175,7 @@ const ProductRefRow = memo(function ProductRefRow({
                 type="button"
                 data-testid={`purchase-chip-${entry.id}`}
                 onClick={() => onEditPurchase(ref, entry)}
-                className={`min-h-7 px-2 rounded-lg text-[11px] font-extrabold border liquid-press cursor-pointer tabular-nums ${
+                className={`min-h-7 px-2 rounded-lg text-[11px] font-semibold border liquid-press cursor-pointer tabular-nums ${
                   isMissingPrice
                     ? 'bg-amber-50 border-dashed border-amber-400 text-amber-800'
                     : ''
@@ -196,7 +196,7 @@ const ProductRefRow = memo(function ProductRefRow({
             data-testid={`add-purchase-${ref.id}`}
             aria-label={`Catat pembelian ${ref.name}`}
             onClick={() => onAddPurchase(ref)}
-            className="min-h-7 px-2 rounded-lg border border-dashed border-stone-300 bg-stone-50 hover:border-emerald-500 hover:bg-emerald-50 text-stone-500 hover:text-emerald-700 text-[11px] font-bold flex items-center gap-0.5 transition-colors cursor-pointer"
+            className="min-h-7 px-2 rounded-lg border border-dashed border-stone-300 bg-stone-50 hover:border-emerald-500 hover:bg-emerald-50 text-stone-500 hover:text-emerald-700 text-[11px] font-semibold flex items-center gap-0.5 transition-colors cursor-pointer"
           >
             <Plus className="w-3 h-3" strokeWidth={2.5} />
             <span>Catat</span>
@@ -529,7 +529,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
               data-testid="selected-month-label"
               aria-label={`Buka kalender belanja (${formatMonthLabel(selectedMonth)})`}
               onClick={onOpenDatePicker}
-              className={`glass-chip min-h-9 px-2.5 rounded-xl inline-flex items-center gap-1 text-[12.5px] font-extrabold capitalize whitespace-nowrap truncate cursor-pointer ${
+              className={`glass-chip min-h-9 px-2.5 rounded-xl inline-flex items-center gap-1 text-[13px] font-bold capitalize whitespace-nowrap truncate cursor-pointer ${
                 activeDateFilter
                   ? 'text-emerald-700 ring-1 ring-emerald-500/35'
                   : 'text-slate-900 hover:text-emerald-700'
@@ -580,10 +580,10 @@ export const ProductCatalogView = memo(function ProductCatalogView({
               onClick={onOpenDatePicker}
               className="min-w-0 text-left cursor-pointer"
             >
-              <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
                 Ringkasan Hari Belanja
               </p>
-              <p className="text-xs font-extrabold text-slate-900 capitalize truncate">
+              <p className="text-[13px] font-bold text-slate-900 capitalize truncate">
                 {formatFullDateLabel(activeDateFilter)}
               </p>
             </button>
@@ -591,7 +591,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
               type="button"
               data-testid="clear-date-filter-btn"
               onClick={onClearDateFilter}
-              className="px-2.5 py-1 rounded-xl bg-white hover:bg-stone-50 text-[11px] font-bold text-slate-700 border border-emerald-200/80 inline-flex items-center gap-1 shrink-0 cursor-pointer"
+              className="px-2.5 py-1 rounded-xl bg-white hover:bg-stone-50 text-[11px] font-semibold text-slate-700 border border-emerald-200/80 inline-flex items-center gap-1 shrink-0 cursor-pointer"
             >
               <span>1 Bulan</span>
               <X className="w-3 h-3" />
@@ -620,7 +620,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
             className="glass-chip rounded-2xl p-2.5 space-y-2 animate-liquid-panel"
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-bold text-slate-700 inline-flex items-center gap-1">
+              <span className="text-[11px] font-semibold text-slate-700 inline-flex items-center gap-1">
                 <Wallet className="w-3.5 h-3.5 text-emerald-600" />
                 Target Budget Bulanan
               </span>
@@ -645,7 +645,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                   value={budgetDraft}
                   onChange={(e) => setBudgetDraft(formatIdrInput(e.target.value))}
                   placeholder="1.500.000"
-                  className="flex-1 min-w-0 bg-transparent text-xs font-extrabold text-slate-900 outline-none tabular-nums"
+                  className="flex-1 min-w-0 bg-transparent text-xs font-bold text-slate-900 outline-none tabular-nums"
                 />
               </div>
               {monthlyBudget && monthlyBudget > 0 && (
@@ -655,7 +655,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                     onSaveBudget(null)
                     setEditingBudget(false)
                   }}
-                  className="min-h-9 px-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold cursor-pointer shrink-0"
+                  className="min-h-9 px-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-semibold cursor-pointer shrink-0"
                 >
                   Hapus
                 </button>
@@ -663,7 +663,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
               <button
                 type="submit"
                 data-testid="monthly-budget-save-btn"
-                className="min-h-9 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold cursor-pointer shrink-0"
+                className="min-h-9 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold cursor-pointer shrink-0"
               >
                 Simpan
               </button>
@@ -680,12 +680,12 @@ export const ProductCatalogView = memo(function ProductCatalogView({
             className="w-full glass-chip rounded-2xl px-3 py-2 text-left space-y-1.5 cursor-pointer"
           >
             <div className="flex items-center justify-between gap-2 text-[11px]">
-              <span className="font-bold text-slate-600 inline-flex items-center gap-1">
+              <span className="font-medium text-slate-600 inline-flex items-center gap-1">
                 <Wallet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 <span>Budget {formatRupiah(monthlyBudget)}</span>
               </span>
               <span
-                className={`font-extrabold tabular-nums ${
+                className={`font-bold tabular-nums ${
                   isOverBudget
                     ? 'text-rose-600'
                     : isNearBudget
@@ -718,11 +718,11 @@ export const ProductCatalogView = memo(function ProductCatalogView({
         {/* Exact Total Footer + MoM Delta + Uniform Action Cluster */}
         <div className="pt-2.5 border-t border-slate-900/8 flex items-center justify-between gap-2 text-xs">
           <div className="text-slate-600 flex items-center gap-1.5 flex-wrap min-w-0">
-            <span>
+            <span className="font-medium">
               Total:{' '}
               <span
                 data-testid="monthly-exact-total"
-                className="font-extrabold text-slate-900 tabular-nums tracking-tight"
+                className="text-sm font-bold text-slate-900 tabular-nums tracking-[-0.015em]"
               >
                 <AnimatedRupiah
                   amount={scopedTotalSpend}
@@ -734,7 +734,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
               previousMonthTotalSpend > 0 &&
               monthlyTotalSpend > 0 && (
               <span
-                className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums ${
+                className={`px-1.5 py-0.5 rounded-md text-[11px] font-semibold tabular-nums ${
                   monthlyTotalSpend <= previousMonthTotalSpend
                     ? 'bg-emerald-50 text-emerald-700'
                     : 'bg-amber-50 text-amber-800'
@@ -757,7 +757,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                   setBudgetDraft('')
                   setEditingBudget(true)
                 }}
-                className="inline-flex items-center gap-1 min-h-9 px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-bold cursor-pointer"
+                className="inline-flex items-center gap-1 min-h-9 px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-semibold cursor-pointer"
               >
                 <Wallet className="w-3.5 h-3.5" />
                 <span>Budget</span>
@@ -784,7 +784,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                   setSearch('')
                   setOpenFilterMenu(null)
                 }}
-                className="inline-flex items-center gap-1 min-h-9 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold cursor-pointer"
+                className="inline-flex items-center gap-1 min-h-9 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
                 <span>Reset</span>
@@ -798,7 +798,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                     chartMode === 'store' ? 'stores' : 'categories',
                   )
                 }
-                className="inline-flex items-center gap-1 min-h-9 px-2.5 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-[11px] font-bold cursor-pointer"
+                className="inline-flex items-center gap-1 min-h-9 px-2.5 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-[11px] font-semibold cursor-pointer"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-700" />
                 <span>
@@ -846,7 +846,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
           data-testid="open-import-note-btn"
           aria-label="Impor atau salin catatan teks"
           onClick={onOpenImportModal}
-          className="glass-pill min-h-11 px-3 rounded-xl text-slate-700 text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer"
+          className="glass-pill min-h-11 px-3 rounded-xl text-slate-700 text-xs font-semibold flex items-center gap-1.5 shrink-0 cursor-pointer"
         >
           <FileText className="w-4 h-4 text-emerald-600" />
           <span>Teks</span>
@@ -879,7 +879,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
             onClick={() =>
               setSortOrder((prev) => (prev === 'az' ? 'za' : 'az'))
             }
-            className={`min-h-8 px-2.5 rounded-xl text-[11px] font-extrabold shrink-0 inline-flex items-center gap-1 transition-all active:scale-95 cursor-pointer ${
+            className={`min-h-8 px-2.5 rounded-xl text-[11px] font-semibold shrink-0 inline-flex items-center gap-1 transition-all active:scale-95 cursor-pointer ${
               sortOrder === 'za'
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'bg-white/60 text-slate-700 hover:bg-white/85'
@@ -906,7 +906,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
             onClick={() =>
               setOpenFilterMenu((prev) => (prev === 'store' ? null : 'store'))
             }
-            className={`flex-1 min-w-0 min-h-8 px-2.5 rounded-xl text-xs font-bold inline-flex items-center justify-between gap-1 transition-all cursor-pointer border ${
+            className={`flex-1 min-w-0 min-h-8 px-2.5 rounded-xl text-xs font-semibold inline-flex items-center justify-between gap-1 transition-all cursor-pointer border ${
               selectedStoreCfg
                 ? ''
                 : openFilterMenu === 'store'
@@ -974,7 +974,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                 prev === 'category' ? null : 'category',
               )
             }
-            className={`flex-1 min-w-0 min-h-8 px-2.5 rounded-xl text-xs font-bold inline-flex items-center justify-between gap-1 transition-all cursor-pointer border ${
+            className={`flex-1 min-w-0 min-h-8 px-2.5 rounded-xl text-xs font-semibold inline-flex items-center justify-between gap-1 transition-all cursor-pointer border ${
               selectedCategoryCfg
                 ? ''
                 : openFilterMenu === 'category'
@@ -1036,7 +1036,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
           {/* Compact Result Count Pill */}
           <span
             data-testid="filtered-ref-count"
-            className="min-w-7 h-7 px-1.5 rounded-xl bg-slate-900/8 text-[11px] font-extrabold text-slate-700 tabular-nums inline-flex items-center justify-center shrink-0"
+            className="min-w-7 h-7 px-1.5 rounded-xl bg-slate-900/8 text-[11px] font-semibold text-slate-700 tabular-nums inline-flex items-center justify-center shrink-0"
           >
             {filteredRefs.length}
           </span>
@@ -1049,7 +1049,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
             className="surface-card rounded-2xl p-3 space-y-2.5 animate-liquid-panel"
           >
             <div className="flex items-center justify-between px-0.5">
-              <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-600">
                 Filter Tempat Belanja
               </span>
               <button
@@ -1059,7 +1059,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                   setOpenFilterMenu(null)
                   onOpenManageConfig('stores')
                 }}
-                className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1 cursor-pointer"
+                className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1 cursor-pointer"
               >
                 <SlidersHorizontal className="w-3 h-3" />
                 <span>Atur Toko</span>
@@ -1081,11 +1081,11 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                 }`}
               >
                 <div className="flex items-center justify-between gap-1">
-                  <span className="text-xs font-extrabold">Semua Toko</span>
+                  <span className="text-xs font-bold">Semua Toko</span>
                   {selectedStore === 'all' && <Check className="w-3.5 h-3.5" />}
                 </div>
                 <span
-                  className={`text-[11px] font-semibold tabular-nums ${
+                  className={`text-[11px] font-medium tabular-nums ${
                     selectedStore === 'all' ? 'text-white/75' : 'text-slate-500'
                   }`}
                 >
@@ -1126,18 +1126,18 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                           className="w-2.5 h-2.5 rounded-full shrink-0"
                           style={{ backgroundColor: s.color }}
                         />
-                        <span className="text-xs font-extrabold text-slate-900 truncate">
+                        <span className="text-[13px] font-semibold text-slate-900 truncate">
                           {s.shortLabel}
                         </span>
                       </span>
                       <span
-                        className="px-1.5 py-0.2 rounded-md text-[10px] font-extrabold shrink-0"
+                        className="px-1.5 py-0.5 rounded-md text-[11px] font-semibold shrink-0 leading-none"
                         style={getTintedPillStyle(s.color)}
                       >
                         {s.code}
                       </span>
                     </div>
-                    <span className="text-[11px] font-semibold text-slate-500 tabular-nums truncate">
+                    <span className="text-[11px] font-medium text-slate-600 tabular-nums truncate">
                       {count} bahan · {formatRupiah(spend)}
                     </span>
                   </button>
@@ -1154,7 +1154,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
             className="surface-card rounded-2xl p-3 space-y-2.5 animate-liquid-panel"
           >
             <div className="flex items-center justify-between px-0.5">
-              <span className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-600">
                 Filter Kategori
               </span>
               <button
@@ -1164,7 +1164,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                   setOpenFilterMenu(null)
                   onOpenManageConfig('categories')
                 }}
-                className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1 cursor-pointer"
+                className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1 cursor-pointer"
               >
                 <SlidersHorizontal className="w-3 h-3" />
                 <span>Atur Kategori</span>
@@ -1185,13 +1185,13 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                 }`}
               >
                 <div className="flex items-center justify-between gap-1">
-                  <span className="text-xs font-extrabold">Semua Kategori</span>
+                  <span className="text-xs font-bold">Semua Kategori</span>
                   {selectedCategory === 'all' && (
                     <Check className="w-3.5 h-3.5" />
                   )}
                 </div>
                 <span
-                  className={`text-[11px] font-semibold tabular-nums ${
+                  className={`text-[11px] font-medium tabular-nums ${
                     selectedCategory === 'all'
                       ? 'text-white/75'
                       : 'text-slate-500'
@@ -1234,7 +1234,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                           className="w-2.5 h-2.5 rounded-full shrink-0"
                           style={{ backgroundColor: cat.color }}
                         />
-                        <span className="text-xs font-extrabold text-slate-900 truncate">
+                        <span className="text-[13px] font-semibold text-slate-900 truncate">
                           {cat.name}
                         </span>
                       </span>
@@ -1245,7 +1245,7 @@ export const ProductCatalogView = memo(function ProductCatalogView({
                         />
                       )}
                     </div>
-                    <span className="text-[11px] font-semibold text-slate-500 tabular-nums truncate">
+                    <span className="text-[11px] font-medium text-slate-600 tabular-nums truncate">
                       {count} bahan
                       {spend > 0 ? ` · ${formatRupiah(spend)}` : ''}
                     </span>

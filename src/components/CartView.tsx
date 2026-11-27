@@ -170,7 +170,7 @@ export const CartView = memo(function CartView({
       {/* Live Partner Collaboration Banner when 2+ devices are online */}
       {(syncStatus === 'connected' || syncStatus === 'syncing') &&
         onlineDevices > 1 && (
-        <div className="glass-chip px-3.5 py-2.5 rounded-2xl text-emerald-800 text-[11px] font-bold flex items-center justify-between gap-2">
+        <div className="glass-chip px-3.5 py-2.5 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center justify-between gap-2">
           <span className="inline-flex items-center gap-2">
             <span className="live-dot" />
             Belanja bareng aktif ({onlineDevices} HP terhubung)
@@ -189,7 +189,7 @@ export const CartView = memo(function CartView({
                 data-testid="cart-store-filter-trigger"
                 aria-expanded={filterOpen}
                 onClick={() => setFilterOpen((prev) => !prev)}
-                className={`min-h-10 px-3 rounded-xl border text-xs font-extrabold inline-flex items-center gap-1.5 liquid-press cursor-pointer max-w-[205px] ${
+                className={`min-h-10 px-3 rounded-xl border text-xs font-semibold inline-flex items-center gap-1.5 liquid-press cursor-pointer max-w-[205px] ${
                   effectiveFilter === 'unassigned'
                     ? 'bg-amber-50/95 border-amber-300 text-amber-800 shadow-xs'
                     : selectedStoreCfg
@@ -239,7 +239,7 @@ export const CartView = memo(function CartView({
                 onClick={() =>
                   setCartSortOrder((prev) => (prev === 'az' ? 'za' : 'az'))
                 }
-                className={`min-h-10 px-2.5 rounded-xl border text-xs font-extrabold inline-flex items-center gap-1 liquid-press cursor-pointer ${
+                className={`min-h-10 px-2.5 rounded-xl border text-xs font-semibold inline-flex items-center gap-1 liquid-press cursor-pointer ${
                   cartSortOrder === 'za'
                     ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
                     : 'glass-chip text-slate-800 hover:border-emerald-400'
@@ -263,7 +263,7 @@ export const CartView = memo(function CartView({
                 data-testid="cart-share-btn"
                 aria-label="Bagikan daftar belanja ke WhatsApp"
                 onClick={onShareCart}
-                className="glass-chip min-h-10 px-2.5 rounded-xl text-xs font-bold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1 cursor-pointer"
+                className="glass-chip min-h-10 px-2.5 rounded-xl text-xs font-semibold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1 cursor-pointer"
               >
                 <Share2 className="w-3.5 h-3.5" />
                 <span>Bagikan</span>
@@ -285,7 +285,7 @@ export const CartView = memo(function CartView({
                     setStoreFilter('all')
                     setFilterOpen(false)
                   }}
-                  className={`min-h-10 px-2.5 rounded-xl text-left flex items-center justify-between gap-1.5 text-xs font-bold border liquid-press cursor-pointer ${
+                  className={`min-h-10 px-2.5 rounded-xl text-left flex items-center justify-between gap-1.5 text-xs font-semibold border liquid-press cursor-pointer ${
                     effectiveFilter === 'all'
                       ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
                       : 'bg-white/85 border-white text-slate-700 hover:bg-white'
@@ -293,7 +293,7 @@ export const CartView = memo(function CartView({
                 >
                   <span className="truncate">Semua Toko</span>
                   <span
-                    className={`text-[11px] font-extrabold tabular-nums ${
+                    className={`text-[11px] font-medium tabular-nums ${
                       effectiveFilter === 'all'
                         ? 'text-slate-300'
                         : 'text-slate-400'
@@ -311,7 +311,7 @@ export const CartView = memo(function CartView({
                       setStoreFilter('unassigned')
                       setFilterOpen(false)
                     }}
-                    className={`min-h-10 px-2.5 rounded-xl text-left flex items-center justify-between gap-1.5 text-xs font-bold border liquid-press cursor-pointer ${
+                    className={`min-h-10 px-2.5 rounded-xl text-left flex items-center justify-between gap-1.5 text-xs font-semibold border liquid-press cursor-pointer ${
                       effectiveFilter === 'unassigned'
                         ? 'bg-amber-500 border-amber-500 text-white shadow-xs'
                         : 'bg-amber-50/90 border-amber-200/80 text-amber-800'
@@ -327,7 +327,7 @@ export const CartView = memo(function CartView({
                       />
                       <span className="truncate">Belum pilih</span>
                     </span>
-                    <span className="text-[11px] font-extrabold tabular-nums">
+                    <span className="text-[11px] font-medium tabular-nums">
                       {storeCounts.unassigned}
                     </span>
                   </button>
@@ -345,7 +345,7 @@ export const CartView = memo(function CartView({
                         setStoreFilter(s.id)
                         setFilterOpen(false)
                       }}
-                      className={`min-h-10 px-2.5 rounded-xl text-left flex items-center justify-between gap-1.5 text-xs font-bold border liquid-press cursor-pointer ${
+                      className={`min-h-10 px-2.5 rounded-xl text-left flex items-center justify-between gap-1.5 text-xs font-semibold border liquid-press cursor-pointer ${
                         isSelected
                           ? 'shadow-xs'
                           : count > 0
@@ -364,7 +364,7 @@ export const CartView = memo(function CartView({
                         <span className="truncate">{s.shortLabel}</span>
                       </span>
                       <span
-                        className={`text-[11px] font-extrabold tabular-nums ${
+                        className={`text-[11px] font-medium tabular-nums ${
                           isSelected ? 'text-white/90' : ''
                         }`}
                       >
@@ -398,17 +398,17 @@ export const CartView = memo(function CartView({
       ) : hasAnyActiveItems && effectiveFilter !== 'all' ? (
         <div className="surface-card rounded-2xl px-4 py-4 flex items-center justify-between gap-3 animate-liquid-enter">
           <div className="min-w-0">
-            <p className="text-xs font-extrabold text-slate-800">
+            <p className="text-[13px] font-bold text-slate-800">
               Belum ada item di {selectedStoreCfg?.shortLabel ?? 'filter ini'}
             </p>
-            <p className="text-[11px] text-slate-600">
+            <p className="text-xs font-medium text-slate-600 mt-0.5">
               Atur toko langsung di tiap baris item keranjang.
             </p>
           </div>
           <button
             type="button"
             onClick={() => setStoreFilter('all')}
-            className="glass-chip min-h-10 px-3 rounded-xl text-emerald-700 text-xs font-bold shrink-0 cursor-pointer"
+            className="glass-chip min-h-10 px-3 rounded-xl text-emerald-700 text-xs font-semibold shrink-0 cursor-pointer"
           >
             Semua
           </button>
@@ -419,7 +419,7 @@ export const CartView = memo(function CartView({
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-sm font-extrabold text-slate-900">
+            <h2 className="text-[15px] font-bold tracking-[-0.015em] text-slate-900">
               Belanja minggu ini selesai
             </h2>
             <p className="text-xs text-slate-600">
@@ -439,7 +439,7 @@ export const CartView = memo(function CartView({
               <ShoppingBasket className="w-4.5 h-4.5" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-[14px] font-extrabold text-slate-900 leading-snug">
+              <h2 className="text-[15px] font-bold tracking-[-0.015em] text-slate-900 leading-snug">
                 Keranjang kosong
               </h2>
               <p className="text-xs text-slate-500 truncate">
@@ -457,7 +457,7 @@ export const CartView = memo(function CartView({
           >
             <span className="flex items-center gap-2.5 min-w-0">
               <NotebookPen className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span className="text-[13px] font-bold text-slate-800 truncate">
+              <span className="text-sm font-semibold text-slate-800 truncate">
                 Pilih dari Catatan
               </span>
             </span>
@@ -476,7 +476,7 @@ export const CartView = memo(function CartView({
           >
             <span className="flex items-center gap-2.5 min-w-0">
               <ChefHat className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span className="text-[13px] font-bold text-slate-800 truncate">
+              <span className="text-sm font-semibold text-slate-800 truncate">
                 Muat Paket Masak
               </span>
             </span>
@@ -496,12 +496,12 @@ export const CartView = memo(function CartView({
             >
               <span className="flex items-center gap-2.5 min-w-0">
                 <CalendarDays className="w-4 h-4 text-slate-500 shrink-0" />
-                <span className="text-[13px] font-semibold text-slate-700 truncate">
+                <span className="text-sm font-semibold text-slate-700 truncate">
                   Belanja terakhir ·{' '}
                   {formatShortDateLabel(lastShoppingTrip.dateKey)}
                 </span>
               </span>
-              <span className="flex items-center gap-1 text-xs font-extrabold text-emerald-700 shrink-0 tabular-nums">
+              <span className="flex items-center gap-1 text-xs font-bold text-emerald-700 shrink-0 tabular-nums">
                 <span>{formatRupiah(lastShoppingTrip.total)}</span>
                 <ChevronRight className="w-4 h-4 text-slate-300" />
               </span>

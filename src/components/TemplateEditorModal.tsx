@@ -305,10 +305,10 @@ export function TemplateEditorModal({
                         })
                       }
                       placeholder="Jumlah"
-                      className="min-h-10 px-2.5 rounded-xl bg-stone-50 border border-stone-200 text-xs font-semibold text-slate-800 outline-none"
+                      className="w-full min-w-0 min-h-10 px-2.5 rounded-xl bg-stone-50 border border-stone-200 text-xs font-semibold text-slate-800 outline-none"
                     />
 
-                    <div className="flex items-center gap-1 min-h-10 px-2 rounded-xl bg-stone-50 border border-stone-200">
+                    <div className="flex items-center gap-1 min-w-0 min-h-10 px-2 rounded-xl bg-stone-50 border border-stone-200">
                       <span className="text-[10px] font-bold text-stone-400">
                         Rp
                       </span>
@@ -335,7 +335,7 @@ export function TemplateEditorModal({
                           store: (e.target.value || null) as StoreSource | null,
                         })
                       }
-                      className="min-h-10 px-2 rounded-xl bg-stone-50 border border-stone-200 text-xs font-semibold text-slate-700 outline-none"
+                      className="w-full min-w-0 min-h-10 px-2 rounded-xl bg-stone-50 border border-stone-200 text-xs font-semibold text-slate-700 outline-none"
                     >
                       <option value="">Pilih nanti</option>
                       {stores.map((s) => (
@@ -382,7 +382,7 @@ export function TemplateEditorModal({
                   value={newIngName}
                   onChange={(e) => setNewIngName(e.target.value)}
                   placeholder="Nama bahan..."
-                  className="col-span-2 min-h-11 px-3 rounded-xl bg-white border border-stone-200 text-sm font-medium text-slate-900 outline-none"
+                  className="col-span-2 w-full min-w-0 min-h-11 px-3 rounded-xl bg-white border border-stone-200 text-sm font-medium text-slate-900 outline-none"
                 />
                 <input
                   type="text"
@@ -390,11 +390,11 @@ export function TemplateEditorModal({
                   value={newIngQty}
                   onChange={(e) => setNewIngQty(e.target.value)}
                   placeholder="1 kg"
-                  className="min-h-11 px-2.5 rounded-xl bg-white border border-stone-200 text-xs font-semibold text-slate-900 outline-none"
+                  className="w-full min-w-0 min-h-11 px-2.5 rounded-xl bg-white border border-stone-200 text-xs font-semibold text-slate-900 outline-none"
                 />
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="flex-1 flex items-center gap-1 min-h-11 px-2.5 rounded-xl bg-white border border-stone-200">
+                <div className="flex-1 min-w-0 flex items-center gap-1 min-h-11 px-2.5 rounded-xl bg-white border border-stone-200">
                   <span className="text-[11px] font-bold text-stone-400">
                     Rp
                   </span>
@@ -413,7 +413,7 @@ export function TemplateEditorModal({
                 <select
                   value={newIngStore}
                   onChange={(e) => setNewIngStore(e.target.value)}
-                  className="min-h-11 px-2 rounded-xl bg-white border border-stone-200 text-xs font-semibold text-slate-700 outline-none"
+                  className="min-w-0 min-h-11 px-2 rounded-xl bg-white border border-stone-200 text-xs font-semibold text-slate-700 outline-none"
                 >
                   <option value="">Toko nanti</option>
                   {stores.map((s) => (

@@ -233,7 +233,7 @@ export function ManageConfigModal({
                     value={storeName}
                     onChange={(e) => setStoreName(e.target.value)}
                     placeholder="mis. Superindo"
-                    className="col-span-2 min-h-11 px-3 rounded-xl bg-stone-50 border border-stone-200 focus:border-emerald-600 focus:bg-white text-sm font-semibold text-slate-900 outline-none"
+                    className="col-span-2 w-full min-w-0 min-h-11 px-3 rounded-xl bg-stone-50 border border-stone-200 focus:border-emerald-600 focus:bg-white text-sm font-semibold text-slate-900 outline-none"
                   />
                   <input
                     type="text"
@@ -242,7 +242,7 @@ export function ManageConfigModal({
                     value={storeCode}
                     onChange={(e) => setStoreCode(e.target.value)}
                     placeholder="Kode (S)"
-                    className="min-h-11 px-3 rounded-xl bg-stone-50 border border-stone-200 focus:border-emerald-600 focus:bg-white text-sm font-bold text-slate-900 outline-none"
+                    className="w-full min-w-0 min-h-11 px-3 rounded-xl bg-stone-50 border border-stone-200 focus:border-emerald-600 focus:bg-white text-sm font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -357,7 +357,7 @@ export function ManageConfigModal({
                     value={catName}
                     onChange={(e) => setCatName(e.target.value)}
                     placeholder="mis. Jajanan & Minuman"
-                    className="col-span-2 min-h-11 px-3 rounded-xl bg-stone-50 border border-stone-200 focus:border-emerald-600 focus:bg-white text-sm font-semibold text-slate-900 outline-none"
+                    className="col-span-2 w-full min-w-0 min-h-11 px-3 rounded-xl bg-stone-50 border border-stone-200 focus:border-emerald-600 focus:bg-white text-sm font-semibold text-slate-900 outline-none"
                   />
                   <input
                     type="text"
@@ -365,7 +365,7 @@ export function ManageConfigModal({
                     value={catShort}
                     onChange={(e) => setCatShort(e.target.value)}
                     placeholder="Singkat"
-                    className="min-h-11 px-3 rounded-xl bg-stone-50 border border-stone-200 focus:border-emerald-600 focus:bg-white text-sm font-semibold text-slate-900 outline-none"
+                    className="w-full min-w-0 min-h-11 px-3 rounded-xl bg-stone-50 border border-stone-200 focus:border-emerald-600 focus:bg-white text-sm font-semibold text-slate-900 outline-none"
                   />
                 </div>
 

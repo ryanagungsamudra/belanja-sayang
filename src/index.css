@@ -55,9 +55,21 @@
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto,
       "Helvetica Neue", Arial, sans-serif;
     -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    touch-action: manipulation;
     overscroll-behavior-y: contain;
     background: linear-gradient(155deg, #dcece4 0%, #e7e5df 52%, #dce4f4 100%);
   }
+}
+
+/* Prevent iOS Safari / standalone PWA auto-zoom when focusing inputs, textareas, or selects (< 16px triggers zoom).
+   Unlayered rule intentionally overrides @layer utilities (text-xs, text-sm, text-[15px]) while preserving larger sizes (.text-lg, .text-xl, .text-2xl). */
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not(.text-lg):not(.text-xl):not(.text-2xl),
+textarea:not(.text-lg):not(.text-xl):not(.text-2xl),
+select:not(.text-lg):not(.text-xl):not(.text-2xl) {
+  font-size: 16px;
+  touch-action: manipulation;
 }
 
 /* Hide scrollbars on horizontal strips */
